@@ -12,6 +12,7 @@ import {
   Row,
   Col,
   Progress,
+  Switch,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { FiUpload, FiDownload } from "react-icons/fi";
@@ -211,12 +212,6 @@ const CreateEquipmentModal = ({
 
   const renderStep1 = () => (
     <div className="space-y-4">
-      <div className="text-center mb-4">
-        <div className="bg-blue-500 text-white px-4 py-2 rounded-full inline-block">
-          Общее
-        </div>
-      </div>
-
       <Form
         form={form}
         layout="vertical"
@@ -236,9 +231,7 @@ const CreateEquipmentModal = ({
           </Col>
           <Col span={6}>
             <div className="text-right mt-8">
-              <Button type="primary" icon={<FiUpload />} size="small">
-                Загрузить
-              </Button>
+              <Input type="file" accept="image/*" variant="underlined" />
             </div>
           </Col>
         </Row>
@@ -286,6 +279,19 @@ const CreateEquipmentModal = ({
           </Col>
         </Row>
 
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              label="Количество"
+              name="count"
+              rules={[{ required: true, message: "Введите количество!" }]}
+              className="mb-3"
+            >
+              <Input type="number" min="1" placeholder="1" />
+            </Form.Item>
+          </Col>
+        </Row>
+
         <div className="text-sm text-gray-600 mb-3">
           Автор: Даулетмуратов Ахмет Кубейсинович
         </div>
@@ -309,7 +315,6 @@ const CreateEquipmentModal = ({
       (spec) => spec.id === selectedSpecId
     );
 
-    // Функция для обновления выбранной спецификации
     const handleSpecificationChange = (value) => {
       const spec = availableSpecs.find((s) => s.id === value);
       setSelectedSpecification(spec);
@@ -318,13 +323,6 @@ const CreateEquipmentModal = ({
 
     return (
       <div className="space-y-4">
-        <div className="text-center mb-4">
-          <div className="bg-blue-500 text-white px-4 py-2 rounded-full inline-block">
-            Характеристики
-          </div>
-        </div>
-
-        {/* Template Selection First */}
         <Form.Item
           label="Шаблон характеристики"
           name={specFieldName}
@@ -343,125 +341,387 @@ const CreateEquipmentModal = ({
           </Select>
         </Form.Item>
 
-        {/* Characteristics Fields (Read-only) */}
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="Процессор:" className="mb-3">
-              <Input
-                placeholder="Процессор:"
-                value={selectedSpec?.cpu || ""}
-                disabled
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="Оперативная память:" className="mb-3">
-              <Input
-                placeholder="Оперативная память:"
-                value={selectedSpec?.ram || ""}
-                disabled
-              />
-            </Form.Item>
-          </Col>
-        </Row>
+        {/* Computer characteristics */}
+        {equipmentType?.name?.toLowerCase().includes("компьютер") &&
+          selectedSpec && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Процессор:" className="mb-3">
+                    <Input
+                      placeholder="Процессор:"
+                      value={selectedSpec.cpu || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Оперативная память:" className="mb-3">
+                    <Input
+                      placeholder="Оперативная память:"
+                      value={selectedSpec.ram || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="Накопитель (SSD):" className="mb-3">
-              <Input
-                placeholder="Накопитель (SSD):"
-                value={selectedSpec?.storage || ""}
-                disabled
-              />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="Накопитель (HDD):" className="mb-3">
-              <Input placeholder="Накопитель (HDD):" disabled />
-            </Form.Item>
-          </Col>
-        </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Накопитель:" className="mb-3">
+                    <Input
+                      placeholder="Накопитель:"
+                      value={selectedSpec.storage || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Размер монитора:" className="mb-3">
+                    <Input
+                      placeholder="Размер монитора:"
+                      value={
+                        selectedSpec.monitor_size
+                          ? `${selectedSpec.monitor_size}"`
+                          : ""
+                      }
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="Накопитель (M2):" className="mb-3">
-              <Input placeholder="Накопитель (M2):" disabled />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="Накопитель (SATA SDD):" className="mb-3">
-              <Input placeholder="Накопитель (SATA SDD):" disabled />
-            </Form.Item>
-          </Col>
-        </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span className="text-sm">Мышка</span>
+                    <Switch checked={selectedSpec.has_mouse} disabled />
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span className="text-sm">Клавиатура</span>
+                    <Switch checked={selectedSpec.has_keyboard} disabled />
+                  </div>
+                </Col>
+              </Row>
+            </>
+          )}
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item label="Видеокарта:" className="mb-3">
-              <Input placeholder="Видеокарта:" disabled />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <div className="flex items-center justify-between mt-8">
-              <Button
-                type="text"
-                className="text-gray-400"
-                disabled
-                size="small"
-              >
-                — Убавить
-              </Button>
-              <span className="text-sm">Кол-во</span>
-              <Button
-                type="text"
-                className="text-blue-500"
-                disabled
-                size="small"
-              >
-                + Добавить
-              </Button>
-            </div>
-          </Col>
-        </Row>
+        {/* Projector characteristics */}
+        {equipmentType?.name?.toLowerCase().includes("проектор") &&
+          selectedSpec && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Модель:" className="mb-3">
+                    <Input
+                      placeholder="Модель:"
+                      value={selectedSpec.model || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Яркость (люмен):" className="mb-3">
+                    <Input
+                      placeholder="Яркость:"
+                      value={selectedSpec.lumens || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm">Мышка</span>
-              <div
-                className={`w-10 h-6 rounded-full ${
-                  selectedSpec?.has_mouse ? "bg-blue-500" : "bg-gray-300"
-                } relative`}
-              >
-                <div
-                  className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${
-                    selectedSpec?.has_mouse
-                      ? "translate-x-4"
-                      : "translate-x-0.5"
-                  }`}
-                ></div>
-              </div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm">Клавиатура</span>
-              <div
-                className={`w-10 h-6 rounded-full ${
-                  selectedSpec?.has_keyboard ? "bg-blue-500" : "bg-gray-300"
-                } relative`}
-              >
-                <div
-                  className={`w-5 h-5 bg-white rounded-full absolute top-0.5 transition-transform ${
-                    selectedSpec?.has_keyboard
-                      ? "translate-x-4"
-                      : "translate-x-0.5"
-                  }`}
-                ></div>
-              </div>
-            </div>
-          </Col>
-        </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Разрешение:" className="mb-3">
+                    <Input
+                      placeholder="Разрешение:"
+                      value={selectedSpec.resolution || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Тип проекции:" className="mb-3">
+                    <Input
+                      placeholder="Тип проекции:"
+                      value={selectedSpec.throw_type || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+        {/* Printer characteristics */}
+        {equipmentType?.name?.toLowerCase().includes("принтер") &&
+          selectedSpec && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Модель:" className="mb-3">
+                    <Input
+                      placeholder="Модель:"
+                      value={selectedSpec.model || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span className="text-sm">Цветная печать</span>
+                    <Switch checked={selectedSpec.color} disabled />
+                  </div>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span className="text-sm">Двусторонняя печать</span>
+                    <Switch checked={selectedSpec.duplex} disabled />
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Серийный номер:" className="mb-3">
+                    <Input
+                      placeholder="Серийный номер:"
+                      value={selectedSpec.serial_number || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+        {/* TV characteristics */}
+        {equipmentType?.name?.toLowerCase().includes("телевизор") &&
+          selectedSpec && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Модель:" className="mb-3">
+                    <Input
+                      placeholder="Модель:"
+                      value={selectedSpec.model || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Размер экрана (дюймы):" className="mb-3">
+                    <Input
+                      placeholder="Размер экрана:"
+                      value={
+                        selectedSpec.screen_size
+                          ? `${selectedSpec.screen_size}"`
+                          : ""
+                      }
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+        {/* Router characteristics */}
+        {equipmentType?.name?.toLowerCase().includes("роутер") &&
+          selectedSpec && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Модель:" className="mb-3">
+                    <Input
+                      placeholder="Модель:"
+                      value={selectedSpec.model || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Количество портов:" className="mb-3">
+                    <Input
+                      placeholder="Порты:"
+                      value={selectedSpec.ports || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="WiFi стандарт:" className="mb-3">
+                    <Input
+                      placeholder="WiFi стандарт:"
+                      value={selectedSpec.wifi_standart || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+        {/* Notebook characteristics */}
+        {equipmentType?.name?.toLowerCase().includes("ноутбук") &&
+          selectedSpec && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Процессор:" className="mb-3">
+                    <Input
+                      placeholder="Процессор:"
+                      value={selectedSpec.cpu || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Оперативная память:" className="mb-3">
+                    <Input
+                      placeholder="ОЗУ:"
+                      value={selectedSpec.ram || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Накопитель:" className="mb-3">
+                    <Input
+                      placeholder="Накопитель:"
+                      value={selectedSpec.storage || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Размер экрана:" className="mb-3">
+                    <Input
+                      placeholder="Размер экрана:"
+                      value={
+                        selectedSpec.monitor_size
+                          ? `${selectedSpec.monitor_size}"`
+                          : ""
+                      }
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+        {/* Monoblok characteristics */}
+        {equipmentType?.name?.toLowerCase().includes("моноблок") &&
+          selectedSpec && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Размер экрана:" className="mb-3">
+                    <Input
+                      placeholder="Размер экрана:"
+                      value={
+                        selectedSpec.screen_size
+                          ? `${selectedSpec.screen_size}"`
+                          : ""
+                      }
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Тип касания:" className="mb-3">
+                    <Input
+                      placeholder="Тип касания:"
+                      value={selectedSpec.touch_type || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+        {/* Whiteboard characteristics */}
+        {equipmentType?.name?.toLowerCase().includes("доска") &&
+          selectedSpec && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Модель:" className="mb-3">
+                    <Input
+                      placeholder="Модель:"
+                      value={selectedSpec.model || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Размер экрана:" className="mb-3">
+                    <Input
+                      placeholder="Размер:"
+                      value={
+                        selectedSpec.screen_size
+                          ? `${selectedSpec.screen_size}"`
+                          : ""
+                      }
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Тип касания:" className="mb-3">
+                    <Input
+                      placeholder="Тип касания:"
+                      value={selectedSpec.touch_type || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+        {/* Extender characteristics */}
+        {equipmentType?.name?.toLowerCase().includes("удлинитель") &&
+          selectedSpec && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Количество портов:" className="mb-3">
+                    <Input
+                      placeholder="Порты:"
+                      value={selectedSpec.ports || ""}
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Длина (метры):" className="mb-3">
+                    <Input
+                      placeholder="Длина:"
+                      value={
+                        selectedSpec.length ? `${selectedSpec.length}м` : ""
+                      }
+                      disabled
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
 
         <div className="text-sm text-gray-600 mb-3">
           Автор: Даулетмуратов Ахмет Кубейсинович
@@ -485,10 +745,6 @@ const CreateEquipmentModal = ({
     if (isCompleted) {
       return (
         <div className="text-center space-y-4">
-          <div className="bg-green-500 text-white px-4 py-2 rounded-full inline-block mb-4">
-            Завершено
-          </div>
-
           <div className="space-y-3">
             <h3 className="text-lg font-medium">
               Оборудование успешно создано!

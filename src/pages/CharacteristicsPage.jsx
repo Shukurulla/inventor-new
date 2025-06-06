@@ -99,6 +99,16 @@ const CharacteristicsPage = () => {
       icon: "ноутбук",
       color: "bg-blue-100 text-blue-600",
     },
+    {
+      name: "Роутер",
+      icon: "роутер",
+      color: "bg-red-100 text-red-600",
+    },
+    {
+      name: "Удлинитель",
+      icon: "удлинитель",
+      color: "bg-indigo-100 text-indigo-600",
+    },
   ];
 
   const handleCreateSpec = (equipmentTypeName) => {
@@ -124,7 +134,7 @@ const CharacteristicsPage = () => {
       else if (typeName.includes("телевизор")) action = createTVSpec;
       else if (typeName.includes("роутер")) action = createRouterSpec;
       else if (typeName.includes("ноутбук")) action = createNotebookSpec;
-      else if (typeName.includes("монитор")) action = createMonoblokSpec;
+      else if (typeName.includes("моноблок")) action = createMonoblokSpec;
       else if (typeName.includes("доска")) action = createWhiteboardSpec;
       else if (typeName.includes("удлинитель")) action = createExtenderSpec;
 
@@ -188,6 +198,43 @@ const CharacteristicsPage = () => {
     }
   };
 
+  const handleDeleteSpec = async (spec, typeName) => {
+    try {
+      const typeNameLower = typeName.toLowerCase();
+      let apiCall;
+
+      // Определяем какой API использовать для удаления
+      if (typeNameLower.includes("компьютер")) {
+        apiCall = () => specificationsAPI.deleteComputerSpec(spec.id);
+      } else if (typeNameLower.includes("проектор")) {
+        apiCall = () => specificationsAPI.deleteProjectorSpec(spec.id);
+      } else if (typeNameLower.includes("принтер")) {
+        apiCall = () => specificationsAPI.deletePrinterSpec(spec.id);
+      } else if (typeNameLower.includes("телевизор")) {
+        apiCall = () => specificationsAPI.deleteTVSpec(spec.id);
+      } else if (typeNameLower.includes("роутер")) {
+        apiCall = () => specificationsAPI.deleteRouterSpec(spec.id);
+      } else if (typeNameLower.includes("ноутбук")) {
+        apiCall = () => specificationsAPI.deleteNotebookSpec(spec.id);
+      } else if (typeNameLower.includes("моноблок")) {
+        apiCall = () => specificationsAPI.deleteMonoblokSpec(spec.id);
+      } else if (typeNameLower.includes("доска")) {
+        apiCall = () => specificationsAPI.deleteWhiteboardSpec(spec.id);
+      } else if (typeNameLower.includes("удлинитель")) {
+        apiCall = () => specificationsAPI.deleteExtenderSpec(spec.id);
+      }
+
+      if (apiCall) {
+        await apiCall();
+        message.success("Характеристика успешно удалена!");
+        dispatch(getAllSpecifications());
+        dispatch(getSpecificationCount());
+      }
+    } catch (error) {
+      message.error("Ошибка при удалении характеристики");
+    }
+  };
+
   const renderTemplatesTab = () => (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -232,6 +279,24 @@ const CharacteristicsPage = () => {
         </div>
         <div className="text-sm text-gray-500 mt-1">
           {type === "Принтер" && `Принтер - ID: ${spec.id}`}
+          {type === "Компьютер" &&
+            spec.cpu &&
+            `CPU: ${spec.cpu}, RAM: ${spec.ram}`}
+          {type === "Проектор" &&
+            spec.lumens &&
+            `Яркость: ${spec.lumens} люмен`}
+          {type === "Телевизор" &&
+            spec.screen_size &&
+            `Размер: ${spec.screen_size}"`}
+          {type === "Роутер" && spec.ports && `Порты: ${spec.ports}`}
+          {type === "Ноутбук" && spec.cpu && `CPU: ${spec.cpu}`}
+          {type === "Моноблок" &&
+            spec.screen_size &&
+            `Размер: ${spec.screen_size}"`}
+          {type === "Электронная доска" &&
+            spec.screen_size &&
+            `Размер: ${spec.screen_size}"`}
+          {type === "Удлинитель" && spec.ports && `Порты: ${spec.ports}`}
         </div>
       </div>
       <div className="flex items-center space-x-2">
@@ -246,6 +311,7 @@ const CharacteristicsPage = () => {
           description="Это действие нельзя отменить"
           okText="Да"
           cancelText="Нет"
+          onConfirm={() => handleDeleteSpec(spec, type)}
         >
           <Button type="text" danger icon={<FiTrash2 />} size="small" />
         </Popconfirm>
@@ -280,6 +346,38 @@ const CharacteristicsPage = () => {
         count: specifications.printer?.length || 0,
       },
       {
+        key: "tv",
+        name: "Телевизор",
+        icon: "телевизор",
+        data: specifications.tv,
+        color: "bg-orange-100 text-orange-600",
+        count: specifications.tv?.length || 0,
+      },
+      {
+        key: "router",
+        name: "Роутер",
+        icon: "роутер",
+        data: specifications.router,
+        color: "bg-red-100 text-red-600",
+        count: specifications.router?.length || 0,
+      },
+      {
+        key: "notebook",
+        name: "Ноутбук",
+        icon: "ноутбук",
+        data: specifications.notebook,
+        color: "bg-blue-100 text-blue-600",
+        count: specifications.notebook?.length || 0,
+      },
+      {
+        key: "monoblok",
+        name: "Моноблок",
+        icon: "моноблок",
+        data: specifications.monoblok,
+        color: "bg-green-100 text-green-600",
+        count: specifications.monoblok?.length || 0,
+      },
+      {
         key: "whiteboard",
         name: "Электронная доска",
         icon: "доска",
@@ -287,7 +385,29 @@ const CharacteristicsPage = () => {
         color: "bg-purple-100 text-purple-600",
         count: specifications.whiteboard?.length || 0,
       },
+      {
+        key: "extender",
+        name: "Удлинитель",
+        icon: "удлинитель",
+        data: specifications.extender,
+        color: "bg-indigo-100 text-indigo-600",
+        count: specifications.extender?.length || 0,
+      },
     ];
+
+    // Фильтруем только те типы, у которых есть данные
+    const typesWithData = specTypes.filter((specType) => specType.count > 0);
+
+    if (typesWithData.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <Empty
+            description="Нет созданных характеристик"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        </div>
+      );
+    }
 
     return (
       <div>
@@ -307,7 +427,7 @@ const CharacteristicsPage = () => {
           )}
           className="space-y-2"
         >
-          {specTypes.map((specType) => (
+          {typesWithData.map((specType) => (
             <Panel
               key={specType.key}
               header={
@@ -328,20 +448,13 @@ const CharacteristicsPage = () => {
                 </div>
               }
             >
-              {specType.data && specType.data.length > 0 ? (
-                <div className="space-y-2">
-                  {specType.data.map((spec) => (
-                    <div key={spec.id}>
-                      {renderSpecificationItem(spec, specType.name)}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={`Нет характеристик для ${specType.name.toLowerCase()}`}
-                />
-              )}
+              <div className="space-y-2">
+                {specType.data.map((spec) => (
+                  <div key={spec.id}>
+                    {renderSpecificationItem(spec, specType.name)}
+                  </div>
+                ))}
+              </div>
             </Panel>
           ))}
         </Collapse>
@@ -415,111 +528,17 @@ const CharacteristicsPage = () => {
         width={600}
         destroyOnClose
       >
-        <Form form={editForm} layout="vertical" onFinish={handleUpdateSpec}>
-          {selectedType?.toLowerCase().includes("компьютер") && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    label="CPU"
-                    name="cpu"
-                    rules={[{ required: true }]}
-                  >
-                    <Input placeholder="Процессор" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    label="RAM"
-                    name="ram"
-                    rules={[{ required: true }]}
-                  >
-                    <Input placeholder="Оперативная память" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    label="Storage"
-                    name="storage"
-                    rules={[{ required: true }]}
-                  >
-                    <Input placeholder="Накопитель" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Monitor Size" name="monitor_size">
-                    <Input placeholder="Размер монитора" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    label="Мышка"
-                    name="has_mouse"
-                    valuePropName="checked"
-                  >
-                    <Switch />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    label="Клавиатура"
-                    name="has_keyboard"
-                    valuePropName="checked"
-                  >
-                    <Switch />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-          {selectedType?.toLowerCase().includes("проектор") && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    label="Модель"
-                    name="model"
-                    rules={[{ required: true }]}
-                  >
-                    <Input placeholder="Модель проектора" />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Разрешение" name="resolution">
-                    <Input placeholder="Разрешение" />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Яркость" name="brightness">
-                    <InputNumber
-                      placeholder="Яркость (люмен)"
-                      className="w-full"
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Контрастность" name="contrast_ratio">
-                    <Input placeholder="Контрастность" />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-          <div className="flex justify-end space-x-2 mt-6">
-            <Button onClick={() => setEditModalVisible(false)}>Отмена</Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Сохранить
-            </Button>
-          </div>
-        </Form>
+        <CreateSpecificationForm
+          form={editForm}
+          equipmentType={{ name: selectedType }}
+          onSubmit={handleUpdateSpec}
+          onCancel={() => {
+            setEditModalVisible(false);
+            setSelectedType(null);
+            setSelectedSpec(null);
+            editForm.resetFields();
+          }}
+        />
       </Modal>
     </div>
   );

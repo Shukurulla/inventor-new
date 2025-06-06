@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { Card, Collapse, Button, Badge, Empty, Spin, Breadcrumb } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { FiPlus, FiChevronRight, FiHome, FiLayers } from "react-icons/fi";
+import {
+  FiPlus,
+  FiChevronRight,
+  FiHome,
+  FiLayers,
+  FiClock,
+} from "react-icons/fi";
 import {
   getBuildings,
   getFloorsByBuilding,
@@ -11,6 +17,7 @@ import {
   getEquipmentTypesByRoom,
 } from "../store/slices/universitySlice";
 import { getEquipmentTypes } from "../store/slices/equipmentSlice";
+import { getUserActions } from "../store/slices/authSlice";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateEquipmentModal from "../components/Equipment/CreateEquipmentModal";
 import EquipmentTypeSelectionModal from "../components/Equipment/EquipmentTypeSelectionModal";
@@ -25,8 +32,8 @@ const HomePage = () => {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [selectedEquipmentType, setSelectedEquipmentType] = useState(null);
   const [activeBuildingPanels, setActiveBuildingPanels] = useState([]);
-  const [activeFloorPanels, setActiveFloorPanels] = useState([]);
-  const [activeRoomPanels, setActiveRoomPanels] = useState([]);
+  const [activeFloorPanels, setActiveFloorPanels] = useState({});
+  const [activeRoomPanels, setActiveRoomPanels] = useState({});
   const [activeTab, setActiveTab] = useState("university");
   const [breadcrumb, setBreadcrumb] = useState([
     { title: "Навигация" },
@@ -45,25 +52,49 @@ const HomePage = () => {
   } = useSelector((state) => state.university);
 
   const { equipmentTypes } = useSelector((state) => state.equipment);
+  const { userActions } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(getBuildings());
     dispatch(getEquipmentTypes());
+    dispatch(getUserActions());
   }, [dispatch]);
 
-  const handleBuildingExpand = (buildingId) => {
-    if (!floorsByBuilding[buildingId]) {
-      dispatch(getFloorsByBuilding(buildingId));
+  const handleBuildingExpand = (buildingIds) => {
+    const newBuildingId = buildingIds.find(
+      (id) => !activeBuildingPanels.includes(id)
+    );
+    if (newBuildingId) {
+      if (!floorsByBuilding[newBuildingId]) {
+        dispatch(getFloorsByBuilding(newBuildingId));
+      }
+      if (!roomsByBuilding[newBuildingId]) {
+        dispatch(getRoomsByBuilding(newBuildingId));
+      }
     }
-    if (!roomsByBuilding[buildingId]) {
-      dispatch(getRoomsByBuilding(buildingId));
-    }
+    setActiveBuildingPanels(buildingIds);
   };
 
-  const handleRoomExpand = (roomId) => {
-    if (!equipmentTypesByRoom[roomId]) {
-      dispatch(getEquipmentTypesByRoom(roomId));
+  const handleFloorExpand = (buildingId) => (floorIds) => {
+    setActiveFloorPanels((prev) => ({
+      ...prev,
+      [buildingId]: floorIds,
+    }));
+  };
+
+  const handleRoomExpand = (buildingId) => (roomIds) => {
+    const newRoomId = roomIds.find(
+      (id) => !activeRoomPanels[buildingId]?.includes(id)
+    );
+
+    if (newRoomId && !equipmentTypesByRoom[newRoomId]) {
+      dispatch(getEquipmentTypesByRoom(newRoomId));
     }
+
+    setActiveRoomPanels((prev) => ({
+      ...prev,
+      [buildingId]: roomIds,
+    }));
   };
 
   const handleAddEquipmentClick = (room) => {
@@ -108,7 +139,6 @@ const HomePage = () => {
           </div>
         )}
 
-        {/* Всегда показываем кнопку добавления */}
         <div className="text-center py-4">
           <Button
             type="primary"
@@ -149,11 +179,8 @@ const HomePage = () => {
             className={`transition-transform ${isActive ? "rotate-90" : ""}`}
           />
         )}
-        onChange={(keys) => {
-          setActiveRoomPanels(keys);
-          keys.forEach((key) => handleRoomExpand(key));
-        }}
-        activeKey={activeRoomPanels}
+        onChange={handleRoomExpand(buildingId)}
+        activeKey={activeRoomPanels[buildingId] || []}
       >
         {rooms.map((room) => (
           <Panel
@@ -194,16 +221,10 @@ const HomePage = () => {
             className={`transition-transform ${isActive ? "rotate-90" : ""}`}
           />
         )}
-        onChange={(keys) => {
-          setActiveFloorPanels(keys);
-        }}
-        activeKey={activeFloorPanels}
+        onChange={handleFloorExpand(buildingId)}
+        activeKey={activeFloorPanels[buildingId] || []}
       >
         {floors.map((floor) => {
-          const floorRooms = (roomsByBuilding[buildingId] || []).filter(
-            (room) => room.floor === floor.id
-          );
-
           return (
             <Panel
               key={floor.id}
@@ -236,94 +257,75 @@ const HomePage = () => {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Главная страница
-        </h1>
-      </div>
-
-      {/* Tabs */}
-      <div className="mb-6">
-        <div className="flex space-x-8 border-b border-gray-200">
-          <button
-            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "status"
-                ? "border-gray-400 text-gray-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("status")}
-          >
-            Состояние
-          </button>
-          <button
-            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "university"
-                ? "border-blue-500 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => setActiveTab("university")}
-          >
-            Университет
-          </button>
+    <div className="flex gap-6">
+      {/* Main Content */}
+      <div className="flex-1">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Главная страница
+          </h1>
         </div>
-      </div>
 
-      {/* Breadcrumb */}
-      <div className="mb-6">
-        <Breadcrumb
-          separator=">"
-          items={breadcrumb}
-          className="text-sm text-gray-600"
-        />
-      </div>
+        {/* Tabs */}
+        <div className="mb-6">
+          <div className="flex space-x-8 border-b border-gray-200">
+            <button
+              className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "university"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setActiveTab("university")}
+            >
+              Университет
+            </button>
+          </div>
+        </div>
 
-      <Card className="shadow-sm">
-        {buildings.length === 0 ? (
-          <Empty
-            description="Нет доступных корпусов"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
-        ) : (
-          <Collapse
-            expandIcon={({ isActive }) => (
-              <FiChevronRight
-                className={`transition-transform ${
-                  isActive ? "rotate-90" : ""
-                }`}
-              />
-            )}
-            onChange={(keys) => {
-              setActiveBuildingPanels(keys);
-              keys.forEach((key) => handleBuildingExpand(key));
-            }}
-            activeKey={activeBuildingPanels}
-          >
-            {buildings.map((building) => (
-              <Panel
-                key={building.id}
-                header={
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-6 h-6 rounded bg-orange-100 flex items-center justify-center">
-                        <span className="text-orange-600 text-sm font-medium">
-                          📁
+        <Card className="shadow-sm">
+          {buildings.length === 0 ? (
+            <Empty
+              description="Нет доступных корпусов"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          ) : (
+            <Collapse
+              expandIcon={({ isActive }) => (
+                <FiChevronRight
+                  className={`transition-transform ${
+                    isActive ? "rotate-90" : ""
+                  }`}
+                />
+              )}
+              onChange={handleBuildingExpand}
+              activeKey={activeBuildingPanels}
+            >
+              {buildings.map((building) => (
+                <Panel
+                  key={building.id}
+                  header={
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-6 h-6 rounded bg-orange-100 flex items-center justify-center">
+                          <span className="text-orange-600 text-sm font-medium">
+                            📁
+                          </span>
+                        </div>
+                        <span className="font-medium text-lg">
+                          {building.name}
                         </span>
                       </div>
-                      <span className="font-medium text-lg">
-                        {building.name}
-                      </span>
+                      <FiChevronRight className="text-gray-400" />
                     </div>
-                    <FiChevronRight className="text-gray-400" />
-                  </div>
-                }
-              >
-                {renderFloors(building.id)}
-              </Panel>
-            ))}
-          </Collapse>
-        )}
-      </Card>
+                  }
+                >
+                  {renderFloors(building.id)}
+                </Panel>
+              ))}
+            </Collapse>
+          )}
+        </Card>
+      </div>
 
       <EquipmentTypeSelectionModal
         visible={typeSelectionModalVisible}

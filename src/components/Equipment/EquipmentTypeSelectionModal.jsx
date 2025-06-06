@@ -27,7 +27,8 @@ const EquipmentTypeSelectionModal = ({
       visible={visible}
       onCancel={onCancel}
       footer={null}
-      width={600}
+      width={800}
+      className="mt-[-40px]"
       destroyOnClose
     >
       <div className="space-y-3">

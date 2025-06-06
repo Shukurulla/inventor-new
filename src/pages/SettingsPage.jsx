@@ -8,15 +8,12 @@ import {
   Button,
   message,
   Switch,
-  Select,
   Avatar,
   Upload,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { FiEdit, FiUpload, FiUser } from "react-icons/fi";
 import { setTheme, setFontSize } from "../store/slices/settingsSlice";
-
-const { Option } = Select;
 
 const SettingsPage = () => {
   const [editMode, setEditMode] = useState(false);
@@ -28,33 +25,25 @@ const SettingsPage = () => {
 
   const handleThemeChange = (value) => {
     dispatch(setTheme(value));
-    // Apply theme to document
-    if (value === "dark") {
-      document.documentElement.classList.add("dark");
-      document.body.style.backgroundColor = "#222222";
-    } else {
-      document.documentElement.classList.remove("dark");
-      document.body.style.backgroundColor = "#ffffff";
-    }
     message.success(
-      `Тема изменена на ${value === "dark" ? "темную" : "светлую"}`
+      `Тема изменена на ${
+        value === "dark"
+          ? "тёмную"
+          : value === "light"
+          ? "светлую"
+          : "системную"
+      }`
     );
   };
 
   const handleFontSizeChange = (value) => {
     dispatch(setFontSize(value));
-    // Apply font size to document
-    const sizes = {
-      small: "14px",
-      medium: "16px",
-      large: "18px",
-    };
-    document.documentElement.style.fontSize = sizes[value];
-    message.success("Размер шрифта изменен");
+    message.success("Шрифт изменен");
   };
 
   const handleProfileUpdate = (values) => {
     // Here you would typically call an API to update user profile
+    console.log("Profile update:", values);
     message.success("Профиль успешно обновлен!");
     setEditMode(false);
   };
@@ -66,9 +55,9 @@ const SettingsPage = () => {
   ];
 
   const fontOptions = [
-    { label: "Маленький", value: "small" },
-    { label: "Средний", value: "medium" },
-    { label: "Большой", value: "large" },
+    { label: "SF Pro Display", value: "sf-pro" },
+    { label: "Inter", value: "inter" },
+    { label: "Roboto", value: "roboto" },
   ];
 
   const uploadProps = {
@@ -183,8 +172,8 @@ const SettingsPage = () => {
                     option.value === "light"
                       ? "bg-white border border-gray-200"
                       : option.value === "dark"
-                      ? "bg-gray-800"
-                      : "bg-gradient-to-r from-white to-gray-800"
+                      ? "bg-black"
+                      : "bg-gradient-to-r from-white to-black"
                   }`}
                 >
                   <div className="p-2 text-xs">
@@ -214,12 +203,12 @@ const SettingsPage = () => {
       </Card>
 
       {/* Font Settings */}
-      <Card title="Размер шрифта" className="shadow-sm">
+      <Card title="Шрифт" className="shadow-sm">
         <div className="grid grid-cols-3 gap-4">
           {fontOptions.map((option) => (
             <div
               key={option.value}
-              className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+              className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
                 fontSize === option.value
                   ? "border-blue-500 bg-blue-50"
                   : "border-gray-200 hover:border-gray-300"
@@ -228,17 +217,30 @@ const SettingsPage = () => {
             >
               <div className="text-center">
                 <div
-                  className="text-lg font-medium mb-2"
+                  className="text-2xl font-bold mb-4"
                   style={{
-                    fontSize:
-                      option.value === "small"
-                        ? "14px"
-                        : option.value === "large"
-                        ? "20px"
-                        : "16px",
+                    fontFamily:
+                      option.value === "sf-pro"
+                        ? "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif"
+                        : option.value === "inter"
+                        ? "'Inter', system-ui, sans-serif"
+                        : "'Roboto', system-ui, sans-serif",
                   }}
                 >
                   Aa
+                </div>
+                <div
+                  className="text-lg font-medium mb-2"
+                  style={{
+                    fontFamily:
+                      option.value === "sf-pro"
+                        ? "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif"
+                        : option.value === "inter"
+                        ? "'Inter', system-ui, sans-serif"
+                        : "'Roboto', system-ui, sans-serif",
+                  }}
+                >
+                  iMaster
                 </div>
                 <span className="text-sm font-medium">{option.label}</span>
               </div>
@@ -246,7 +248,7 @@ const SettingsPage = () => {
           ))}
         </div>
         <div className="mt-4 text-sm text-blue-600">
-          Текущий размер: {fontOptions.find((f) => f.value === fontSize)?.label}
+          Текущий шрифт: {fontOptions.find((f) => f.value === fontSize)?.label}
         </div>
       </Card>
 

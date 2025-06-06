@@ -32,7 +32,7 @@ const AddedPage = () => {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [filters, setFilters] = useState({
     building_id: null,
-    room_number: null,
+    room_number: "",
     type_id: null,
   });
   const [form] = Form.useForm();
@@ -71,7 +71,7 @@ const AddedPage = () => {
   };
 
   const groupEquipmentByType = () => {
-    let filteredEquipment = equipment;
+    let filteredEquipment = [...equipment];
 
     // Apply filters
     if (filters.building_id) {
@@ -79,9 +79,11 @@ const AddedPage = () => {
         (item) => item.room_data?.building === filters.building_id
       );
     }
-    if (filters.room_number) {
+    if (filters.room_number && filters.room_number.trim()) {
       filteredEquipment = filteredEquipment.filter((item) =>
-        item.room_data?.number?.includes(filters.room_number)
+        item.room_data?.number
+          ?.toLowerCase()
+          .includes(filters.room_number.toLowerCase())
       );
     }
     if (filters.type_id) {
@@ -151,9 +153,13 @@ const AddedPage = () => {
   const clearFilters = () => {
     setFilters({
       building_id: null,
-      room_number: null,
+      room_number: "",
       type_id: null,
     });
+  };
+
+  const hasActiveFilters = () => {
+    return filters.building_id || filters.room_number.trim() || filters.type_id;
   };
 
   const renderEquipmentItem = (item) => (
@@ -217,6 +223,19 @@ const AddedPage = () => {
     const groupedEquipment = groupEquipmentByType();
 
     if (Object.keys(groupedEquipment).length === 0) {
+      if (hasActiveFilters()) {
+        return (
+          <div className="text-center py-8">
+            <Empty
+              description="Оборудование по заданным фильтрам не найдено"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+            <Button type="link" onClick={clearFilters} className="mt-2">
+              Очистить фильтры
+            </Button>
+          </div>
+        );
+      }
       return (
         <Empty
           description="Нет добавленного оборудования"
@@ -227,6 +246,62 @@ const AddedPage = () => {
 
     return (
       <div>
+        <Collapse
+          expandIcon={({ isActive }) => (
+            <FiChevronRight
+              className={`transition-transform ${isActive ? "rotate-90" : ""}`}
+            />
+          )}
+          className="space-y-2"
+        >
+          {Object.entries(groupedEquipment).map(([typeName, items]) => (
+            <Panel
+              key={typeName}
+              header={
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <EquipmentIcon
+                        type={typeName}
+                        className="text-green-600"
+                      />
+                    </div>
+                    <span className="font-medium">{typeName}</span>
+                  </div>
+                  <Badge
+                    count={items.length}
+                    style={{ backgroundColor: "#6366f1" }}
+                    className="mr-4"
+                  />
+                </div>
+              }
+            >
+              <div className="space-y-2">{items.map(renderEquipmentItem)}</div>
+            </Panel>
+          ))}
+        </Collapse>
+      </div>
+    );
+  };
+
+  const getTotalCount = () => {
+    const groupedEquipment = groupEquipmentByType();
+    return Object.values(groupedEquipment).reduce(
+      (total, items) => total + items.length,
+      0
+    );
+  };
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Добавленные</h1>
+        <p className="text-gray-600">
+          Всего найдено: {getTotalCount()} единиц оборудования
+        </p>
+      </div>
+
+      <Card className="shadow-sm">
         {/* Filters */}
         <div className="flex space-x-4 mb-6 p-4 bg-gray-50 rounded-lg">
           <Select
@@ -267,56 +342,43 @@ const AddedPage = () => {
             ))}
           </Select>
 
-          <Button icon={<FiFilter />} onClick={clearFilters}>
+          <Button
+            icon={<FiFilter />}
+            onClick={clearFilters}
+            disabled={!hasActiveFilters()}
+          >
             Очистить
           </Button>
         </div>
 
-        <Collapse
-          expandIcon={({ isActive }) => (
-            <FiChevronRight
-              className={`transition-transform ${isActive ? "rotate-90" : ""}`}
-            />
-          )}
-          className="space-y-2"
-        >
-          {Object.entries(groupedEquipment).map(([typeName, items]) => (
-            <Panel
-              key={typeName}
-              header={
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                      <EquipmentIcon
-                        type={typeName}
-                        className="text-green-600"
-                      />
-                    </div>
-                    <span className="font-medium">{typeName}</span>
-                  </div>
-                  <Badge
-                    count={items.length}
-                    style={{ backgroundColor: "#6366f1" }}
-                    className="mr-4"
-                  />
-                </div>
-              }
-            >
-              <div className="space-y-2">{items.map(renderEquipmentItem)}</div>
-            </Panel>
-          ))}
-        </Collapse>
-      </div>
-    );
-  };
+        {/* Show active filters */}
+        {hasActiveFilters() && (
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center space-x-2 text-sm text-blue-800">
+              <span>Активные фильтры:</span>
+              {filters.building_id && (
+                <span className="px-2 py-1 bg-blue-200 rounded text-xs">
+                  Блок:{" "}
+                  {buildings.find((b) => b.id === filters.building_id)?.name}
+                </span>
+              )}
+              {filters.room_number && (
+                <span className="px-2 py-1 bg-blue-200 rounded text-xs">
+                  Комната: {filters.room_number}
+                </span>
+              )}
+              {filters.type_id && (
+                <span className="px-2 py-1 bg-blue-200 rounded text-xs">
+                  Тип:{" "}
+                  {equipmentTypes.find((t) => t.id === filters.type_id)?.name}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
-  return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Добавленные</h1>
-      </div>
-
-      <Card className="shadow-sm">{renderEquipmentList()}</Card>
+        {renderEquipmentList()}
+      </Card>
 
       {/* Edit Equipment Modal */}
       <Modal

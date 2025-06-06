@@ -4,7 +4,7 @@ const settingsSlice = createSlice({
   name: "settings",
   initialState: {
     theme: localStorage.getItem("theme") || "light",
-    fontSize: localStorage.getItem("fontSize") || "inter",
+    fontSize: localStorage.getItem("fontSize") || "sf-pro",
     language: localStorage.getItem("language") || "ru",
     notifications: JSON.parse(localStorage.getItem("notifications") || "true"),
   },
@@ -49,7 +49,7 @@ const settingsSlice = createSlice({
 
       const body = document.body;
       body.style.fontFamily =
-        fontFamilies[action.payload] || fontFamilies["inter"];
+        fontFamilies[action.payload] || fontFamilies["sf-pro"];
 
       // Add class for additional styling
       body.classList.remove("font-sf-pro", "font-inter", "font-roboto");
@@ -93,7 +93,7 @@ const settingsSlice = createSlice({
         roboto: "'Roboto', system-ui, sans-serif",
       };
 
-      body.style.fontFamily = fontFamilies[savedFont] || fontFamilies["inter"];
+      body.style.fontFamily = fontFamilies[savedFont] || fontFamilies["sf-pro"];
       body.classList.add(`font-${savedFont}`);
 
       // Initialize language
