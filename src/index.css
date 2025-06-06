@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Antd customizations */
+.ant-layout-sider {
+  background: #f8fafc !important;
+}
+
+.ant-menu {
+  background: transparent !important;
+  border: none !important;
+}
+
+.ant-menu-item {
+  border-radius: 8px !important;
+  margin: 4px 0 !important;
+}
+
+.ant-menu-item-selected {
+  background: #e0e7ff !important;
+  color: #4f46e5 !important;
+}
+
+.ant-menu-item:hover {
+  background: #f1f5f9 !important;
+}
+
+.ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+}
+
+.ant-collapse-item {
+  border: none !important;
+  margin-bottom: 8px !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.ant-collapse-content {
+  border: none !important;
+}
+
+.ant-table-thead > tr > th {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.ant-modal-content {
+  border-radius: 12px !important;
+}
+
+.ant-steps-item-process .ant-steps-item-icon {
+  background: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+}
+
+.ant-badge-count {
+  box-shadow: 0 0 0 1px #fff !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Equipment status colors */
+.status-new {
+  color: #10b981;
+  background: #d1fae5;
+}
+
+.status-working {
+  color: #059669;
+  background: #d1fae5;
+}
+
+.status-repair {
+  color: #d97706;
+  background: #fef3c7;
+}
+
+.status-broken {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.status-disposed {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+/* Equipment type icons colors */
+.icon-projector {
+  color: #10b981;
+}
+.icon-computer {
+  color: #3b82f6;
+}
+.icon-printer {
+  color: #f59e0b;
+}
+.icon-monitor {
+  color: #06b6d4;
+}
+.icon-tv {
+  color: #8b5cf6;
+}
+.icon-router {
+  color: #ef4444;
+}
+.icon-notebook {
+  color: #06b6d4;
+}
+.icon-monoblok {
+  color: #f97316;
+}
+.icon-whiteboard {
+  color: #84cc16;
+}
+.icon-extender {
+  color: #6366f1;
+}
