@@ -9,6 +9,8 @@ import {
   Avatar,
   Button,
   Input,
+  Modal,
+  Card,
 } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -20,13 +22,22 @@ import {
   FiLogOut,
   FiSearch,
   FiClock,
+  FiTool,
+  FiPlus,
 } from "react-icons/fi";
 import { logout, getUserActions } from "../../store/slices/authSlice";
+import { equipmentAPI } from "../../services/api";
 
 const { Header, Sider, Content } = AntLayout;
 
 const Layout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [searchModalVisible, setSearchModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [searchValue, setSearchValue] = useState("");
+
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -59,6 +70,11 @@ const Layout = ({ children }) => {
       badge: 123,
     },
     {
+      key: "/repairs",
+      icon: <FiTool className="text-lg" />,
+      label: "Ремонт",
+    },
+    {
       key: "/settings",
       icon: <FiSettings className="text-lg" />,
       label: "Настройки",
@@ -71,6 +87,32 @@ const Layout = ({ children }) => {
 
   const handleLogout = () => {
     dispatch(logout());
+  };
+
+  const handleSearch = async () => {
+    if (!searchValue.trim()) return;
+
+    try {
+      const response = await equipmentAPI.scanQR(searchValue);
+      setSearchResults([response.data]);
+      setSearchModalVisible(true);
+    } catch (error) {
+      // Если не найдено по QR, ищем по ИНН
+      try {
+        const response = await equipmentAPI.getEquipment({ inn: searchValue });
+        setSearchResults(response.data.results || []);
+        setSearchModalVisible(true);
+      } catch (err) {
+        setSearchResults([]);
+        setSearchModalVisible(true);
+      }
+    }
+  };
+
+  const handleEquipmentDetails = (equipment) => {
+    setSelectedEquipment(equipment);
+    setDetailModalVisible(true);
+    setSearchModalVisible(false);
   };
 
   const userMenuItems = [
@@ -159,60 +201,253 @@ const Layout = ({ children }) => {
               placeholder="Поиск по ИНН..."
               prefix={<FiSearch className="text-gray-400" />}
               className="rounded-lg"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onPressEnter={handleSearch}
             />
           </div>
 
-          <div className="flex items-center space-x-4">
-            <Dropdown
-              menu={{
-                items:
-                  userActions?.slice(0, 5).map((action, index) => ({
-                    key: index,
-                    label: (
-                      <div className="py-2">
-                        <div className="font-medium text-sm">
-                          {action.action_type}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {action.created_at}
-                        </div>
-                      </div>
-                    ),
-                  })) || [],
-              }}
-              placement="bottomRight"
-              trigger={["click"]}
-            >
-              <Button type="text" className="flex items-center space-x-2">
-                <FiClock className="text-lg text-gray-600" />
-                <span className="text-sm font-medium">Последние действия</span>
-              </Button>
-            </Dropdown>
-
-            <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">
-                Мои действия
-              </div>
-              <div className="text-xs text-gray-500">
-                {userActions?.length > 0 && (
-                  <div className="space-y-1">
-                    {userActions.slice(0, 3).map((action, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <span className="text-blue-600">+</span>
-                        <span>(Администратор)</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* Последние действия - отдельная секция */}
         </Header>
 
         <Content className="p-6 bg-gray-50 min-h-[calc(100vh-64px)] overflow-auto">
           {children}
         </Content>
       </AntLayout>
+
+      {/* Search Results Modal */}
+      <Modal
+        title={`Результаты поиска по ИНН: ${searchValue}`}
+        visible={searchModalVisible}
+        onCancel={() => setSearchModalVisible(false)}
+        footer={null}
+        width={600}
+      >
+        <div className="space-y-3">
+          {searchResults.length > 0 ? (
+            searchResults.map((equipment) => (
+              <Card
+                key={equipment.id}
+                className="cursor-pointer hover:shadow-md"
+                size="small"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <span className="text-blue-600 font-medium">
+                        {equipment.name}
+                      </span>
+                      <span className="text-gray-500">
+                        {equipment.type_data?.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <span>ИНН: {equipment.inn || 0}</span>
+                      <span className="px-2 py-1 bg-green-100 text-green-600 rounded text-xs">
+                        Новое
+                      </span>
+                      <span>
+                        📍 {equipment.room_data?.number} -{" "}
+                        {equipment.room_data?.name}
+                      </span>
+                      <span>
+                        📅 {new Date(equipment.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  <Button
+                    type="link"
+                    className="text-blue-500"
+                    onClick={() => handleEquipmentDetails(equipment)}
+                  >
+                    Подробнее →
+                  </Button>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Оборудование не найдено
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Equipment Details Modal */}
+      <Modal
+        title="Подробная информация об оборудовании"
+        visible={detailModalVisible}
+        onCancel={() => setDetailModalVisible(false)}
+        footer={null}
+        width={700}
+      >
+        {selectedEquipment && (
+          <div className="space-y-6">
+            {/* Basic Info */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">
+                {selectedEquipment.name}
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-gray-500">ИНН:</span>
+                  <span className="ml-2 font-medium">
+                    {selectedEquipment.inn || 0}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Тип:</span>
+                  <span className="ml-2 font-medium">
+                    {selectedEquipment.type_data?.name}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Статус:</span>
+                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-600 rounded text-sm">
+                    Новое
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Активность:</span>
+                  <span className="ml-2 px-2 py-1 bg-green-100 text-green-600 rounded text-sm">
+                    Активно
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            {selectedEquipment.description && (
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Описание</h4>
+                <p className="text-gray-700">{selectedEquipment.description}</p>
+              </div>
+            )}
+
+            {/* Location */}
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-2 flex items-center">
+                <span className="mr-2">📍</span>
+                Местоположение
+              </h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-gray-500">Комната:</span>
+                  <span className="ml-2">
+                    {selectedEquipment.room_data?.number} -{" "}
+                    {selectedEquipment.room_data?.name}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Специальная комната:</span>
+                  <span className="ml-2">
+                    {selectedEquipment.room_data?.is_special ? "Да" : "Нет"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Technical Characteristics */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-3">Технические характеристики</h4>
+              <div className="bg-blue-50 p-3 rounded">
+                <h5 className="font-medium mb-2">
+                  Характеристики{" "}
+                  {selectedEquipment.type_data?.name?.toLowerCase()}
+                </h5>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {selectedEquipment.computer_specification_data && (
+                    <>
+                      <div>
+                        <span className="text-gray-500">CPU:</span>{" "}
+                        <span className="ml-1">
+                          {selectedEquipment.computer_specification_data.cpu}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">RAM:</span>{" "}
+                        <span className="ml-1">
+                          {selectedEquipment.computer_specification_data.ram}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Накопитель:</span>{" "}
+                        <span className="ml-1">
+                          {
+                            selectedEquipment.computer_specification_data
+                              .storage
+                          }
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Монитор:</span>{" "}
+                        <span className="ml-1">
+                          {
+                            selectedEquipment.computer_specification_data
+                              .monitor_size
+                          }
+                          "
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Клавиатура:</span>{" "}
+                        <span className="ml-1">
+                          {selectedEquipment.computer_specification_data
+                            .has_keyboard
+                            ? "Есть"
+                            : "Нет"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Мышь:</span>{" "}
+                        <span className="ml-1">
+                          {selectedEquipment.computer_specification_data
+                            .has_mouse
+                            ? "Есть"
+                            : "Нет"}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Creation Info */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-3 flex items-center">
+                <span className="mr-2">👤</span>
+                Информация о создании
+              </h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500">Автор:</span>
+                  <span className="ml-2">
+                    {selectedEquipment.author?.first_name}{" "}
+                    {selectedEquipment.author?.last_name}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Дата создания:</span>
+                  <span className="ml-2">
+                    {new Date(selectedEquipment.created_at).toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Роль автора:</span>
+                  <span className="ml-2">Admin</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Email:</span>
+                  <span className="ml-2">
+                    {selectedEquipment.author?.email}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </AntLayout>
   );
 };

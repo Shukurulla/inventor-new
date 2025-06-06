@@ -13,12 +13,15 @@ import {
 import { getEquipmentTypes } from "../store/slices/equipmentSlice";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateEquipmentModal from "../components/Equipment/CreateEquipmentModal";
+import EquipmentTypeSelectionModal from "../components/Equipment/EquipmentTypeSelectionModal";
 
 const { Panel } = Collapse;
 
 const HomePage = () => {
   const dispatch = useDispatch();
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [typeSelectionModalVisible, setTypeSelectionModalVisible] =
+    useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [selectedEquipmentType, setSelectedEquipmentType] = useState(null);
   const [activeBuildingPanels, setActiveBuildingPanels] = useState([]);
@@ -63,9 +66,13 @@ const HomePage = () => {
     }
   };
 
-  const handleCreateEquipment = (room, equipmentType) => {
+  const handleAddEquipmentClick = (room) => {
     setSelectedRoom(room);
-    setSelectedEquipmentType(equipmentType);
+    setTypeSelectionModalVisible(true);
+  };
+
+  const handleEquipmentTypeSelect = (type) => {
+    setSelectedEquipmentType(type);
     setCreateModalVisible(true);
   };
 
@@ -74,28 +81,8 @@ const HomePage = () => {
 
     return (
       <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center justify-between">
-          <Button
-            type="primary"
-            size="small"
-            icon={<FiPlus />}
-            onClick={() => handleCreateEquipment(room, null)}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            Создать
-          </Button>
-        </div>
-
-        {equipmentTypesData.length === 0 ? (
-          <div className="text-center py-4">
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="Нет оборудования в этом кабинете"
-              className="mb-3"
-            />
-          </div>
-        ) : (
-          <div className="space-y-2">
+        {equipmentTypesData.length > 0 && (
+          <div className="space-y-2 mb-4">
             {equipmentTypesData.map((typeData) => (
               <div
                 key={typeData.type.id}
@@ -120,6 +107,19 @@ const HomePage = () => {
             ))}
           </div>
         )}
+
+        {/* Всегда показываем кнопку добавления */}
+        <div className="text-center py-4">
+          <Button
+            type="primary"
+            icon={<FiPlus />}
+            onClick={() => handleAddEquipmentClick(room)}
+            className="bg-blue-500 hover:bg-blue-600 border-blue-500"
+            block
+          >
+            Добавить новую технику
+          </Button>
+        </div>
       </div>
     );
   };
@@ -168,7 +168,7 @@ const HomePage = () => {
                     {room.number}-{room.name}
                   </span>
                 </div>
-                <FiPlus className="text-blue-500" />
+                <FiChevronRight className="text-gray-400" />
               </div>
             }
           >
@@ -324,6 +324,13 @@ const HomePage = () => {
           </Collapse>
         )}
       </Card>
+
+      <EquipmentTypeSelectionModal
+        visible={typeSelectionModalVisible}
+        onCancel={() => setTypeSelectionModalVisible(false)}
+        onSelectType={handleEquipmentTypeSelect}
+        equipmentTypes={equipmentTypes}
+      />
 
       <CreateEquipmentModal
         visible={createModalVisible}

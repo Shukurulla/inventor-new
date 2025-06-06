@@ -106,7 +106,7 @@ const ContractsPage = () => {
     if (contract.file) {
       window.open(contract.file, "_blank");
     } else {
-      message.info("Файл договора не найден");
+      message.info("Фа��л договора не найден");
     }
   };
 

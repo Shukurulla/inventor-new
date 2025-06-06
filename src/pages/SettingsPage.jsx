@@ -1,39 +1,41 @@
-import React from "react";
+"use client";
+
+import { useState } from "react";
 import {
   Card,
   Form,
   Input,
   Button,
-  Select,
+  message,
   Switch,
-  Row,
-  Col,
+  Select,
   Avatar,
   Upload,
-  message,
-  Divider,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { FiUser, FiMail, FiPhone, FiUpload, FiEdit } from "react-icons/fi";
-import {
-  setTheme,
-  setFontSize,
-  setLanguage,
-  setNotifications,
-} from "../store/slices/settingsSlice";
+import { FiEdit, FiUpload, FiUser } from "react-icons/fi";
+import { setTheme, setFontSize } from "../store/slices/settingsSlice";
 
 const { Option } = Select;
 
 const SettingsPage = () => {
+  const [editMode, setEditMode] = useState(false);
+  const [profileForm] = Form.useForm();
+
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { theme, fontSize, language, notifications } = useSelector(
-    (state) => state.settings
-  );
-  const [profileForm] = Form.useForm();
+  const { theme, fontSize } = useSelector((state) => state.settings);
 
   const handleThemeChange = (value) => {
     dispatch(setTheme(value));
+    // Apply theme to document
+    if (value === "dark") {
+      document.documentElement.classList.add("dark");
+      document.body.style.backgroundColor = "#222222";
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.body.style.backgroundColor = "#ffffff";
+    }
     message.success(
       `Тема изменена на ${value === "dark" ? "темную" : "светлую"}`
     );
@@ -41,23 +43,33 @@ const SettingsPage = () => {
 
   const handleFontSizeChange = (value) => {
     dispatch(setFontSize(value));
+    // Apply font size to document
+    const sizes = {
+      small: "14px",
+      medium: "16px",
+      large: "18px",
+    };
+    document.documentElement.style.fontSize = sizes[value];
     message.success("Размер шрифта изменен");
   };
 
-  const handleLanguageChange = (value) => {
-    dispatch(setLanguage(value));
-    message.success("Язык интерфейса изменен");
-  };
-
-  const handleNotificationsChange = (checked) => {
-    dispatch(setNotifications(checked));
-    message.success(`Уведомления ${checked ? "включены" : "отключены"}`);
-  };
-
   const handleProfileUpdate = (values) => {
-    // Здесь будет логика обновления профиля
+    // Here you would typically call an API to update user profile
     message.success("Профиль успешно обновлен!");
+    setEditMode(false);
   };
+
+  const themeOptions = [
+    { label: "Светлый", value: "light" },
+    { label: "Системный", value: "system" },
+    { label: "Тёмный", value: "dark" },
+  ];
+
+  const fontOptions = [
+    { label: "Маленький", value: "small" },
+    { label: "Средний", value: "medium" },
+    { label: "Большой", value: "large" },
+  ];
 
   const uploadProps = {
     beforeUpload: () => false,
@@ -66,179 +78,202 @@ const SettingsPage = () => {
     listType: "picture",
   };
 
-  const themeOptions = [
-    { label: "Светлая", value: "light" },
-    { label: "Системная", value: "system" },
-    { label: "Темная", value: "dark" },
-  ];
-
-  const fontOptions = [
-    { label: "SF Pro Display", value: "sf-pro" },
-    { label: "Inter", value: "inter" },
-    { label: "Roboto", value: "roboto" },
-  ];
-
-  const sizeOptions = [
-    { label: "Маленький", value: "small" },
-    { label: "Средний", value: "medium" },
-    { label: "Большой", value: "large" },
-  ];
-
   return (
-    <div>
+    <div className="space-y-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Настройки</h1>
-        <p className="text-gray-600">
-          Управление профилем и настройками системы
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Настройки</h1>
       </div>
 
-      <Row gutter={24}>
-        <Col xs={24} lg={12}>
-          {/* Profile Settings */}
-          <Card
-            title={
-              <div className="flex items-center space-x-2">
-                <FiUser />
-                <span>Профиль пользователя</span>
-              </div>
-            }
-            className="shadow-sm mb-6"
-            extra={
-              <Button type="text" icon={<FiEdit />}>
-                Редактировать
-              </Button>
-            }
+      {/* Profile Settings */}
+      <Card
+        title="Профиль пользователя"
+        className="shadow-sm"
+        extra={
+          <Button
+            type="primary"
+            icon={<FiEdit />}
+            onClick={() => setEditMode(!editMode)}
           >
-            <Form
-              form={profileForm}
-              layout="vertical"
-              onFinish={handleProfileUpdate}
-              initialValues={{
-                first_name: user?.first_name,
-                last_name: user?.last_name,
-                email: user?.email,
-                phone_number: user?.phone_number,
-              }}
-            >
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item
-                    label="Имя"
-                    name="first_name"
-                    rules={[{ required: true, message: "Введите имя!" }]}
-                  >
-                    <Input
-                      prefix={<FiUser className="text-gray-400" />}
-                      placeholder="Имя"
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item
-                    label="Фамилия"
-                    name="last_name"
-                    rules={[{ required: true, message: "Введите фамилию!" }]}
-                  >
-                    <Input placeholder="Фамилия" />
-                  </Form.Item>
-                </Col>
-              </Row>
+            {editMode ? "Отмена" : "Редактировать"}
+          </Button>
+        }
+      >
+        <Form
+          form={profileForm}
+          layout="vertical"
+          onFinish={handleProfileUpdate}
+          initialValues={{
+            username: user?.username || "admin",
+            first_name: user?.first_name || "Администратор",
+            last_name: user?.last_name || "Системы",
+            email: user?.email || "admin@imaster.com",
+            phone_number: user?.phone_number || "+998901234567",
+          }}
+        >
+          <div className="flex items-start space-x-6 mb-6">
+            <div className="flex flex-col items-center space-y-3">
+              <Avatar size={80} icon={<FiUser />} className="bg-indigo-600" />
+              {editMode && (
+                <Upload {...uploadProps}>
+                  <Button icon={<FiUpload />} size="small">
+                    Загрузить фото
+                  </Button>
+                </Upload>
+              )}
+            </div>
 
-              <Form.Item
-                label="Email"
-                name="email"
-                rules={[
-                  { required: true, message: "Введите email!" },
-                  { type: "email", message: "Введите корректный email!" },
-                ]}
-              >
-                <Input
-                  prefix={<FiMail className="text-gray-400" />}
-                  placeholder="email@example.com"
-                />
+            <div className="flex-1 grid grid-cols-2 gap-4">
+              <Form.Item label="Имя пользователя" name="username">
+                <Input disabled={!editMode} />
+              </Form.Item>
+
+              <Form.Item label="Email" name="email">
+                <Input disabled={!editMode} />
+              </Form.Item>
+
+              <Form.Item label="Имя" name="first_name">
+                <Input disabled={!editMode} />
+              </Form.Item>
+
+              <Form.Item label="Фамилия" name="last_name">
+                <Input disabled={!editMode} />
               </Form.Item>
 
               <Form.Item label="Телефон" name="phone_number">
-                <Input
-                  prefix={<FiPhone className="text-gray-400" />}
-                  placeholder="+998 90 123 45 67"
-                />
+                <Input disabled={!editMode} />
               </Form.Item>
 
-              <Form.Item>
-                <Button type="primary" htmlType="submit" className="w-full">
-                  Сохранить изменения
-                </Button>
+              <Form.Item label="Роль">
+                <Input value="Администратор" disabled />
               </Form.Item>
-            </Form>
-          </Card>
-        </Col>
+            </div>
+          </div>
 
-        <Col xs={24} lg={12}>
-          {/* Theme Settings */}
-          <Card title="Цветовой режим" className="shadow-sm mb-6">
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                {themeOptions.map((option) => (
-                  <div
-                    key={option.value}
-                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      theme === option.value
-                        ? "border-indigo-500 bg-indigo-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => handleThemeChange(option.value)}
-                  >
-                    <div className="text-center">
-                      <div
-                        className={`w-8 h-8 mx-auto mb-2 rounded-full ${
-                          option.value === "light"
-                            ? "bg-white border-2 border-gray-300"
-                            : option.value === "dark"
-                            ? "bg-gray-800"
-                            : "bg-gradient-to-r from-white to-gray-800"
-                        }`}
-                      ></div>
-                      <span className="text-sm font-medium">
-                        {option.label}
-                      </span>
+          {editMode && (
+            <div className="flex justify-end">
+              <Button type="primary" htmlType="submit">
+                Сохранить изменения
+              </Button>
+            </div>
+          )}
+        </Form>
+      </Card>
+
+      {/* Theme Settings */}
+      <Card title="Цветовой режим" className="shadow-sm">
+        <div className="grid grid-cols-3 gap-4">
+          {themeOptions.map((option) => (
+            <div
+              key={option.value}
+              className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                theme === option.value
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+              onClick={() => handleThemeChange(option.value)}
+            >
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-3">
+                  <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">iM</span>
+                  </div>
+                </div>
+                <div
+                  className={`w-full h-16 rounded-lg mb-3 ${
+                    option.value === "light"
+                      ? "bg-white border border-gray-200"
+                      : option.value === "dark"
+                      ? "bg-gray-800"
+                      : "bg-gradient-to-r from-white to-gray-800"
+                  }`}
+                >
+                  <div className="p-2 text-xs">
+                    <div
+                      className={`font-bold ${
+                        option.value === "dark" ? "text-white" : "text-black"
+                      }`}
+                    >
+                      iMaster
+                    </div>
+                    <div
+                      className={`text-xs ${
+                        option.value === "dark"
+                          ? "text-gray-300"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {option.label}
                     </div>
                   </div>
-                ))}
+                </div>
+                <span className="text-sm font-medium">{option.label}</span>
               </div>
             </div>
-          </Card>
+          ))}
+        </div>
+      </Card>
 
-          {/* Font Settings */}
-          <Card title="Шрифт" className="shadow-sm mb-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Семейство шрифтов
-                </label>
-                <Select
-                  value="sf-pro"
-                  className="w-full"
-                  options={fontOptions}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Размер шрифта
-                </label>
-                <Select
-                  value={fontSize}
-                  onChange={handleFontSizeChange}
-                  className="w-full"
-                  options={sizeOptions}
-                />
+      {/* Font Settings */}
+      <Card title="Размер шрифта" className="shadow-sm">
+        <div className="grid grid-cols-3 gap-4">
+          {fontOptions.map((option) => (
+            <div
+              key={option.value}
+              className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                fontSize === option.value
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+              onClick={() => handleFontSizeChange(option.value)}
+            >
+              <div className="text-center">
+                <div
+                  className="text-lg font-medium mb-2"
+                  style={{
+                    fontSize:
+                      option.value === "small"
+                        ? "14px"
+                        : option.value === "large"
+                        ? "20px"
+                        : "16px",
+                  }}
+                >
+                  Aa
+                </div>
+                <span className="text-sm font-medium">{option.label}</span>
               </div>
             </div>
-          </Card>
-        </Col>
-      </Row>
+          ))}
+        </div>
+        <div className="mt-4 text-sm text-blue-600">
+          Текущий размер: {fontOptions.find((f) => f.value === fontSize)?.label}
+        </div>
+      </Card>
+
+      {/* Additional Settings */}
+      <Card title="Дополнительные настройки" className="shadow-sm">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-medium">Уведомления</div>
+              <div className="text-sm text-gray-500">
+                Получать уведомления о системных событиях
+              </div>
+            </div>
+            <Switch defaultChecked />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="font-medium">Автосохранение</div>
+              <div className="text-sm text-gray-500">
+                Автоматически сохранять изменения
+              </div>
+            </div>
+            <Switch defaultChecked />
+          </div>
+        </div>
+      </Card>
     </div>
   );
 };

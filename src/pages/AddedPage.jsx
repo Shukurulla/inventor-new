@@ -10,19 +10,18 @@ import {
   Space,
   Modal,
   message,
-  Popconfirm,
   Form,
   Input,
   Select,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { FiChevronRight, FiTrash2, FiEdit } from "react-icons/fi";
+import { FiChevronRight, FiTrash2, FiEdit, FiFilter } from "react-icons/fi";
 import {
   getEquipment,
   updateEquipment,
   deleteEquipment,
-  sendToRepair,
 } from "../store/slices/equipmentSlice";
+import { getBuildings } from "../store/slices/universitySlice";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 
 const { Panel } = Collapse;
@@ -31,13 +30,22 @@ const { Option } = Select;
 const AddedPage = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [filters, setFilters] = useState({
+    building_id: null,
+    room_number: null,
+    type_id: null,
+  });
   const [form] = Form.useForm();
 
   const dispatch = useDispatch();
-  const { equipment, loading } = useSelector((state) => state.equipment);
+  const { equipment, equipmentTypes, loading } = useSelector(
+    (state) => state.equipment
+  );
+  const { buildings } = useSelector((state) => state.university);
 
   useEffect(() => {
     dispatch(getEquipment());
+    dispatch(getBuildings());
   }, [dispatch]);
 
   const getStatusColor = (status) => {
@@ -63,14 +71,34 @@ const AddedPage = () => {
   };
 
   const groupEquipmentByType = () => {
+    let filteredEquipment = equipment;
+
+    // Apply filters
+    if (filters.building_id) {
+      filteredEquipment = filteredEquipment.filter(
+        (item) => item.room_data?.building === filters.building_id
+      );
+    }
+    if (filters.room_number) {
+      filteredEquipment = filteredEquipment.filter((item) =>
+        item.room_data?.number?.includes(filters.room_number)
+      );
+    }
+    if (filters.type_id) {
+      filteredEquipment = filteredEquipment.filter(
+        (item) => item.type === filters.type_id
+      );
+    }
+
     const grouped = {};
-    equipment.forEach((item) => {
+    filteredEquipment.forEach((item) => {
       const typeName = item.type_data?.name || "Неизвестный тип";
       if (!grouped[typeName]) {
         grouped[typeName] = [];
       }
       grouped[typeName].push(item);
     });
+
     return grouped;
   };
 
@@ -80,8 +108,6 @@ const AddedPage = () => {
       name: equipment.name,
       description: equipment.description,
       status: equipment.status,
-      room: equipment.room,
-      contract: equipment.contract,
     });
     setEditModalVisible(true);
   };
@@ -99,6 +125,7 @@ const AddedPage = () => {
       setEditModalVisible(false);
       setSelectedEquipment(null);
       form.resetFields();
+      dispatch(getEquipment());
     } catch (error) {
       message.error("Ошибка при обновлении оборудования");
     }
@@ -108,33 +135,25 @@ const AddedPage = () => {
     try {
       await dispatch(deleteEquipment(id)).unwrap();
       message.success("Оборудование успешно удалено!");
+      dispatch(getEquipment());
     } catch (error) {
       message.error("Ошибка при удалении оборудования");
     }
   };
 
-  const handleSendToRepair = async (id) => {
-    try {
-      await dispatch(sendToRepair(id)).unwrap();
-      message.success("Оборудование отправлено на ремонт!");
-    } catch (error) {
-      message.error("Ошибка при отправке на ремонт");
-    }
+  const handleFilterChange = (key, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   };
 
-  const handleStatusChange = async (equipmentId, newStatus) => {
-    try {
-      await dispatch(
-        updateEquipment({
-          id: equipmentId,
-          data: { status: newStatus },
-        })
-      ).unwrap();
-
-      message.success("Статус успешно изменен!");
-    } catch (error) {
-      message.error("Ошибка при изменении статуса");
-    }
+  const clearFilters = () => {
+    setFilters({
+      building_id: null,
+      room_number: null,
+      type_id: null,
+    });
   };
 
   const renderEquipmentItem = (item) => (
@@ -152,8 +171,14 @@ const AddedPage = () => {
         <div className="flex-1">
           <div className="font-medium text-gray-800">{item.name}</div>
           <div className="text-sm text-gray-500 mt-1">
-            {item.room_data?.name} - ИНН: {item.inn || "Не присвоен"} - ID:{" "}
-            {item.id}
+            {item.room_data?.number} - {item.room_data?.name} | ИНН:{" "}
+            {item.inn || "Не присвоен"} | ID: {item.id}
+          </div>
+          <div className="flex items-center space-x-2 mt-1">
+            <Badge
+              color={getStatusColor(item.status)}
+              text={getStatusText(item.status)}
+            />
           </div>
         </div>
       </div>
@@ -167,21 +192,22 @@ const AddedPage = () => {
             size="small"
             title="Редактировать"
           />
-          <Popconfirm
-            title="Удалить оборудование?"
-            description="Это действие нельзя отменить"
-            onConfirm={() => handleDelete(item.id)}
-            okText="Да"
-            cancelText="Нет"
-          >
-            <Button
-              type="text"
-              danger
-              icon={<FiTrash2 />}
-              size="small"
-              title="Удалить"
-            />
-          </Popconfirm>
+          <Button
+            type="text"
+            danger
+            icon={<FiTrash2 />}
+            onClick={() => {
+              Modal.confirm({
+                title: "Удалить оборудование?",
+                content: "Это действие нельзя отменить",
+                onOk: () => handleDelete(item.id),
+                okText: "Да",
+                cancelText: "Нет",
+              });
+            }}
+            size="small"
+            title="Удалить"
+          />
         </Space>
       </div>
     </div>
@@ -202,10 +228,48 @@ const AddedPage = () => {
     return (
       <div>
         {/* Filters */}
-        <div className="flex space-x-4 mb-6">
-          <Select placeholder="Блок" className="w-40" />
-          <Select placeholder="Номер" className="w-40" />
-          <Select placeholder="Тип оборудования" className="w-48" />
+        <div className="flex space-x-4 mb-6 p-4 bg-gray-50 rounded-lg">
+          <Select
+            placeholder="Блок"
+            className="w-40"
+            value={filters.building_id}
+            onChange={(value) => handleFilterChange("building_id", value)}
+            allowClear
+          >
+            {buildings.map((building) => (
+              <Option key={building.id} value={building.id}>
+                {building.name}
+              </Option>
+            ))}
+          </Select>
+
+          <Input
+            placeholder="Номер комнаты"
+            className="w-40"
+            value={filters.room_number}
+            onChange={(e) => handleFilterChange("room_number", e.target.value)}
+          />
+
+          <Select
+            placeholder="Тип оборудования"
+            className="w-48"
+            value={filters.type_id}
+            onChange={(value) => handleFilterChange("type_id", value)}
+            allowClear
+          >
+            {equipmentTypes.map((type) => (
+              <Option key={type.id} value={type.id}>
+                <div className="flex items-center space-x-2">
+                  <EquipmentIcon type={type.name} />
+                  <span>{type.name}</span>
+                </div>
+              </Option>
+            ))}
+          </Select>
+
+          <Button icon={<FiFilter />} onClick={clearFilters}>
+            Очистить
+          </Button>
         </div>
 
         <Collapse

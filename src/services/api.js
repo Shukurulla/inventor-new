@@ -103,45 +103,63 @@ export const specificationsAPI = {
   // Computer specifications
   getComputerSpecs: () => api.get("/inventory/computer-specifications/"),
   createComputerSpec: (data) => api.post("/inventory/create-comp-spec/", data),
+  updateComputerSpec: (id, data) =>
+    api.put(`/inventory/computer-specifications/${id}/`, data),
 
   // Projector specifications
   getProjectorSpecs: () => api.get("/inventory/projector-specification/"),
   createProjectorSpec: (data) =>
     api.post("/inventory/projector-specification/", data),
+  updateProjectorSpec: (id, data) =>
+    api.put(`/inventory/projector-specification/${id}/`, data),
 
   // Printer specifications
   getPrinterSpecs: () => api.get("/inventory/printer-specification/"),
   createPrinterSpec: (data) =>
     api.post("/inventory/printer-specification/", data),
+  updatePrinterSpec: (id, data) =>
+    api.put(`/inventory/printer-specification/${id}/`, data),
 
   // TV specifications
   getTVSpecs: () => api.get("/inventory/tv-specification/"),
   createTVSpec: (data) => api.post("/inventory/tv-specification/", data),
+  updateTVSpec: (id, data) =>
+    api.put(`/inventory/tv-specification/${id}/`, data),
 
   // Router specifications
   getRouterSpecs: () => api.get("/inventory/router-specification/"),
   createRouterSpec: (data) =>
     api.post("/inventory/router-specification/", data),
+  updateRouterSpec: (id, data) =>
+    api.put(`/inventory/router-specification/${id}/`, data),
 
   // Notebook specifications
   getNotebookSpecs: () => api.get("/inventory/notebook-specification/"),
   createNotebookSpec: (data) =>
     api.post("/inventory/notebook-specification/", data),
+  updateNotebookSpec: (id, data) =>
+    api.put(`/inventory/notebook-specification/${id}/`, data),
 
   // Monoblok specifications
   getMonoblokSpecs: () => api.get("/inventory/monoblok-specification/"),
   createMonoblokSpec: (data) =>
     api.post("/inventory/monoblok-specification/", data),
+  updateMonoblokSpec: (id, data) =>
+    api.put(`/inventory/monoblok-specification/${id}/`, data),
 
   // Whiteboard specifications
   getWhiteboardSpecs: () => api.get("/inventory/whiteboard-specification/"),
   createWhiteboardSpec: (data) =>
     api.post("/inventory/whiteboard-specification/", data),
+  updateWhiteboardSpec: (id, data) =>
+    api.put(`/inventory/whiteboard-specification/${id}/`, data),
 
   // Extender specifications
   getExtenderSpecs: () => api.get("/inventory/extender-specification/"),
   createExtenderSpec: (data) =>
     api.post("/inventory/extender-specification/", data),
+  updateExtenderSpec: (id, data) =>
+    api.put(`/inventory/extender-specification/${id}/`, data),
 
   // Get specification count
   getSpecificationCount: () =>
@@ -162,7 +180,7 @@ export const contractsAPI = {
     });
   },
   updateContract: (id, formData) => {
-    return api.patch(`/inventory/contracts/${id}/`, formData, {
+    return api.put(`/inventory/contracts/${id}/`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

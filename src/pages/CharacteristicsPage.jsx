@@ -12,6 +12,12 @@ import {
   message,
   Popconfirm,
   Form,
+  Input,
+  Select,
+  Row,
+  Col,
+  InputNumber,
+  Switch,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { FiPlus, FiEdit, FiTrash2, FiChevronRight } from "react-icons/fi";
@@ -29,17 +35,22 @@ import {
   createExtenderSpec,
 } from "../store/slices/specificationSlice";
 import { getEquipmentTypes } from "../store/slices/equipmentSlice";
+import { specificationsAPI } from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateSpecificationForm from "../components/Equipment/CreateSpecificationForm";
 
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
+const { Option } = Select;
 
 const CharacteristicsPage = () => {
   const [activeTab, setActiveTab] = useState("templates");
   const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState(null);
+  const [selectedSpec, setSelectedSpec] = useState(null);
   const [specForm] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const dispatch = useDispatch();
   const specifications = useSelector((state) => state.specifications);
@@ -95,6 +106,13 @@ const CharacteristicsPage = () => {
     setCreateModalVisible(true);
   };
 
+  const handleEditSpec = (spec, typeName) => {
+    setSelectedSpec(spec);
+    setSelectedType(typeName);
+    editForm.setFieldsValue(spec);
+    setEditModalVisible(true);
+  };
+
   const handleSubmitSpec = async (values) => {
     try {
       const typeName = selectedType.toLowerCase();
@@ -115,10 +133,58 @@ const CharacteristicsPage = () => {
         message.success("Характеристика успешно создана!");
         setCreateModalVisible(false);
         specForm.resetFields();
+        dispatch(getAllSpecifications());
         dispatch(getSpecificationCount());
       }
     } catch (error) {
       message.error("Ошибка при создании характеристики");
+    }
+  };
+
+  const handleUpdateSpec = async (values) => {
+    try {
+      const typeName = selectedType.toLowerCase();
+      let apiCall;
+
+      // Определяем какой API использовать для обновления
+      if (typeName.includes("компьютер")) {
+        apiCall = () =>
+          specificationsAPI.updateComputerSpec(selectedSpec.id, values);
+      } else if (typeName.includes("проектор")) {
+        apiCall = () =>
+          specificationsAPI.updateProjectorSpec(selectedSpec.id, values);
+      } else if (typeName.includes("принтер")) {
+        apiCall = () =>
+          specificationsAPI.updatePrinterSpec(selectedSpec.id, values);
+      } else if (typeName.includes("телевизор")) {
+        apiCall = () => specificationsAPI.updateTVSpec(selectedSpec.id, values);
+      } else if (typeName.includes("роутер")) {
+        apiCall = () =>
+          specificationsAPI.updateRouterSpec(selectedSpec.id, values);
+      } else if (typeName.includes("ноутбук")) {
+        apiCall = () =>
+          specificationsAPI.updateNotebookSpec(selectedSpec.id, values);
+      } else if (typeName.includes("моноблок")) {
+        apiCall = () =>
+          specificationsAPI.updateMonoblokSpec(selectedSpec.id, values);
+      } else if (typeName.includes("доска")) {
+        apiCall = () =>
+          specificationsAPI.updateWhiteboardSpec(selectedSpec.id, values);
+      } else if (typeName.includes("удлинитель")) {
+        apiCall = () =>
+          specificationsAPI.updateExtenderSpec(selectedSpec.id, values);
+      }
+
+      if (apiCall) {
+        await apiCall();
+        message.success("Характеристика успешно обновлена!");
+        setEditModalVisible(false);
+        editForm.resetFields();
+        setSelectedSpec(null);
+        dispatch(getAllSpecifications());
+      }
+    } catch (error) {
+      message.error("Ошибка при обновлении характеристики");
     }
   };
 
@@ -169,7 +235,12 @@ const CharacteristicsPage = () => {
         </div>
       </div>
       <div className="flex items-center space-x-2">
-        <Button type="text" icon={<FiEdit />} size="small" />
+        <Button
+          type="text"
+          icon={<FiEdit />}
+          size="small"
+          onClick={() => handleEditSpec(spec, type)}
+        />
         <Popconfirm
           title="Удалить характеристику?"
           description="Это действие нельзя отменить"
@@ -190,7 +261,7 @@ const CharacteristicsPage = () => {
         icon: "компьютер",
         data: specifications.computer,
         color: "bg-blue-100 text-blue-600",
-        count: 6,
+        count: specifications.computer?.length || 0,
       },
       {
         key: "projector",
@@ -198,7 +269,7 @@ const CharacteristicsPage = () => {
         icon: "проектор",
         data: specifications.projector,
         color: "bg-green-100 text-green-600",
-        count: 10,
+        count: specifications.projector?.length || 0,
       },
       {
         key: "printer",
@@ -206,7 +277,7 @@ const CharacteristicsPage = () => {
         icon: "принтер",
         data: specifications.printer,
         color: "bg-pink-100 text-pink-600",
-        count: 3,
+        count: specifications.printer?.length || 0,
       },
       {
         key: "whiteboard",
@@ -214,7 +285,7 @@ const CharacteristicsPage = () => {
         icon: "доска",
         data: specifications.whiteboard,
         color: "bg-purple-100 text-purple-600",
-        count: 2,
+        count: specifications.whiteboard?.length || 0,
       },
     ];
 
@@ -259,7 +330,7 @@ const CharacteristicsPage = () => {
             >
               {specType.data && specType.data.length > 0 ? (
                 <div className="space-y-2">
-                  {specType.data.slice(0, 3).map((spec) => (
+                  {specType.data.map((spec) => (
                     <div key={spec.id}>
                       {renderSpecificationItem(spec, specType.name)}
                     </div>
@@ -305,6 +376,7 @@ const CharacteristicsPage = () => {
         />
       </Card>
 
+      {/* Create Modal */}
       <Modal
         title={`Создать характеристику: ${selectedType}`}
         visible={createModalVisible}
@@ -327,6 +399,127 @@ const CharacteristicsPage = () => {
             specForm.resetFields();
           }}
         />
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal
+        title={`Редактировать характеристику: ${selectedType}`}
+        visible={editModalVisible}
+        onCancel={() => {
+          setEditModalVisible(false);
+          setSelectedType(null);
+          setSelectedSpec(null);
+          editForm.resetFields();
+        }}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleUpdateSpec}>
+          {selectedType?.toLowerCase().includes("компьютер") && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    label="CPU"
+                    name="cpu"
+                    rules={[{ required: true }]}
+                  >
+                    <Input placeholder="Процессор" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    label="RAM"
+                    name="ram"
+                    rules={[{ required: true }]}
+                  >
+                    <Input placeholder="Оперативная память" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    label="Storage"
+                    name="storage"
+                    rules={[{ required: true }]}
+                  >
+                    <Input placeholder="Накопитель" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Monitor Size" name="monitor_size">
+                    <Input placeholder="Размер монитора" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    label="Мышка"
+                    name="has_mouse"
+                    valuePropName="checked"
+                  >
+                    <Switch />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    label="Клавиатура"
+                    name="has_keyboard"
+                    valuePropName="checked"
+                  >
+                    <Switch />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+          {selectedType?.toLowerCase().includes("проектор") && (
+            <>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    label="Модель"
+                    name="model"
+                    rules={[{ required: true }]}
+                  >
+                    <Input placeholder="Модель проектора" />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Разрешение" name="resolution">
+                    <Input placeholder="Разрешение" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item label="Яркость" name="brightness">
+                    <InputNumber
+                      placeholder="Яркость (люмен)"
+                      className="w-full"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="Контрастность" name="contrast_ratio">
+                    <Input placeholder="Контрастность" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button onClick={() => setEditModalVisible(false)}>Отмена</Button>
+            <Button type="primary" htmlType="submit" loading={loading}>
+              Сохранить
+            </Button>
+          </div>
+        </Form>
       </Modal>
     </div>
   );
