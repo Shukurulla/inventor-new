@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Card,
   Tabs,
@@ -54,56 +56,37 @@ const CharacteristicsPage = () => {
     {
       name: "Проектор",
       icon: "проектор",
-      fields: ["модель проектора", "яркость", "разрешение", "тип проекции"],
+      color: "bg-green-100 text-green-600",
     },
     {
       name: "Компьютер",
       icon: "компьютер",
-      fields: [
-        "процессор (CPU)",
-        "оперативная память (RAM)",
-        "накопитель",
-        "видеокарта",
-        "тип диска",
-      ],
+      color: "bg-blue-100 text-blue-600",
     },
     {
       name: "Принтер",
       icon: "принтер",
-      fields: [
-        "модель",
-        "цветная печать",
-        "двусторонняя печать",
-        "серийный номер",
-      ],
+      color: "bg-pink-100 text-pink-600",
+    },
+    {
+      name: "Моноблок",
+      icon: "моноблок",
+      color: "bg-green-100 text-green-600",
+    },
+    {
+      name: "Электронная доска",
+      icon: "доска",
+      color: "bg-purple-100 text-purple-600",
     },
     {
       name: "Телевизор",
       icon: "телевизор",
-      fields: ["модель", "размер экрана", "серийный номер"],
+      color: "bg-orange-100 text-orange-600",
     },
     {
       name: "Ноутбук",
       icon: "ноутбук",
-      fields: [
-        "процессор",
-        "ОЗУ",
-        "накопитель",
-        "размер экрана",
-        "серийный номер",
-        "тип диска",
-        "видеокарта",
-      ],
-    },
-    {
-      name: "Роутер",
-      icon: "роутер",
-      fields: ["модель", "количество портов", "частота GHz", "серийный номер"],
-    },
-    {
-      name: "Монитор",
-      icon: "монитор",
-      fields: ["размер экрана", "GHz", "тип матрицы", "монитор тип"],
+      color: "bg-blue-100 text-blue-600",
     },
   ];
 
@@ -140,79 +123,49 @@ const CharacteristicsPage = () => {
   };
 
   const renderTemplatesTab = () => (
-    <div className="space-y-4">
-      {equipmentTypeTemplates.map((template) => (
-        <Card
-          key={template.name}
-          className="shadow-sm hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center justify-between">
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+          <span className="font-medium text-gray-900">Элемент инвентаря</span>
+        </div>
+        <span className="text-gray-600">Наличие шаблонов</span>
+      </div>
+
+      <div className="space-y-3">
+        {equipmentTypeTemplates.map((template) => (
+          <div
+            key={template.name}
+            className="flex items-center justify-between p-4 bg-white rounded-lg border hover:shadow-sm transition-shadow"
+          >
             <div className="flex items-center space-x-4">
-              <EquipmentIcon type={template.icon} className="text-2xl" />
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {template.name}
-                </h3>
-                <div className="text-sm text-gray-600">
-                  Поля: {template.fields.join(", ")}
-                </div>
+              <div
+                className={`w-10 h-10 rounded-lg ${template.color} flex items-center justify-center`}
+              >
+                <EquipmentIcon type={template.icon} className="text-lg" />
               </div>
+              <span className="font-medium text-gray-900">{template.name}</span>
             </div>
             <Button
-              type="primary"
+              type="text"
               icon={<FiPlus />}
               onClick={() => handleCreateSpec(template.name)}
-            >
-              Создать шаблон
-            </Button>
+              className="text-blue-500 hover:text-blue-600"
+            />
           </div>
-        </Card>
-      ))}
+        ))}
+      </div>
     </div>
   );
 
   const renderSpecificationItem = (spec, type) => (
-    <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+    <div className="flex items-center justify-between p-3 bg-white rounded-lg border mb-2">
       <div className="flex-1">
         <div className="font-medium text-gray-800">
-          {spec.model || spec.cpu || `Характеристика ${spec.id}`}
+          {spec.model || spec.cpu || `${type} - ID: ${spec.id}`}
         </div>
         <div className="text-sm text-gray-500 mt-1">
-          {type === "computer" && spec.cpu && (
-            <span>
-              CPU: {spec.cpu}, RAM: {spec.ram}, Storage: {spec.storage}
-            </span>
-          )}
-          {type === "projector" && spec.lumens && (
-            <span>
-              Яркость: {spec.lumens} лм, Разрешение: {spec.resolution}
-            </span>
-          )}
-          {type === "printer" && spec.model && (
-            <span>
-              Модель: {spec.model}, Цветная: {spec.color ? "Да" : "Нет"}
-            </span>
-          )}
-          {type === "tv" && spec.screen_size && (
-            <span>
-              Размер: {spec.screen_size}", Модель: {spec.model}
-            </span>
-          )}
-          {type === "router" && spec.ports && (
-            <span>
-              Порты: {spec.ports}, Модель: {spec.model}
-            </span>
-          )}
-          {type === "notebook" && spec.cpu && (
-            <span>
-              CPU: {spec.cpu}, Экран: {spec.screen_size}"
-            </span>
-          )}
-          {spec.created_at && (
-            <span className="ml-2">
-              Создано: {new Date(spec.created_at).toLocaleDateString()}
-            </span>
-          )}
+          {type === "Принтер" && `Принтер - ID: ${spec.id}`}
         </div>
       </div>
       <div className="flex items-center space-x-2">
@@ -236,112 +189,101 @@ const CharacteristicsPage = () => {
         name: "Компьютер",
         icon: "компьютер",
         data: specifications.computer,
+        color: "bg-blue-100 text-blue-600",
+        count: 6,
       },
       {
         key: "projector",
         name: "Проектор",
         icon: "проектор",
         data: specifications.projector,
+        color: "bg-green-100 text-green-600",
+        count: 10,
       },
       {
         key: "printer",
         name: "Принтер",
         icon: "принтер",
         data: specifications.printer,
-      },
-      {
-        key: "tv",
-        name: "Телевизор",
-        icon: "телевизор",
-        data: specifications.tv,
-      },
-      {
-        key: "router",
-        name: "Роутер",
-        icon: "роутер",
-        data: specifications.router,
-      },
-      {
-        key: "notebook",
-        name: "Ноутбук",
-        icon: "ноутбук",
-        data: specifications.notebook,
-      },
-      {
-        key: "monoblok",
-        name: "Моноблок",
-        icon: "моноблок",
-        data: specifications.monoblok,
+        color: "bg-pink-100 text-pink-600",
+        count: 3,
       },
       {
         key: "whiteboard",
         name: "Электронная доска",
         icon: "доска",
         data: specifications.whiteboard,
-      },
-      {
-        key: "extender",
-        name: "Удлинитель",
-        icon: "удлинитель",
-        data: specifications.extender,
+        color: "bg-purple-100 text-purple-600",
+        count: 2,
       },
     ];
 
     return (
-      <Collapse
-        expandIcon={({ isActive }) => (
-          <FiChevronRight
-            className={`transition-transform ${isActive ? "rotate-90" : ""}`}
-          />
-        )}
-        className="space-y-2"
-      >
-        {specTypes.map((specType) => (
-          <Panel
-            key={specType.key}
-            header={
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center space-x-3">
-                  <EquipmentIcon type={specType.icon} />
-                  <span className="font-medium">{specType.name}</span>
-                </div>
-                <Badge
-                  count={specType.data?.length || 0}
-                  showZero
-                  className="mr-4"
-                />
-              </div>
-            }
-          >
-            {specType.data && specType.data.length > 0 ? (
-              <div className="space-y-2">
-                {specType.data.map((spec) => (
-                  <div key={spec.id}>
-                    {renderSpecificationItem(spec, specType.key)}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span className="font-medium text-gray-900">Созданные шаблоны</span>
+          </div>
+          <span className="text-gray-600">Количество</span>
+        </div>
+
+        <Collapse
+          expandIcon={({ isActive }) => (
+            <FiChevronRight
+              className={`transition-transform ${isActive ? "rotate-90" : ""}`}
+            />
+          )}
+          className="space-y-2"
+        >
+          {specTypes.map((specType) => (
+            <Panel
+              key={specType.key}
+              header={
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className={`w-8 h-8 rounded-lg ${specType.color} flex items-center justify-center`}
+                    >
+                      <EquipmentIcon type={specType.icon} />
+                    </div>
+                    <span className="font-medium">{specType.name}</span>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={`Нет характеристик для ${specType.name.toLowerCase()}`}
-              />
-            )}
-          </Panel>
-        ))}
-      </Collapse>
+                  <Badge
+                    count={specType.count}
+                    style={{ backgroundColor: "#10b981" }}
+                    className="mr-4"
+                  />
+                </div>
+              }
+            >
+              {specType.data && specType.data.length > 0 ? (
+                <div className="space-y-2">
+                  {specType.data.slice(0, 3).map((spec) => (
+                    <div key={spec.id}>
+                      {renderSpecificationItem(spec, specType.name)}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={`Нет характеристик для ${specType.name.toLowerCase()}`}
+                />
+              )}
+            </Panel>
+          ))}
+        </Collapse>
+      </div>
     );
   };
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
           Характеристики
         </h1>
-        <p className="text-gray-600">
-          Создавайте и управляйте шаблонами характеристик для оборудования
-        </p>
       </div>
 
       <Card className="shadow-sm">

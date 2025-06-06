@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   Layout as AntLayout,
   Menu,
@@ -6,6 +8,7 @@ import {
   Dropdown,
   Avatar,
   Button,
+  Input,
 } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -13,12 +16,10 @@ import {
   FiHome,
   FiSettings,
   FiFileText,
-  FiTool,
   FiLayers,
-  FiUser,
   FiLogOut,
-  FiBell,
-  FiMenu,
+  FiSearch,
+  FiClock,
 } from "react-icons/fi";
 import { logout, getUserActions } from "../../store/slices/authSlice";
 
@@ -55,11 +56,7 @@ const Layout = ({ children }) => {
       key: "/added",
       icon: <FiLayers className="text-lg" />,
       label: "Добавленные",
-    },
-    {
-      key: "/repairs",
-      icon: <FiTool className="text-lg" />,
-      label: "Ремонт",
+      badge: 123,
     },
     {
       key: "/settings",
@@ -78,11 +75,6 @@ const Layout = ({ children }) => {
 
   const userMenuItems = [
     {
-      key: "profile",
-      icon: <FiUser />,
-      label: "Профиль",
-    },
-    {
       key: "logout",
       icon: <FiLogOut />,
       label: "Выйти",
@@ -90,93 +82,130 @@ const Layout = ({ children }) => {
     },
   ];
 
-  const actionsDropdownItems =
-    userActions?.slice(0, 5).map((action, index) => ({
-      key: index,
-      label: (
-        <div className="py-2">
-          <div className="font-medium text-sm">{action.action_type}</div>
-          <div className="text-xs text-gray-500">{action.created_at}</div>
-        </div>
-      ),
-    })) || [];
-
   return (
     <AntLayout className="min-h-screen">
       <Sider
         trigger={null}
         collapsible
         collapsed={collapsed}
-        className="!bg-gray-50 border-r border-gray-200"
-        width={260}
+        className="!bg-white border-r border-gray-100"
+        width={280}
       >
-        <div className="h-16 flex items-center justify-center border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+        {/* Logo */}
+        <div className="h-16 flex items-center px-6 border-b border-gray-100">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">iM</span>
             </div>
             {!collapsed && (
-              <span className="font-bold text-lg text-gray-800">iMaster</span>
+              <span className="font-bold text-lg text-gray-900">iMaster</span>
             )}
           </div>
         </div>
 
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={handleMenuClick}
-          className="border-none mt-4"
-        />
+        {/* Menu */}
+        <div className="py-4">
+          <Menu
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            className="border-none bg-transparent"
+            items={menuItems.map((item) => ({
+              ...item,
+              label: (
+                <div className="flex items-center justify-between">
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <Badge
+                      count={item.badge}
+                      size="small"
+                      style={{ backgroundColor: "#6366f1" }}
+                    />
+                  )}
+                </div>
+              ),
+            }))}
+            onClick={handleMenuClick}
+          />
+        </div>
+
+        {/* User Profile */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
+          <Dropdown
+            menu={{ items: userMenuItems }}
+            placement="topRight"
+            trigger={["click"]}
+          >
+            <div className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg">
+              <Avatar size="small" className="bg-indigo-600">
+                U
+              </Avatar>
+              {!collapsed && (
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    Пользователь
+                  </div>
+                  <div className="text-xs text-gray-500">@user</div>
+                </div>
+              )}
+            </div>
+          </Dropdown>
+        </div>
       </Sider>
 
       <AntLayout>
-        <Header className="!bg-white border-b border-gray-200 !px-6 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button
-              type="text"
-              icon={<FiMenu />}
-              onClick={() => setCollapsed(!collapsed)}
-              className="text-gray-600 hover:text-gray-800"
+        <Header className="!bg-white border-b border-gray-100 !px-6 flex items-center justify-between">
+          <div className="flex-1 max-w-md">
+            <Input
+              placeholder="Поиск по ИНН..."
+              prefix={<FiSearch className="text-gray-400" />}
+              className="rounded-lg"
             />
           </div>
 
           <div className="flex items-center space-x-4">
             <Dropdown
-              menu={{ items: actionsDropdownItems }}
+              menu={{
+                items:
+                  userActions?.slice(0, 5).map((action, index) => ({
+                    key: index,
+                    label: (
+                      <div className="py-2">
+                        <div className="font-medium text-sm">
+                          {action.action_type}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {action.created_at}
+                        </div>
+                      </div>
+                    ),
+                  })) || [],
+              }}
               placement="bottomRight"
               trigger={["click"]}
             >
-              <Button type="text" className="flex items-center">
-                <Badge
-                  count={userActions?.length > 0 ? userActions.length : 0}
-                  size="small"
-                >
-                  <FiBell className="text-lg text-gray-600" />
-                </Badge>
-                <span className="ml-2 text-sm font-medium">Мои действия</span>
+              <Button type="text" className="flex items-center space-x-2">
+                <FiClock className="text-lg text-gray-600" />
+                <span className="text-sm font-medium">Последние действия</span>
               </Button>
             </Dropdown>
 
-            <Dropdown
-              menu={{ items: userMenuItems }}
-              placement="bottomRight"
-              trigger={["click"]}
-            >
-              <div className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-lg">
-                <Avatar size="small" className="bg-indigo-600">
-                  {user?.first_name?.[0] || "U"}
-                </Avatar>
-                <div className="text-sm">
-                  <div className="font-medium text-gray-800">
-                    {user?.first_name} {user?.last_name}
-                  </div>
-                  <div className="text-xs text-gray-500 capitalize">
-                    ({user?.role || "Администратор"})
-                  </div>
-                </div>
+            <div className="text-right">
+              <div className="text-sm font-medium text-gray-900">
+                Мои действия
               </div>
-            </Dropdown>
+              <div className="text-xs text-gray-500">
+                {userActions?.length > 0 && (
+                  <div className="space-y-1">
+                    {userActions.slice(0, 3).map((action, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <span className="text-blue-600">+</span>
+                        <span>(Администратор)</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </Header>
 

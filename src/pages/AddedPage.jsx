@@ -1,52 +1,43 @@
-import React, { useEffect, useState } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Card,
-  Tabs,
   Collapse,
   Button,
   Badge,
   Empty,
+  Space,
   Modal,
-  Form,
-  Select,
   message,
   Popconfirm,
-  Tag,
-  Space,
+  Form,
   Input,
+  Select,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { FiEdit, FiTrash2, FiChevronRight, FiTool } from "react-icons/fi";
+import { FiChevronRight, FiTrash2, FiEdit } from "react-icons/fi";
 import {
   getEquipment,
   updateEquipment,
   deleteEquipment,
   sendToRepair,
 } from "../store/slices/equipmentSlice";
-import { getAllSpecifications } from "../store/slices/specificationSlice";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
-import CreateSpecificationForm from "../components/Equipment/CreateSpecificationForm";
 
-const { TabPane } = Tabs;
 const { Panel } = Collapse;
 const { Option } = Select;
 
 const AddedPage = () => {
-  const [activeTab, setActiveTab] = useState("list");
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
-  const [createSpecModalVisible, setCreateSpecModalVisible] = useState(false);
   const [form] = Form.useForm();
-  const [specForm] = Form.useForm();
 
   const dispatch = useDispatch();
   const { equipment, loading } = useSelector((state) => state.equipment);
-  const specifications = useSelector((state) => state.specifications);
-  console.log(equipment);
 
   useEffect(() => {
     dispatch(getEquipment());
-    dispatch(getAllSpecifications());
   }, [dispatch]);
 
   const getStatusColor = (status) => {
@@ -152,37 +143,22 @@ const AddedPage = () => {
       className="flex items-center justify-between p-4 bg-white rounded-lg border hover:shadow-sm transition-shadow"
     >
       <div className="flex items-center space-x-4">
-        <EquipmentIcon type={item.type_data?.name} className="text-xl" />
+        <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
+          <EquipmentIcon
+            type={item.type_data?.name}
+            className="text-pink-600"
+          />
+        </div>
         <div className="flex-1">
           <div className="font-medium text-gray-800">{item.name}</div>
           <div className="text-sm text-gray-500 mt-1">
-            ИНН: {item.inn || "Не присвоен"} | Кабинет: {item.room_data?.number}{" "}
-            | ID: {item.id}
+            {item.room_data?.name} - ИНН: {item.inn || "Не присвоен"} - ID:{" "}
+            {item.id}
           </div>
-          {item.description && (
-            <div className="text-sm text-gray-400 mt-1">{item.description}</div>
-          )}
         </div>
       </div>
 
       <div className="flex items-center space-x-3">
-        <Select
-          value={item.status}
-          onChange={(value) => handleStatusChange(item.id, value)}
-          className="w-32"
-          size="small"
-        >
-          <Option value="NEW">Новое</Option>
-          <Option value="WORKING">Работает</Option>
-          <Option value="REPAIR">На ремонте</Option>
-          <Option value="BROKEN">Сломано</Option>
-          <Option value="DISPOSED">Утилизировано</Option>
-        </Select>
-
-        <Tag color={getStatusColor(item.status)}>
-          {getStatusText(item.status)}
-        </Tag>
-
         <Space size="small">
           <Button
             type="text"
@@ -190,14 +166,6 @@ const AddedPage = () => {
             onClick={() => handleEdit(item)}
             size="small"
             title="Редактировать"
-          />
-          <Button
-            type="text"
-            icon={<FiTool />}
-            onClick={() => handleSendToRepair(item.id)}
-            size="small"
-            title="Отправить на ремонт"
-            disabled={item.status === "REPAIR"}
           />
           <Popconfirm
             title="Удалить оборудование?"
@@ -232,91 +200,48 @@ const AddedPage = () => {
     }
 
     return (
-      <Collapse
-        expandIcon={({ isActive }) => (
-          <FiChevronRight
-            className={`transition-transform ${isActive ? "rotate-90" : ""}`}
-          />
-        )}
-        className="space-y-2"
-      >
-        {Object.entries(groupedEquipment).map(([typeName, items]) => (
-          <Panel
-            key={typeName}
-            header={
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center space-x-3">
-                  <EquipmentIcon type={typeName} />
-                  <span className="font-medium">{typeName}</span>
-                </div>
-                <Badge count={items.length} showZero className="mr-4" />
-              </div>
-            }
-          >
-            <div className="space-y-2">{items.map(renderEquipmentItem)}</div>
-          </Panel>
-        ))}
-      </Collapse>
-    );
-  };
-
-  const renderStatusManagement = () => {
-    const statusCounts = equipment.reduce((acc, item) => {
-      acc[item.status] = (acc[item.status] || 0) + 1;
-      return acc;
-    }, {});
-
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {Object.entries(statusCounts).map(([status, count]) => (
-            <Card key={status} className="text-center">
-              <div className="text-2xl font-bold text-gray-800 mb-2">
-                {count}
-              </div>
-              <Tag color={getStatusColor(status)} className="mb-0">
-                {getStatusText(status)}
-              </Tag>
-            </Card>
-          ))}
+      <div>
+        {/* Filters */}
+        <div className="flex space-x-4 mb-6">
+          <Select placeholder="Блок" className="w-40" />
+          <Select placeholder="Номер" className="w-40" />
+          <Select placeholder="Тип оборудования" className="w-48" />
         </div>
 
-        <Card title="Управление статусом" className="mt-6">
-          <p className="text-gray-600 mb-4">
-            Вы можете изменять статус оборудования непосредственно в списке
-            оборудования
-          </p>
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Tag color="green">Новое</Tag>
-              <span className="text-sm text-gray-600">
-                Недавно добавленное оборудование
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Tag color="blue">Работает</Tag>
-              <span className="text-sm text-gray-600">
-                Оборудование в рабочем состоянии
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Tag color="orange">На ремонте</Tag>
-              <span className="text-sm text-gray-600">Требуется ремонт</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Tag color="red">Сломано</Tag>
-              <span className="text-sm text-gray-600">
-                Неисправное оборудование
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Tag color="default">Утилизировано</Tag>
-              <span className="text-sm text-gray-600">
-                Списанное оборудование
-              </span>
-            </div>
-          </div>
-        </Card>
+        <Collapse
+          expandIcon={({ isActive }) => (
+            <FiChevronRight
+              className={`transition-transform ${isActive ? "rotate-90" : ""}`}
+            />
+          )}
+          className="space-y-2"
+        >
+          {Object.entries(groupedEquipment).map(([typeName, items]) => (
+            <Panel
+              key={typeName}
+              header={
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <EquipmentIcon
+                        type={typeName}
+                        className="text-green-600"
+                      />
+                    </div>
+                    <span className="font-medium">{typeName}</span>
+                  </div>
+                  <Badge
+                    count={items.length}
+                    style={{ backgroundColor: "#6366f1" }}
+                    className="mr-4"
+                  />
+                </div>
+              }
+            >
+              <div className="space-y-2">{items.map(renderEquipmentItem)}</div>
+            </Panel>
+          ))}
+        </Collapse>
       </div>
     );
   };
@@ -324,30 +249,10 @@ const AddedPage = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Добавленные</h1>
-        <p className="text-gray-600">
-          Просмотр и управление добавленным оборудованием
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Добавленные</h1>
       </div>
 
-      <Card className="shadow-sm">
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={[
-            {
-              key: "list",
-              label: "Список оборудования",
-              children: renderEquipmentList(),
-            },
-            {
-              key: "status",
-              label: "Управление статусом",
-              children: renderStatusManagement(),
-            },
-          ]}
-        />
-      </Card>
+      <Card className="shadow-sm">{renderEquipmentList()}</Card>
 
       {/* Edit Equipment Modal */}
       <Modal

@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Card,
   Table,
@@ -20,6 +22,7 @@ import {
   FiTrash2,
   FiDownload,
   FiUpload,
+  FiFileText,
 } from "react-icons/fi";
 import {
   getContracts,
@@ -135,14 +138,23 @@ const ContractsPage = () => {
       dataIndex: "number",
       key: "number",
       render: (text) => (
-        <span className="font-medium text-gray-800">{text}</span>
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+            <FiFileText className="text-blue-600" />
+          </div>
+          <span className="font-medium text-gray-800">{text}</span>
+        </div>
       ),
     },
     {
       title: "Дата заключения",
       dataIndex: "valid_until",
       key: "valid_until",
-      render: (date) => dayjs(date).format("DD.MM.YYYY"),
+      render: (date) => (
+        <span className="text-gray-600">
+          {dayjs(date).format("DD.MM.YYYY")}
+        </span>
+      ),
     },
     {
       title: "Действия",
@@ -153,19 +165,13 @@ const ContractsPage = () => {
             type="text"
             icon={<FiEye />}
             onClick={() => handleView(record)}
-            title="Просмотр"
+            className="text-blue-500 hover:text-blue-600"
           />
           <Button
             type="text"
             icon={<FiEdit />}
             onClick={() => openEditModal(record)}
-            title="Редактировать"
-          />
-          <Button
-            type="text"
-            icon={<FiDownload />}
-            onClick={() => handleDownload(record)}
-            title="Скачать"
+            className="text-orange-500 hover:text-orange-600"
           />
           <Popconfirm
             title="Удалить договор?"
@@ -174,8 +180,19 @@ const ContractsPage = () => {
             okText="Да"
             cancelText="Нет"
           >
-            <Button type="text" danger icon={<FiTrash2 />} title="Удалить" />
+            <Button
+              type="text"
+              danger
+              icon={<FiTrash2 />}
+              className="text-red-500 hover:text-red-600"
+            />
           </Popconfirm>
+          <Button
+            type="text"
+            icon={<FiDownload />}
+            onClick={() => handleDownload(record)}
+            className="text-green-500 hover:text-green-600"
+          />
         </Space>
       ),
     },
@@ -190,27 +207,23 @@ const ContractsPage = () => {
   return (
     <div>
       <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Договоры</h1>
-            <p className="text-gray-600">Управление договорами и контрактами</p>
-          </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Договоры</h1>
+      </div>
+
+      <Card className="shadow-sm">
+        <div className="flex items-center justify-between mb-6">
           <Button
             type="primary"
             icon={<FiPlus />}
             onClick={() => setCreateModalVisible(true)}
-            size="large"
+            className="bg-blue-500 hover:bg-blue-600"
           >
             Добавить новый договор
           </Button>
         </div>
-      </div>
 
-      <Card className="shadow-sm">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">
-            Список договоров
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-800">Список</h2>
         </div>
 
         <Table

@@ -110,21 +110,6 @@ const SettingsPage = () => {
               </Button>
             }
           >
-            <div className="text-center mb-6">
-              <Avatar
-                size={80}
-                className="bg-indigo-600 mb-4"
-                src={user?.profile_picture}
-              >
-                {user?.first_name?.[0] || "U"}
-              </Avatar>
-              <Upload {...uploadProps}>
-                <Button icon={<FiUpload />} size="small">
-                  Загрузить фото
-                </Button>
-              </Upload>
-            </div>
-
             <Form
               form={profileForm}
               layout="vertical"
@@ -252,99 +237,8 @@ const SettingsPage = () => {
               </div>
             </div>
           </Card>
-
-          {/* System Settings */}
-          <Card title="Системные настройки" className="shadow-sm">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-gray-800">Уведомления</div>
-                  <div className="text-sm text-gray-500">
-                    Получать уведомления о новых действиях
-                  </div>
-                </div>
-                <Switch
-                  checked={notifications}
-                  onChange={handleNotificationsChange}
-                />
-              </div>
-
-              <Divider />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-gray-800">
-                    Язык интерфейса
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Выберите язык интерфейса
-                  </div>
-                </div>
-                <Select
-                  value={language}
-                  onChange={handleLanguageChange}
-                  className="w-32"
-                >
-                  <Option value="ru">Русский</Option>
-                  <Option value="uz">O'zbekcha</Option>
-                  <Option value="en">English</Option>
-                </Select>
-              </div>
-
-              <Divider />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-gray-800">
-                    Автоматическое обновление
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Автоматически обновлять данные
-                  </div>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <Divider />
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-gray-800">
-                    Сохранять историю действий
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Ведение журнала действий пользователя
-                  </div>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </div>
-          </Card>
         </Col>
       </Row>
-
-      {/* Account Actions */}
-      <Card title="Действия с аккаунтом" className="shadow-sm mt-6">
-        <div className="space-y-4">
-          <Row gutter={16}>
-            <Col span={8}>
-              <Button type="default" className="w-full">
-                Изменить пароль
-              </Button>
-            </Col>
-            <Col span={8}>
-              <Button type="default" className="w-full">
-                Экспорт данных
-              </Button>
-            </Col>
-            <Col span={8}>
-              <Button danger className="w-full">
-                Удалить аккаунт
-              </Button>
-            </Col>
-          </Row>
-        </div>
-      </Card>
     </div>
   );
 };

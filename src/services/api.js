@@ -162,7 +162,7 @@ export const contractsAPI = {
     });
   },
   updateContract: (id, formData) => {
-    return api.put(`/inventory/contracts/${id}/`, formData, {
+    return api.patch(`/inventory/contracts/${id}/`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

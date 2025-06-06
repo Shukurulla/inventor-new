@@ -1,13 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { Card, Collapse, Button, Badge, Empty, Spin } from "antd";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Card, Collapse, Button, Badge, Empty, Spin, Breadcrumb } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  FiPlus,
-  FiChevronRight,
-  FiThumbsDown,
-  FiLayers,
-  FiHome,
-} from "react-icons/fi";
+import { FiPlus, FiChevronRight, FiHome, FiLayers } from "react-icons/fi";
 import {
   getBuildings,
   getFloorsByBuilding,
@@ -28,6 +24,14 @@ const HomePage = () => {
   const [activeBuildingPanels, setActiveBuildingPanels] = useState([]);
   const [activeFloorPanels, setActiveFloorPanels] = useState([]);
   const [activeRoomPanels, setActiveRoomPanels] = useState([]);
+  const [activeTab, setActiveTab] = useState("university");
+  const [breadcrumb, setBreadcrumb] = useState([
+    { title: "Навигация" },
+    { title: "Korpus E" },
+    { title: "1-этаж" },
+    { title: "Ximiya" },
+    { title: "201-Лаборатория №1" },
+  ]);
 
   const {
     buildings,
@@ -69,16 +73,14 @@ const HomePage = () => {
     const equipmentTypesData = equipmentTypesByRoom[roomId] || [];
 
     return (
-      <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
+      <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
         <div className="flex items-center justify-between">
-          <h4 className="font-medium text-gray-700">
-            Оборудование в кабинете:
-          </h4>
           <Button
             type="primary"
             size="small"
             icon={<FiPlus />}
             onClick={() => handleCreateEquipment(room, null)}
+            className="bg-blue-500 hover:bg-blue-600"
           >
             Создать
           </Button>
@@ -91,14 +93,6 @@ const HomePage = () => {
               description="Нет оборудования в этом кабинете"
               className="mb-3"
             />
-            <Button
-              type="dashed"
-              icon={<FiPlus />}
-              onClick={() => handleCreateEquipment(room, null)}
-              className="w-full"
-            >
-              Добавить первое оборудование
-            </Button>
           </div>
         ) : (
           <div className="space-y-2">
@@ -108,24 +102,20 @@ const HomePage = () => {
                 className="flex items-center justify-between p-3 bg-white rounded-lg border hover:shadow-sm transition-shadow"
               >
                 <div className="flex items-center space-x-3">
-                  <EquipmentIcon type={typeData.type.name} />
-                  <div>
-                    <span className="font-medium text-gray-800">
-                      {typeData.type.name}
-                    </span>
-                    <div className="text-sm text-gray-500">
-                      Количество: {typeData.count}
-                    </div>
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                    <EquipmentIcon type={typeData.type.name} />
                   </div>
+                  <span className="font-medium text-gray-800">
+                    {typeData.type.name}
+                  </span>
                 </div>
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<FiPlus />}
-                  onClick={() => handleCreateEquipment(room, typeData.type)}
-                >
-                  Добавить
-                </Button>
+                <div className="flex items-center space-x-3">
+                  <Badge
+                    count={typeData.count}
+                    style={{ backgroundColor: "#6366f1" }}
+                  />
+                  <FiChevronRight className="text-gray-400" />
+                </div>
               </div>
             ))}
           </div>
@@ -136,7 +126,6 @@ const HomePage = () => {
 
   const renderRooms = (buildingId, floorId = null) => {
     const allRooms = roomsByBuilding[buildingId] || [];
-    // Фильтруем комнаты по этажу, если этаж указан
     const rooms = floorId
       ? allRooms.filter((room) => room.floor === floorId)
       : allRooms;
@@ -146,11 +135,7 @@ const HomePage = () => {
         <div className="p-4">
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={
-              floorId
-                ? "Нет кабинетов на этом этаже"
-                : "Нет кабинетов в этом корпусе"
-            }
+            description="Нет кабинетов"
           />
         </div>
       );
@@ -175,18 +160,15 @@ const HomePage = () => {
             key={room.id}
             header={
               <div className="flex items-center justify-between w-full">
-                <div className="flex items-center space-x-2">
-                  <FiHome className="text-blue-500" />
+                <div className="flex items-center space-x-3">
+                  <div className="w-6 h-6 rounded bg-orange-100 flex items-center justify-center">
+                    <FiHome className="text-orange-600 text-sm" />
+                  </div>
                   <span className="font-medium">
-                    Кабинет {room.number} - {room.name}
+                    {room.number}-{room.name}
                   </span>
-                  {room.is_special && <Badge color="purple" text="Спец." />}
                 </div>
-                <Badge
-                  count={equipmentTypesByRoom[room.id]?.length || 0}
-                  showZero
-                  className="mr-4"
-                />
+                <FiPlus className="text-blue-500" />
               </div>
             }
           >
@@ -201,7 +183,6 @@ const HomePage = () => {
     const floors = floorsByBuilding[buildingId] || [];
 
     if (floors.length === 0) {
-      // Если этажей нет, показываем все комнаты корпуса
       return renderRooms(buildingId);
     }
 
@@ -228,16 +209,13 @@ const HomePage = () => {
               key={floor.id}
               header={
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-2">
-                    <FiLayers className="text-green-500" />
-                    <span className="font-medium">{floor.number} этаж</span>
-                    {floor.description && (
-                      <span className="text-sm text-gray-500">
-                        - {floor.description}
-                      </span>
-                    )}
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 rounded bg-orange-100 flex items-center justify-center">
+                      <FiLayers className="text-orange-600 text-sm" />
+                    </div>
+                    <span className="font-medium">{floor.number}-Этаж</span>
                   </div>
-                  <Badge count={floorRooms.length} showZero className="mr-4" />
+                  <FiChevronRight className="text-gray-400" />
                 </div>
               }
             >
@@ -260,24 +238,47 @@ const HomePage = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">
-          Элемент инвентаря
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Главная страница
         </h1>
-        <p className="text-gray-600">
-          Создавайте и управляйте инвентарем по корпусам, этажам и кабинетам
-        </p>
+      </div>
+
+      {/* Tabs */}
+      <div className="mb-6">
+        <div className="flex space-x-8 border-b border-gray-200">
+          <button
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "status"
+                ? "border-gray-400 text-gray-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("status")}
+          >
+            Состояние
+          </button>
+          <button
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "university"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+            onClick={() => setActiveTab("university")}
+          >
+            Университет
+          </button>
+        </div>
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="mb-6">
+        <Breadcrumb
+          separator=">"
+          items={breadcrumb}
+          className="text-sm text-gray-600"
+        />
       </div>
 
       <Card className="shadow-sm">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-800 mb-1">
-            Наличие шаблонов
-          </h2>
-          <p className="text-sm text-gray-600">
-            Выберите корпус → этаж → кабинет для создания оборудования
-          </p>
-        </div>
-
         {buildings.length === 0 ? (
           <Empty
             description="Нет доступных корпусов"
@@ -298,50 +299,28 @@ const HomePage = () => {
             }}
             activeKey={activeBuildingPanels}
           >
-            {buildings.map((building) => {
-              const buildingRooms = roomsByBuilding[building.id] || [];
-              const totalRooms = buildingRooms.length;
-
-              return (
-                <Panel
-                  key={building.id}
-                  header={
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center space-x-3">
-                        <FiThumbsDown className="text-indigo-500 text-lg" />
-
-                        <div>
-                          <span className="font-medium text-lg">
-                            {building.name}
-                          </span>
-                          {building.address && (
-                            <div className="text-sm text-gray-500">
-                              {building.address}
-                            </div>
-                          )}
-                        </div>
+            {buildings.map((building) => (
+              <Panel
+                key={building.id}
+                header={
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-6 h-6 rounded bg-orange-100 flex items-center justify-center">
+                        <span className="text-orange-600 text-sm font-medium">
+                          📁
+                        </span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge
-                          count={`${
-                            floorsByBuilding[building.id]?.length || 0
-                          } этажей`}
-                          className="mr-2"
-                          style={{ backgroundColor: "#10b981" }}
-                        />
-                        <Badge
-                          count={`${totalRooms} кабинетов`}
-                          className="mr-4"
-                          style={{ backgroundColor: "#3b82f6" }}
-                        />
-                      </div>
+                      <span className="font-medium text-lg">
+                        {building.name}
+                      </span>
                     </div>
-                  }
-                >
-                  {renderFloors(building.id)}
-                </Panel>
-              );
-            })}
+                    <FiChevronRight className="text-gray-400" />
+                  </div>
+                }
+              >
+                {renderFloors(building.id)}
+              </Panel>
+            ))}
           </Collapse>
         )}
       </Card>
