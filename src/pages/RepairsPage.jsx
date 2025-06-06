@@ -37,7 +37,8 @@ const RepairsPage = () => {
 
   useEffect(() => {
     // Загружаем только оборудование, требующее ремонта
-    dispatch(getEquipment({ status: "BROKEN" }));
+    dispatch(getEquipment({ status: "NEEDS_REPAIR" }));
+    console.log(equipment);
   }, [dispatch]);
 
   const getStatusColor = (status) => {

@@ -35,13 +35,6 @@ const HomePage = () => {
   const [activeFloorPanels, setActiveFloorPanels] = useState({});
   const [activeRoomPanels, setActiveRoomPanels] = useState({});
   const [activeTab, setActiveTab] = useState("university");
-  const [breadcrumb, setBreadcrumb] = useState([
-    { title: "Навигация" },
-    { title: "Korpus E" },
-    { title: "1-этаж" },
-    { title: "Ximiya" },
-    { title: "201-Лаборатория №1" },
-  ]);
 
   const {
     buildings,
@@ -61,18 +54,17 @@ const HomePage = () => {
   }, [dispatch]);
 
   const handleBuildingExpand = (buildingIds) => {
-    const newBuildingId = buildingIds.find(
-      (id) => !activeBuildingPanels.includes(id)
-    );
-    if (newBuildingId) {
-      if (!floorsByBuilding[newBuildingId]) {
-        dispatch(getFloorsByBuilding(newBuildingId));
-      }
-      if (!roomsByBuilding[newBuildingId]) {
-        dispatch(getRoomsByBuilding(newBuildingId));
-      }
-    }
     setActiveBuildingPanels(buildingIds);
+
+    // Har bir yangi ochilgan bina uchun ma'lumotlarni yuklash
+    buildingIds.forEach((buildingId) => {
+      if (!floorsByBuilding[buildingId]) {
+        dispatch(getFloorsByBuilding(buildingId));
+      }
+      if (!roomsByBuilding[buildingId]) {
+        dispatch(getRoomsByBuilding(buildingId));
+      }
+    });
   };
 
   const handleFloorExpand = (buildingId) => (floorIds) => {
@@ -83,18 +75,17 @@ const HomePage = () => {
   };
 
   const handleRoomExpand = (buildingId) => (roomIds) => {
-    const newRoomId = roomIds.find(
-      (id) => !activeRoomPanels[buildingId]?.includes(id)
-    );
-
-    if (newRoomId && !equipmentTypesByRoom[newRoomId]) {
-      dispatch(getEquipmentTypesByRoom(newRoomId));
-    }
-
     setActiveRoomPanels((prev) => ({
       ...prev,
       [buildingId]: roomIds,
     }));
+
+    // Har bir yangi ochilgan xona uchun equipment types yuklash
+    roomIds.forEach((roomId) => {
+      if (!equipmentTypesByRoom[roomId]) {
+        dispatch(getEquipmentTypesByRoom(roomId));
+      }
+    });
   };
 
   const handleAddEquipmentClick = (room) => {
@@ -141,10 +132,9 @@ const HomePage = () => {
 
         <div className="text-center py-4">
           <Button
-            type="primary"
             icon={<FiPlus />}
             onClick={() => handleAddEquipmentClick(room)}
-            className="bg-blue-500 hover:bg-blue-600 border-blue-500"
+            className="bg-indigo-400 text-white py-2 hover:bg-indigo-600 border-indigo-600"
             block
           >
             Добавить новую технику
@@ -156,6 +146,7 @@ const HomePage = () => {
 
   const renderRooms = (buildingId, floorId = null) => {
     const allRooms = roomsByBuilding[buildingId] || [];
+    // To'g'ri filterlash - floorId bo'yicha
     const rooms = floorId
       ? allRooms.filter((room) => room.floor === floorId)
       : allRooms;

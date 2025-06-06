@@ -62,8 +62,9 @@ export const authAPI = {
   refreshToken: (data) => api.post("/user/login/refresh/", data),
   getUserActions: () => api.get("/inventory/equipment/my-actions/"),
   register: (userData) => api.post("/user/user/", userData),
+  updateProfile: (userData) => api.put("/user/profile/", userData),
+  getProfile: () => api.get("/user/profile/"),
 };
-
 // University API
 export const universityAPI = {
   getBuildings: () => api.get("/university/buildings/"),
@@ -98,13 +99,15 @@ export const equipmentAPI = {
     api.post("/inventory/equipment/move-equipment/", data),
 };
 
-// Specifications API
 export const specificationsAPI = {
   // Computer specifications
   getComputerSpecs: () => api.get("/inventory/computer-specifications/"),
-  createComputerSpec: (data) => api.post("/inventory/create-comp-spec/", data),
+  createComputerSpec: (data) =>
+    api.post("/inventory/computer-specification/", data),
   updateComputerSpec: (id, data) =>
-    api.put(`/inventory/computer-specifications/${id}/`, data),
+    api.put(`/inventory/computer-specification/${id}/`, data),
+  deleteComputerSpec: (id) =>
+    api.delete(`/inventory/computer-specification/${id}/`),
 
   // Projector specifications
   getProjectorSpecs: () => api.get("/inventory/projector-specification/"),
@@ -112,6 +115,8 @@ export const specificationsAPI = {
     api.post("/inventory/projector-specification/", data),
   updateProjectorSpec: (id, data) =>
     api.put(`/inventory/projector-specification/${id}/`, data),
+  deleteProjectorSpec: (id) =>
+    api.delete(`/inventory/projector-specification/${id}/`),
 
   // Printer specifications
   getPrinterSpecs: () => api.get("/inventory/printer-specification/"),
@@ -119,12 +124,15 @@ export const specificationsAPI = {
     api.post("/inventory/printer-specification/", data),
   updatePrinterSpec: (id, data) =>
     api.put(`/inventory/printer-specification/${id}/`, data),
+  deletePrinterSpec: (id) =>
+    api.delete(`/inventory/printer-specification/${id}/`),
 
   // TV specifications
   getTVSpecs: () => api.get("/inventory/tv-specification/"),
   createTVSpec: (data) => api.post("/inventory/tv-specification/", data),
   updateTVSpec: (id, data) =>
     api.put(`/inventory/tv-specification/${id}/`, data),
+  deleteTVSpec: (id) => api.delete(`/inventory/tv-specification/${id}/`),
 
   // Router specifications
   getRouterSpecs: () => api.get("/inventory/router-specification/"),
@@ -132,6 +140,8 @@ export const specificationsAPI = {
     api.post("/inventory/router-specification/", data),
   updateRouterSpec: (id, data) =>
     api.put(`/inventory/router-specification/${id}/`, data),
+  deleteRouterSpec: (id) =>
+    api.delete(`/inventory/router-specification/${id}/`),
 
   // Notebook specifications
   getNotebookSpecs: () => api.get("/inventory/notebook-specification/"),
@@ -139,6 +149,8 @@ export const specificationsAPI = {
     api.post("/inventory/notebook-specification/", data),
   updateNotebookSpec: (id, data) =>
     api.put(`/inventory/notebook-specification/${id}/`, data),
+  deleteNotebookSpec: (id) =>
+    api.delete(`/inventory/notebook-specification/${id}/`),
 
   // Monoblok specifications
   getMonoblokSpecs: () => api.get("/inventory/monoblok-specification/"),
@@ -146,6 +158,8 @@ export const specificationsAPI = {
     api.post("/inventory/monoblok-specification/", data),
   updateMonoblokSpec: (id, data) =>
     api.put(`/inventory/monoblok-specification/${id}/`, data),
+  deleteMonoblokSpec: (id) =>
+    api.delete(`/inventory/monoblok-specification/${id}/`),
 
   // Whiteboard specifications
   getWhiteboardSpecs: () => api.get("/inventory/whiteboard-specification/"),
@@ -153,6 +167,8 @@ export const specificationsAPI = {
     api.post("/inventory/whiteboard-specification/", data),
   updateWhiteboardSpec: (id, data) =>
     api.put(`/inventory/whiteboard-specification/${id}/`, data),
+  deleteWhiteboardSpec: (id) =>
+    api.delete(`/inventory/whiteboard-specification/${id}/`),
 
   // Extender specifications
   getExtenderSpecs: () => api.get("/inventory/extender-specification/"),
@@ -160,6 +176,8 @@ export const specificationsAPI = {
     api.post("/inventory/extender-specification/", data),
   updateExtenderSpec: (id, data) =>
     api.put(`/inventory/extender-specification/${id}/`, data),
+  deleteExtenderSpec: (id) =>
+    api.delete(`/inventory/extender-specification/${id}/`),
 
   // Get specification count
   getSpecificationCount: () =>

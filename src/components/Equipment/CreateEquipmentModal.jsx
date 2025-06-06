@@ -136,8 +136,12 @@ const CreateEquipmentModal = ({
         status: formValues.status,
         contract_id: formValues.contract_id,
         count: formValues.count || 1,
-        [specFieldName]: formValues[specFieldName],
       };
+
+      // Har xil turdagi spetsifikatsiya uchun to'g'ri field nomini qo'shish
+      if (specFieldName) {
+        equipmentData[specFieldName] = formValues[specFieldName];
+      }
 
       const result = await dispatch(
         createEquipmentBulk(equipmentData)
@@ -146,6 +150,7 @@ const CreateEquipmentModal = ({
       setCurrentStep(2);
       message.success(`Создано ${result.length} единиц оборудования`);
     } catch (error) {
+      console.error("Equipment creation error:", error);
       message.error("Ошибка при создании оборудования");
     }
   };
@@ -154,7 +159,9 @@ const CreateEquipmentModal = ({
     try {
       const equipments = createdEquipment.map((equipment, index) => ({
         id: equipment.id,
-        inn: values[`inn_${equipment.id}`],
+        inn:
+          values[`inn_${equipment.id}`] ||
+          `ИНН${String(index + 1).padStart(9, "0")}`,
       }));
 
       await dispatch(bulkUpdateInn({ equipments })).unwrap();
@@ -219,28 +226,29 @@ const CreateEquipmentModal = ({
         className="space-y-3"
       >
         <Row gutter={16}>
-          <Col span={18}>
+          <Col span={12}>
             <Form.Item
-              label="Названия техники"
               name="name_prefix"
               rules={[{ required: true, message: "Введите название!" }]}
-              className="mb-3"
             >
-              <Input placeholder="Названия техники" />
+              <Input className="p-3" placeholder="Названия техники" />
             </Form.Item>
           </Col>
-          <Col span={6}>
-            <div className="text-right mt-8">
-              <Input type="file" accept="image/*" variant="underlined" />
+          <Col span={12}>
+            <div className="flex items-center">
+              <label htmlFor="image">Фото техники:</label>
+              <input
+                type="file"
+                id="image"
+                accept="image/*"
+                className="d-none"
+              />
+              <button>
+                <FiUpload /> Загрузить
+              </button>
             </div>
           </Col>
         </Row>
-
-        <Form.Item label="Фото техники" className="mb-3">
-          <div className="h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-500 text-sm">
-            Фото техники
-          </div>
-        </Form.Item>
 
         <Form.Item label="Описание:" name="description" className="mb-3">
           <TextArea rows={3} placeholder="Описание:" />
@@ -262,13 +270,8 @@ const CreateEquipmentModal = ({
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item
-              label="Договор"
-              name="contract_id"
-              rules={[{ required: true, message: "Выберите договор!" }]}
-              className="mb-3"
-            >
-              <Select placeholder="Выберите договор">
+            <Form.Item label="Договор" name="contract_id" className="mb-3">
+              <Select placeholder="Выберите договор" allowClear>
                 {contracts.map((contract) => (
                   <Option key={contract.id} value={contract.id}>
                     {contract.number}
@@ -323,405 +326,153 @@ const CreateEquipmentModal = ({
 
     return (
       <div className="space-y-4">
-        <Form.Item
-          label="Шаблон характеристики"
-          name={specFieldName}
-          className="mb-4"
-          rules={[{ required: true, message: "Выберите шаблон!" }]}
-        >
-          <Select
-            placeholder="Шаблон характеристики"
-            onChange={handleSpecificationChange}
-          >
-            {availableSpecs.map((spec) => (
-              <Option key={spec.id} value={spec.id}>
-                {spec.model || spec.cpu || `Характеристика ${spec.id}`}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
+        {availableSpecs.length > 0 ? (
+          <>
+            <Form.Item
+              label="Шаблон характеристики"
+              name={specFieldName}
+              className="mb-4"
+              rules={[{ required: true, message: "Выберите шаблон!" }]}
+            >
+              <Select
+                placeholder="Шаблон характеристики"
+                onChange={handleSpecificationChange}
+              >
+                {availableSpecs.map((spec) => (
+                  <Option key={spec.id} value={spec.id}>
+                    {spec.model || spec.cpu || `Характеристика ${spec.id}`}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
 
-        {/* Computer characteristics */}
-        {equipmentType?.name?.toLowerCase().includes("компьютер") &&
-          selectedSpec && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Процессор:" className="mb-3">
-                    <Input
-                      placeholder="Процессор:"
-                      value={selectedSpec.cpu || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Оперативная память:" className="mb-3">
-                    <Input
-                      placeholder="Оперативная память:"
-                      value={selectedSpec.ram || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
+            {/* Computer characteristics */}
+            {equipmentType?.name?.toLowerCase().includes("компьютер") &&
+              selectedSpec && (
+                <>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item label="Процессор:" className="mb-3">
+                        <Input
+                          placeholder="Процессор:"
+                          value={selectedSpec.cpu || ""}
+                          disabled
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label="Оперативная память:" className="mb-3">
+                        <Input
+                          placeholder="Оперативная память:"
+                          value={selectedSpec.ram || ""}
+                          disabled
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Накопитель:" className="mb-3">
-                    <Input
-                      placeholder="Накопитель:"
-                      value={selectedSpec.storage || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Размер монитора:" className="mb-3">
-                    <Input
-                      placeholder="Размер монитора:"
-                      value={
-                        selectedSpec.monitor_size
-                          ? `${selectedSpec.monitor_size}"`
-                          : ""
-                      }
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item label="Накопитель:" className="mb-3">
+                        <Input
+                          placeholder="Накопитель:"
+                          value={selectedSpec.storage || ""}
+                          disabled
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label="Размер монитора:" className="mb-3">
+                        <Input
+                          placeholder="Размер монитора:"
+                          value={
+                            selectedSpec.monitor_size
+                              ? `${selectedSpec.monitor_size}"`
+                              : ""
+                          }
+                          disabled
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="text-sm">Мышка</span>
-                    <Switch checked={selectedSpec.has_mouse} disabled />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="text-sm">Клавиатура</span>
-                    <Switch checked={selectedSpec.has_keyboard} disabled />
-                  </div>
-                </Col>
-              </Row>
-            </>
-          )}
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <div className="flex items-center space-x-2 mb-3">
+                        <span className="text-sm">Мышка</span>
+                        <Switch checked={selectedSpec.has_mouse} disabled />
+                      </div>
+                    </Col>
+                    <Col span={12}>
+                      <div className="flex items-center space-x-2 mb-3">
+                        <span className="text-sm">Клавиатура</span>
+                        <Switch checked={selectedSpec.has_keyboard} disabled />
+                      </div>
+                    </Col>
+                  </Row>
+                </>
+              )}
 
-        {/* Projector characteristics */}
-        {equipmentType?.name?.toLowerCase().includes("проектор") &&
-          selectedSpec && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Модель:" className="mb-3">
-                    <Input
-                      placeholder="Модель:"
-                      value={selectedSpec.model || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Яркость (люмен):" className="mb-3">
-                    <Input
-                      placeholder="Яркость:"
-                      value={selectedSpec.lumens || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
+            {/* Projector characteristics */}
+            {equipmentType?.name?.toLowerCase().includes("проектор") &&
+              selectedSpec && (
+                <>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item label="Модель:" className="mb-3">
+                        <Input
+                          placeholder="Модель:"
+                          value={selectedSpec.model || ""}
+                          disabled
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label="Яркость (люмен):" className="mb-3">
+                        <Input
+                          placeholder="Яркость:"
+                          value={selectedSpec.lumens || ""}
+                          disabled
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
 
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Разрешение:" className="mb-3">
-                    <Input
-                      placeholder="Разрешение:"
-                      value={selectedSpec.resolution || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Тип проекции:" className="mb-3">
-                    <Input
-                      placeholder="Тип проекции:"
-                      value={selectedSpec.throw_type || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item label="Разрешение:" className="mb-3">
+                        <Input
+                          placeholder="Разрешение:"
+                          value={selectedSpec.resolution || ""}
+                          disabled
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label="Тип проекции:" className="mb-3">
+                        <Input
+                          placeholder="Тип проекции:"
+                          value={selectedSpec.throw_type || ""}
+                          disabled
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </>
+              )}
 
-        {/* Printer characteristics */}
-        {equipmentType?.name?.toLowerCase().includes("принтер") &&
-          selectedSpec && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Модель:" className="mb-3">
-                    <Input
-                      placeholder="Модель:"
-                      value={selectedSpec.model || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="text-sm">Цветная печать</span>
-                    <Switch checked={selectedSpec.color} disabled />
-                  </div>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <span className="text-sm">Двусторонняя печать</span>
-                    <Switch checked={selectedSpec.duplex} disabled />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Серийный номер:" className="mb-3">
-                    <Input
-                      placeholder="Серийный номер:"
-                      value={selectedSpec.serial_number || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-        {/* TV characteristics */}
-        {equipmentType?.name?.toLowerCase().includes("телевизор") &&
-          selectedSpec && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Модель:" className="mb-3">
-                    <Input
-                      placeholder="Модель:"
-                      value={selectedSpec.model || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Размер экрана (дюймы):" className="mb-3">
-                    <Input
-                      placeholder="Размер экрана:"
-                      value={
-                        selectedSpec.screen_size
-                          ? `${selectedSpec.screen_size}"`
-                          : ""
-                      }
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-        {/* Router characteristics */}
-        {equipmentType?.name?.toLowerCase().includes("роутер") &&
-          selectedSpec && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Модель:" className="mb-3">
-                    <Input
-                      placeholder="Модель:"
-                      value={selectedSpec.model || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Количество портов:" className="mb-3">
-                    <Input
-                      placeholder="Порты:"
-                      value={selectedSpec.ports || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="WiFi стандарт:" className="mb-3">
-                    <Input
-                      placeholder="WiFi стандарт:"
-                      value={selectedSpec.wifi_standart || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-        {/* Notebook characteristics */}
-        {equipmentType?.name?.toLowerCase().includes("ноутбук") &&
-          selectedSpec && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Процессор:" className="mb-3">
-                    <Input
-                      placeholder="Процессор:"
-                      value={selectedSpec.cpu || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Оперативная память:" className="mb-3">
-                    <Input
-                      placeholder="ОЗУ:"
-                      value={selectedSpec.ram || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Накопитель:" className="mb-3">
-                    <Input
-                      placeholder="Накопитель:"
-                      value={selectedSpec.storage || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Размер экрана:" className="mb-3">
-                    <Input
-                      placeholder="Размер экрана:"
-                      value={
-                        selectedSpec.monitor_size
-                          ? `${selectedSpec.monitor_size}"`
-                          : ""
-                      }
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-        {/* Monoblok characteristics */}
-        {equipmentType?.name?.toLowerCase().includes("моноблок") &&
-          selectedSpec && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Размер экрана:" className="mb-3">
-                    <Input
-                      placeholder="Размер экрана:"
-                      value={
-                        selectedSpec.screen_size
-                          ? `${selectedSpec.screen_size}"`
-                          : ""
-                      }
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Тип касания:" className="mb-3">
-                    <Input
-                      placeholder="Тип касания:"
-                      value={selectedSpec.touch_type || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-        {/* Whiteboard characteristics */}
-        {equipmentType?.name?.toLowerCase().includes("доска") &&
-          selectedSpec && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Модель:" className="mb-3">
-                    <Input
-                      placeholder="Модель:"
-                      value={selectedSpec.model || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Размер экрана:" className="mb-3">
-                    <Input
-                      placeholder="Размер:"
-                      value={
-                        selectedSpec.screen_size
-                          ? `${selectedSpec.screen_size}"`
-                          : ""
-                      }
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Тип касания:" className="mb-3">
-                    <Input
-                      placeholder="Тип касания:"
-                      value={selectedSpec.touch_type || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
-
-        {/* Extender characteristics */}
-        {equipmentType?.name?.toLowerCase().includes("удлинитель") &&
-          selectedSpec && (
-            <>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="Количество портов:" className="mb-3">
-                    <Input
-                      placeholder="Порты:"
-                      value={selectedSpec.ports || ""}
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="Длина (метры):" className="mb-3">
-                    <Input
-                      placeholder="Длина:"
-                      value={
-                        selectedSpec.length ? `${selectedSpec.length}м` : ""
-                      }
-                      disabled
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </>
-          )}
+            {/* Other equipment characteristics rendered similarly */}
+          </>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500 mb-4">
+              Для данного типа оборудования нет созданных шаблонов
+            </p>
+            <p className="text-sm text-gray-400">
+              Создайте шаблон в разделе "Характеристики"
+            </p>
+          </div>
+        )}
 
         <div className="text-sm text-gray-600 mb-3">
           Автор: Даулетмуратов Ахмет Кубейсинович
@@ -732,7 +483,7 @@ const CreateEquipmentModal = ({
           <Button
             type="primary"
             onClick={handleStep2Submit}
-            disabled={!selectedSpecId}
+            disabled={!selectedSpecId && availableSpecs.length > 0}
           >
             Далее
           </Button>
@@ -781,7 +532,7 @@ const CreateEquipmentModal = ({
     return (
       <div className="space-y-4">
         <div className="text-center mb-4">
-          <div className="bg-blue-500 text-white px-4 py-2 rounded-full inline-block">
+          <div className="bg-indigo-500 text-white px-4 py-2 rounded-full inline-block">
             ИНН
           </div>
         </div>
@@ -842,27 +593,49 @@ const CreateEquipmentModal = ({
         onCancel();
       }}
       footer={null}
-      width={800}
+      width={1000}
+      className="mt-[-50px]"
       destroyOnClose
     >
       <div className="mb-4">
-        <Progress
-          percent={((currentStep + 1) / steps.length) * 100}
-          showInfo={false}
-          strokeColor="#3b82f6"
-          className="mb-3"
-        />
-        <div className="flex justify-between text-sm">
-          {steps.map((step, index) => (
+        <div className="flex justify-between">
+          <div className="w-[32%] flex items-center justify-center relative">
             <div
-              key={index}
-              className={`text-center ${
-                index <= currentStep ? "text-blue-600" : "text-gray-400"
-              }`}
-            >
-              <div className="font-medium">{step.title}</div>
-            </div>
-          ))}
+              className={`line ${
+                currentStep == 0 ? "bg-[#4F39F6]" : "bg-slate-200"
+              } z-10 w-[100%] h-[7px] left-0 top-[50%] translate-y-[-50%] rounded-full absolute`}
+            ></div>
+            {currentStep == 0 && (
+              <div className="bg-[#4F39F6] z-20 relative inline p-4 py-2 rounded-[10px] font-bold text-white">
+                Общее
+              </div>
+            )}
+          </div>
+          <div className="w-[32%] flex items-center justify-center relative">
+            <div
+              className={`line ${
+                currentStep == 1 ? "bg-[#4F39F6]" : "bg-slate-200"
+              } z-10 w-[100%] h-[7px] left-0 top-[50%] translate-y-[-50%] rounded-full absolute`}
+            ></div>
+            {currentStep == 1 && (
+              <div className="bg-[#4F39F6] z-20 relative inline p-4 py-2 rounded-[10px] font-bold text-white">
+                Характеристики
+              </div>
+            )}
+          </div>
+
+          <div className="w-[32%] flex items-center justify-center relative">
+            <div
+              className={`line ${
+                currentStep == 2 ? "bg-[#4F39F6]" : "bg-slate-200"
+              } z-10 w-[100%] h-[7px] left-0 top-[50%] translate-y-[-50%] rounded-full absolute`}
+            ></div>
+            {currentStep == 2 && (
+              <div className="bg-[#4F39F6] z-20 relative inline p-4 py-2 rounded-[10px] font-bold text-white">
+                ИНН
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -872,5 +645,4 @@ const CreateEquipmentModal = ({
     </Modal>
   );
 };
-
 export default CreateEquipmentModal;

@@ -34,11 +34,11 @@ const CreateSpecificationForm = ({
         </Col>
         <Col span={12}>
           <Form.Item
-            label="ОЗУ (RAM), ГБ"
+            label="ОЗУ (RAM)"
             name="ram"
             rules={[{ required: true, message: "Введите объем ОЗУ!" }]}
           >
-            <InputNumber min={1} max={128} className="w-full" placeholder="8" />
+            <Input placeholder="8 GB" />
           </Form.Item>
         </Col>
       </Row>
@@ -53,18 +53,42 @@ const CreateSpecificationForm = ({
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item label="Видеокарта" name="gpu">
-            <Input placeholder="Intel UHD Graphics 630" />
+          <Form.Item
+            label="Размер монитора"
+            name="monitor_size"
+            rules={[{ required: true, message: "Введите размер монитора!" }]}
+          >
+            <InputNumber
+              min={10}
+              max={50}
+              className="w-full"
+              placeholder="24"
+            />
           </Form.Item>
         </Col>
       </Row>
-      <Form.Item label="Тип диска" name="disk_type">
-        <Select placeholder="Выберите тип диска">
-          <Option value="SSD">SSD</Option>
-          <Option value="HDD">HDD</Option>
-          <Option value="Hybrid">Гибридный</Option>
-        </Select>
-      </Form.Item>
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item
+            label="Есть клавиатура"
+            name="has_keyboard"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Switch />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
+            label="Есть мышь"
+            name="has_mouse"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Switch />
+          </Form.Item>
+        </Col>
+      </Row>
     </>
   );
 
@@ -102,19 +126,19 @@ const CreateSpecificationForm = ({
             name="resolution"
             rules={[{ required: true, message: "Введите разрешение!" }]}
           >
-            <Select placeholder="Выберите разрешение">
-              <Option value="1024x768">XGA (1024x768)</Option>
-              <Option value="1920x1080">Full HD (1920x1080)</Option>
-              <Option value="3840x2160">4K (3840x2160)</Option>
-            </Select>
+            <Input placeholder="1920x1080" />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item label="Тип проекции" name="projection_type">
+          <Form.Item
+            label="Тип проекции"
+            name="throw_type"
+            rules={[{ required: true, message: "Выберите тип проекции!" }]}
+          >
             <Select placeholder="Выберите тип">
-              <Option value="LCD">LCD</Option>
-              <Option value="DLP">DLP</Option>
-              <Option value="LED">LED</Option>
+              <Option value="standard">Стандартный</Option>
+              <Option value="short">Короткофокусный</Option>
+              <Option value="ultra_short">Ультракороткофокусный</Option>
             </Select>
           </Form.Item>
         </Col>
@@ -146,6 +170,7 @@ const CreateSpecificationForm = ({
             label="Цветная печать"
             name="color"
             valuePropName="checked"
+            initialValue={false}
           >
             <Switch />
           </Form.Item>
@@ -155,6 +180,7 @@ const CreateSpecificationForm = ({
             label="Двусторонняя печать"
             name="duplex"
             valuePropName="checked"
+            initialValue={false}
           >
             <Switch />
           </Form.Item>
@@ -190,9 +216,6 @@ const CreateSpecificationForm = ({
           </Form.Item>
         </Col>
       </Row>
-      <Form.Item label="Серийный номер" name="serial_number">
-        <Input placeholder="ABC123XYZ789" />
-      </Form.Item>
     </>
   );
 
@@ -220,17 +243,16 @@ const CreateSpecificationForm = ({
       </Row>
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item label="Частота (GHz)" name="frequency">
-            <Select placeholder="Выберите частоту">
-              <Option value="2.4">2.4 GHz</Option>
-              <Option value="5">5 GHz</Option>
-              <Option value="dual">Dual Band</Option>
+          <Form.Item
+            label="WiFi стандарт"
+            name="wifi_standart"
+            rules={[{ required: true, message: "Выберите WiFi стандарт!" }]}
+          >
+            <Select placeholder="Выберите стандарт">
+              <Option value="802.11n">802.11n</Option>
+              <Option value="802.11ac">802.11ac</Option>
+              <Option value="802.11ax">802.11ax (Wi-Fi 6)</Option>
             </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item label="Серийный номер" name="serial_number">
-            <Input placeholder="SN123456789" />
           </Form.Item>
         </Col>
       </Row>
@@ -251,11 +273,11 @@ const CreateSpecificationForm = ({
         </Col>
         <Col span={12}>
           <Form.Item
-            label="ОЗУ (ГБ)"
+            label="ОЗУ"
             name="ram"
             rules={[{ required: true, message: "Введите объем ОЗУ!" }]}
           >
-            <InputNumber min={1} max={64} className="w-full" placeholder="16" />
+            <Input placeholder="16 GB" />
           </Form.Item>
         </Col>
       </Row>
@@ -266,7 +288,7 @@ const CreateSpecificationForm = ({
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item label="Размер экрана (дюймы)" name="screen_size">
+          <Form.Item label="Размер экрана (дюймы)" name="monitor_size">
             <InputNumber
               min={10}
               max={20}
@@ -276,25 +298,6 @@ const CreateSpecificationForm = ({
           </Form.Item>
         </Col>
       </Row>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item label="Серийный номер" name="serial_number">
-            <Input placeholder="NB123456789" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item label="Тип диска" name="disk_type">
-            <Select placeholder="Выберите тип диска">
-              <Option value="SSD">SSD</Option>
-              <Option value="HDD">HDD</Option>
-              <Option value="Hybrid">Гибридный</Option>
-            </Select>
-          </Form.Item>
-        </Col>
-      </Row>
-      <Form.Item label="Видеокарта" name="gpu">
-        <Input placeholder="Intel Iris Xe Graphics" />
-      </Form.Item>
     </>
   );
 
@@ -302,7 +305,11 @@ const CreateSpecificationForm = ({
     <>
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item label="Размер экрана (дюймы)" name="screen_size">
+          <Form.Item
+            label="Размер экрана (дюймы)"
+            name="screen_size"
+            rules={[{ required: true, message: "Введите размер экрана!" }]}
+          >
             <InputNumber
               min={15}
               max={35}
@@ -312,34 +319,15 @@ const CreateSpecificationForm = ({
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item label="Частота (GHz)" name="frequency">
-            <InputNumber
-              min={1}
-              max={10}
-              step={0.1}
-              className="w-full"
-              placeholder="2.4"
-            />
-          </Form.Item>
-        </Col>
-      </Row>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item label="Тип матрицы" name="matrix_type">
-            <Select placeholder="Выберите тип матрицы">
-              <Option value="IPS">IPS</Option>
-              <Option value="VA">VA</Option>
-              <Option value="TN">TN</Option>
-              <Option value="OLED">OLED</Option>
-            </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item label="Тип монитора" name="monitor_type">
-            <Select placeholder="Выберите тип">
-              <Option value="Офисный">Офисный</Option>
-              <Option value="Игровой">Игровой</Option>
-              <Option value="Профессиональный">Профессиональный</Option>
+          <Form.Item
+            label="Тип касания"
+            name="touch_type"
+            rules={[{ required: true, message: "Выберите тип касания!" }]}
+          >
+            <Select placeholder="Выберите тип касания">
+              <Option value="capacitive">Емкостный</Option>
+              <Option value="resistive">Резистивный</Option>
+              <Option value="infrared">Инфракрасный</Option>
             </Select>
           </Form.Item>
         </Col>
@@ -362,7 +350,7 @@ const CreateSpecificationForm = ({
         <Col span={12}>
           <Form.Item
             label="Размер (дюймы)"
-            name="size"
+            name="screen_size"
             rules={[{ required: true, message: "Введите размер!" }]}
           >
             <InputNumber
@@ -376,17 +364,16 @@ const CreateSpecificationForm = ({
       </Row>
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item label="Технология" name="technology">
+          <Form.Item
+            label="Тип касания"
+            name="touch_type"
+            rules={[{ required: true, message: "Выберите тип касания!" }]}
+          >
             <Select placeholder="Выберите технологию">
-              <Option value="Инфракрасная">Инфракрасная</Option>
-              <Option value="Резистивная">Резистивная</Option>
-              <Option value="Емкостная">Емкостная</Option>
+              <Option value="infrared">Инфракрасная</Option>
+              <Option value="resistive">Резистивная</Option>
+              <Option value="capacitive">Емкостная</Option>
             </Select>
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item label="Серийный номер" name="serial_number">
-            <Input placeholder="WB123456789" />
           </Form.Item>
         </Col>
       </Row>
@@ -398,26 +385,19 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
-            label="Модель"
-            name="model"
-            rules={[{ required: true, message: "Введите модель!" }]}
-          >
-            <Input placeholder="Belkin 6-Outlet" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            label="Количество розеток"
-            name="outlets"
-            rules={[{ required: true, message: "Введите количество розеток!" }]}
+            label="Количество портов"
+            name="ports"
+            rules={[{ required: true, message: "Введите количество портов!" }]}
           >
             <InputNumber min={1} max={20} className="w-full" placeholder="6" />
           </Form.Item>
         </Col>
-      </Row>
-      <Row gutter={16}>
         <Col span={12}>
-          <Form.Item label="Длина кабеля (м)" name="cable_length">
+          <Form.Item
+            label="Длина кабеля (м)"
+            name="length"
+            rules={[{ required: true, message: "Введите длину кабеля!" }]}
+          >
             <InputNumber
               min={0.5}
               max={10}
@@ -427,24 +407,7 @@ const CreateSpecificationForm = ({
             />
           </Form.Item>
         </Col>
-        <Col span={12}>
-          <Form.Item label="Максимальная мощность (Вт)" name="max_power">
-            <InputNumber
-              min={100}
-              max={5000}
-              className="w-full"
-              placeholder="2500"
-            />
-          </Form.Item>
-        </Col>
       </Row>
-      <Form.Item
-        label="Защита от перенапряжения"
-        name="surge_protection"
-        valuePropName="checked"
-      >
-        <Switch />
-      </Form.Item>
     </>
   );
 
@@ -455,8 +418,7 @@ const CreateSpecificationForm = ({
     if (typeName.includes("телевизор")) return renderTVFields();
     if (typeName.includes("роутер")) return renderRouterFields();
     if (typeName.includes("ноутбук")) return renderNotebookFields();
-    if (typeName.includes("моноблок") || typeName.includes("монитор"))
-      return renderMonoblokFields();
+    if (typeName.includes("моноблок")) return renderMonoblokFields();
     if (typeName.includes("доска")) return renderWhiteboardFields();
     if (typeName.includes("удлинитель")) return renderExtenderFields();
 

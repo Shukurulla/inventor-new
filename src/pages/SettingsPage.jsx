@@ -14,9 +14,11 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { FiEdit, FiUpload, FiUser } from "react-icons/fi";
 import { setTheme, setFontSize } from "../store/slices/settingsSlice";
+import { authAPI } from "../services/api";
 
 const SettingsPage = () => {
   const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [profileForm] = Form.useForm();
 
   const dispatch = useDispatch();
@@ -41,11 +43,23 @@ const SettingsPage = () => {
     message.success("Шрифт изменен");
   };
 
-  const handleProfileUpdate = (values) => {
-    // Here you would typically call an API to update user profile
-    console.log("Profile update:", values);
-    message.success("Профиль успешно обновлен!");
-    setEditMode(false);
+  const handleProfileUpdate = async (values) => {
+    setLoading(true);
+    try {
+      // API call to update profile
+      const response = await authAPI.updateProfile(values);
+
+      // Update user in store if needed
+      // dispatch(updateUser(response.data));
+
+      message.success("Профиль успешно обновлен!");
+      setEditMode(false);
+    } catch (error) {
+      console.error("Profile update error:", error);
+      message.error("Ошибка при обновлении профиля");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const themeOptions = [
@@ -133,14 +147,14 @@ const SettingsPage = () => {
               </Form.Item>
 
               <Form.Item label="Роль">
-                <Input value="Администратор" disabled />
+                <Input value={user?.role || "Администратор"} disabled />
               </Form.Item>
             </div>
           </div>
 
           {editMode && (
             <div className="flex justify-end">
-              <Button type="primary" htmlType="submit">
+              <Button type="primary" htmlType="submit" loading={loading}>
                 Сохранить изменения
               </Button>
             </div>

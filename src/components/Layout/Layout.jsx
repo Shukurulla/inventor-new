@@ -301,78 +301,78 @@ const Layout = ({ children }) => {
       </Modal>
 
       <AntLayout>
-        <Header className="!bg-white border-b border-gray-100 !px-4 lg:!px-6 flex items-center justify-between">
-          {/* Mobile Menu Button */}
-          <Button
-            type="text"
-            icon={<FiMenu />}
-            onClick={() => setMobileMenuVisible(true)}
-            className="lg:hidden"
-          />
-
-          {/* Search Bar */}
-          <div className="flex-1 max-w-md mx-4">
-            <Input
-              placeholder="Поиск по ИНН или QR коду..."
-              prefix={<FiSearch className="text-gray-400" />}
-              className="rounded-lg"
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              onPressEnter={handleSearch}
-              loading={searchLoading}
-            />
-          </div>
-
-          {/* Header Actions */}
-          <div className="flex items-center space-x-4">
-            <Tooltip title="Уведомления">
-              <Button
-                type="text"
-                icon={<FiBell />}
-                className="text-gray-600 hover:text-gray-800"
-              />
-            </Tooltip>
-
-            <Dropdown
-              menu={{ items: userMenuItems }}
-              placement="bottomRight"
-              trigger={["click"]}
+        <div className="">
+          <Header className="!bg-white border-b border-gray-100 !px-4 lg:!px-6 flex items-center justify-between">
+            {/* Mobile Menu Button */}
+            <Button
+              type="text"
+              icon={<FiMenu />}
+              onClick={() => setMobileMenuVisible(true)}
               className="lg:hidden"
-            >
-              <Avatar size="small" className="bg-indigo-600 cursor-pointer">
-                {user?.first_name?.charAt(0) ||
-                  user?.username?.charAt(0) ||
-                  "U"}
-              </Avatar>
-            </Dropdown>
-          </div>
-        </Header>
+            />
 
-        <div className="flex">
+            {/* Search Bar */}
+            <div className="flex-1 max-w-md mx-4">
+              <Input
+                placeholder="Поиск по ИНН или QR коду..."
+                prefix={<FiSearch className="text-gray-400" />}
+                className="rounded-lg"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                onPressEnter={handleSearch}
+                loading={searchLoading}
+              />
+            </div>
+
+            {/* Header Actions */}
+            <div className="flex items-center space-x-4">
+              <Tooltip title="Уведомления">
+                <Button
+                  type="text"
+                  icon={<FiBell />}
+                  className="text-gray-600 hover:text-gray-800"
+                />
+              </Tooltip>
+
+              <Dropdown
+                menu={{ items: userMenuItems }}
+                placement="bottomRight"
+                trigger={["click"]}
+                className="lg:hidden"
+              >
+                <Avatar size="small" className="bg-indigo-600 cursor-pointer">
+                  {user?.first_name?.charAt(0) ||
+                    user?.username?.charAt(0) ||
+                    "U"}
+                </Avatar>
+              </Dropdown>
+            </div>
+          </Header>
+
           {/* Main Content */}
           <Content className="flex-1 p-4 lg:p-6 bg-gray-50 min-h-[calc(100vh-64px)] overflow-auto">
             {children}
           </Content>
 
           {/* Right Sidebar - User Actions (Desktop only) */}
-          <div className="hidden xl:block w-80 flex-shrink-0 p-6 bg-gray-50">
-            <Card
-              title={
-                <div className="flex items-center space-x-2">
-                  <FiClock className="text-lg" />
-                  <span>Последние действия</span>
-                </div>
-              }
-              className="shadow-sm sticky top-6"
-              bodyStyle={{
-                maxHeight: "400px",
-                overflowY: "auto",
-                padding: "16px",
-              }}
-            >
-              {renderUserActions()}
-            </Card>
-          </div>
+        </div>
+        <div className="hidden xl:block w-80 flex-shrink-0 p-6 bg-gray-50">
+          <Card
+            title={
+              <div className="flex items-center space-x-2">
+                <FiClock className="text-lg" />
+                <span>Последние действия</span>
+              </div>
+            }
+            className="shadow-sm sticky top-6"
+            style={{
+              maxHeight: "400px",
+              overflowY: "auto",
+              padding: "16px",
+            }}
+          >
+            {renderUserActions()}
+          </Card>
         </div>
       </AntLayout>
 

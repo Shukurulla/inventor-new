@@ -48,6 +48,23 @@ const AddedPage = () => {
     dispatch(getBuildings());
   }, [dispatch]);
 
+  // Equipment ma'lumotlarini to'g'ri formatda olish
+  const getValidEquipment = () => {
+    if (!Array.isArray(equipment)) {
+      return [];
+    }
+
+    // Ma'lumotlar to'g'ri formatda bo'lsa, ularni qaytarish
+    return equipment.filter(
+      (item) =>
+        item &&
+        typeof item === "object" &&
+        item.id &&
+        item.name &&
+        item.type_data
+    );
+  };
+
   const getStatusColor = (status) => {
     const statusColors = {
       NEW: "green",
@@ -71,7 +88,8 @@ const AddedPage = () => {
   };
 
   const groupEquipmentByType = () => {
-    let filteredEquipment = [...equipment];
+    const validEquipment = getValidEquipment();
+    let filteredEquipment = [...validEquipment];
 
     // Apply filters
     if (filters.building_id) {

@@ -12,12 +12,6 @@ import {
   message,
   Popconfirm,
   Form,
-  Input,
-  Select,
-  Row,
-  Col,
-  InputNumber,
-  Switch,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { FiPlus, FiEdit, FiTrash2, FiChevronRight } from "react-icons/fi";
@@ -41,7 +35,6 @@ import CreateSpecificationForm from "../components/Equipment/CreateSpecification
 
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
-const { Option } = Select;
 
 const CharacteristicsPage = () => {
   const [activeTab, setActiveTab] = useState("templates");
@@ -147,6 +140,7 @@ const CharacteristicsPage = () => {
         dispatch(getSpecificationCount());
       }
     } catch (error) {
+      console.error("Spec creation error:", error);
       message.error("Ошибка при создании характеристики");
     }
   };
@@ -194,6 +188,7 @@ const CharacteristicsPage = () => {
         dispatch(getAllSpecifications());
       }
     } catch (error) {
+      console.error("Spec update error:", error);
       message.error("Ошибка при обновлении характеристики");
     }
   };
@@ -231,6 +226,7 @@ const CharacteristicsPage = () => {
         dispatch(getSpecificationCount());
       }
     } catch (error) {
+      console.error("Spec delete error:", error);
       message.error("Ошибка при удалении характеристики");
     }
   };
