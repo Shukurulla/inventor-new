@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { specificationsAPI } from "../../services/api";
+
 // Get all specifications
 export const getAllSpecifications = createAsyncThunk(
   "specifications/getAllSpecifications",
@@ -15,28 +16,31 @@ export const getAllSpecifications = createAsyncThunk(
         monoblokSpecs,
         whiteboardSpecs,
         extenderSpecs,
+        monitorSpecs,
       ] = await Promise.all([
-        specificationsAPI.getComputerSpecs(),
-        specificationsAPI.getProjectorSpecs(),
-        specificationsAPI.getPrinterSpecs(),
-        specificationsAPI.getTVSpecs(),
-        specificationsAPI.getRouterSpecs(),
-        specificationsAPI.getNotebookSpecs(),
-        specificationsAPI.getMonoblokSpecs(),
-        specificationsAPI.getWhiteboardSpecs(),
-        specificationsAPI.getExtenderSpecs(),
+        specificationsAPI.getComputerSpecs().catch(() => ({ data: [] })),
+        specificationsAPI.getProjectorSpecs().catch(() => ({ data: [] })),
+        specificationsAPI.getPrinterSpecs().catch(() => ({ data: [] })),
+        specificationsAPI.getTVSpecs().catch(() => ({ data: [] })),
+        specificationsAPI.getRouterSpecs().catch(() => ({ data: [] })),
+        specificationsAPI.getNotebookSpecs().catch(() => ({ data: [] })),
+        specificationsAPI.getMonoblokSpecs().catch(() => ({ data: [] })),
+        specificationsAPI.getWhiteboardSpecs().catch(() => ({ data: [] })),
+        specificationsAPI.getExtenderSpecs().catch(() => ({ data: [] })),
+        specificationsAPI.getMonitorSpecs().catch(() => ({ data: [] })),
       ]);
 
       return {
-        computer: computerSpecs.data,
-        projector: projectorSpecs.data,
-        printer: printerSpecs.data,
-        tv: tvSpecs.data,
-        router: routerSpecs.data,
-        notebook: notebookSpecs.data,
-        monoblok: monoblokSpecs.data,
-        whiteboard: whiteboardSpecs.data,
-        extender: extenderSpecs.data,
+        computer: computerSpecs.data || [],
+        projector: projectorSpecs.data || [],
+        printer: printerSpecs.data || [],
+        tv: tvSpecs.data || [],
+        router: routerSpecs.data || [],
+        notebook: notebookSpecs.data || [],
+        monoblok: monoblokSpecs.data || [],
+        whiteboard: whiteboardSpecs.data || [],
+        extender: extenderSpecs.data || [],
+        monitor: monitorSpecs.data || [],
       };
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -166,6 +170,18 @@ export const createExtenderSpec = createAsyncThunk(
   }
 );
 
+export const createMonitorSpec = createAsyncThunk(
+  "specifications/createMonitorSpec",
+  async (data, { rejectWithValue }) => {
+    try {
+      const response = await specificationsAPI.createMonitorSpec(data);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
 const specificationSlice = createSlice({
   name: "specifications",
   initialState: {
@@ -178,6 +194,7 @@ const specificationSlice = createSlice({
     monoblok: [],
     whiteboard: [],
     extender: [],
+    monitor: [],
     specificationCount: {},
     loading: false,
     error: null,
@@ -232,6 +249,9 @@ const specificationSlice = createSlice({
       })
       .addCase(createExtenderSpec.fulfilled, (state, action) => {
         state.extender.push(action.payload);
+      })
+      .addCase(createMonitorSpec.fulfilled, (state, action) => {
+        state.monitor.push(action.payload);
       });
   },
 });

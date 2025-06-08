@@ -27,6 +27,7 @@ import {
   createMonoblokSpec,
   createWhiteboardSpec,
   createExtenderSpec,
+  createMonitorSpec,
 } from "../store/slices/specificationSlice";
 import { getEquipmentTypes } from "../store/slices/equipmentSlice";
 import { specificationsAPI } from "../services/api";
@@ -50,11 +51,6 @@ const CharacteristicsPage = () => {
   const { equipmentTypes } = useSelector((state) => state.equipment);
   const { loading, specificationCount } = specifications;
 
-  useEffect(() => {
-    dispatch(getAllSpecifications());
-    dispatch(getSpecificationCount());
-    dispatch(getEquipmentTypes());
-  }, [dispatch]);
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -116,6 +112,11 @@ const CharacteristicsPage = () => {
       icon: "удлинитель",
       color: "bg-indigo-100 text-indigo-600",
     },
+    {
+      name: "Монитор",
+      icon: "монитор",
+      color: "bg-cyan-100 text-cyan-600",
+    },
   ];
 
   const handleCreateSpec = (equipmentTypeName) => {
@@ -126,7 +127,8 @@ const CharacteristicsPage = () => {
   const handleEditSpec = (spec, typeName) => {
     setSelectedSpec(spec);
     setSelectedType(typeName);
-    editForm.setFieldsValue(spec);
+
+    // Don't set form values here, let CreateSpecificationForm handle it
     setEditModalVisible(true);
   };
 
@@ -144,6 +146,7 @@ const CharacteristicsPage = () => {
       else if (typeName.includes("моноблок")) action = createMonoblokSpec;
       else if (typeName.includes("доска")) action = createWhiteboardSpec;
       else if (typeName.includes("удлинитель")) action = createExtenderSpec;
+      else if (typeName.includes("монитор")) action = createMonitorSpec;
 
       if (action) {
         await dispatch(action(values)).unwrap();
@@ -191,6 +194,9 @@ const CharacteristicsPage = () => {
       } else if (typeName.includes("удлинитель")) {
         apiCall = () =>
           specificationsAPI.updateExtenderSpec(selectedSpec.id, values);
+      } else if (typeName.includes("монитор")) {
+        apiCall = () =>
+          specificationsAPI.updateMonitorSpec(selectedSpec.id, values);
       }
 
       if (apiCall) {
@@ -231,6 +237,8 @@ const CharacteristicsPage = () => {
         apiCall = () => specificationsAPI.deleteWhiteboardSpec(spec.id);
       } else if (typeNameLower.includes("удлинитель")) {
         apiCall = () => specificationsAPI.deleteExtenderSpec(spec.id);
+      } else if (typeNameLower.includes("монитор")) {
+        apiCall = () => specificationsAPI.deleteMonitorSpec(spec.id);
       }
 
       if (apiCall) {
@@ -307,6 +315,9 @@ const CharacteristicsPage = () => {
             spec.screen_size &&
             `Размер: ${spec.screen_size}"`}
           {type === "Удлинитель" && spec.ports && `Порты: ${spec.ports}`}
+          {type === "Монитор" &&
+            spec.screen_size &&
+            `Размер: ${spec.screen_size}" ${spec.panel_type}`}
         </div>
       </div>
       <div className="flex items-center space-x-2">
@@ -403,6 +414,14 @@ const CharacteristicsPage = () => {
         color: "bg-indigo-100 text-indigo-600",
         count: specifications.extender?.length || 0,
       },
+      {
+        key: "monitor",
+        name: "Монитор",
+        icon: "монитор",
+        data: specifications.monitor,
+        color: "bg-cyan-100 text-cyan-600",
+        count: specifications.monitor?.length || 0,
+      },
     ];
 
     // Фильтруем только те типы, у которых есть данные
@@ -459,11 +478,12 @@ const CharacteristicsPage = () => {
               }
             >
               <div className="space-y-2">
-                {specType.data.map((spec) => (
-                  <div key={spec.id}>
-                    {renderSpecificationItem(spec, specType.name)}
-                  </div>
-                ))}
+                {specType.data &&
+                  specType.data.map((spec) => (
+                    <div key={spec.id}>
+                      {renderSpecificationItem(spec, specType.name)}
+                    </div>
+                  ))}
               </div>
             </Panel>
           ))}
@@ -520,6 +540,7 @@ const CharacteristicsPage = () => {
             setSelectedType(null);
             specForm.resetFields();
           }}
+          isEdit={false}
         />
       </Modal>
 
@@ -546,6 +567,8 @@ const CharacteristicsPage = () => {
             setSelectedSpec(null);
             editForm.resetFields();
           }}
+          isEdit={true}
+          initialData={selectedSpec}
         />
       </Modal>
     </div>

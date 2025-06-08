@@ -572,13 +572,18 @@ const CreateEquipmentModal = ({
               </Button>
             </div>
           </div>
-          <Button
-            type="primary"
-            onClick={onCancel}
-            className="mt-6 bg-[#4E38F2] border-none hover:bg-[#4A63D7]"
-          >
-            Закрыть
-          </Button>
+          <Row gutter={16} className="mt-4">
+            <Col span={12}></Col>
+            <Col span={12} className="flex justify-end">
+              <button
+                className=" p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+                style={{ width: "50%" }}
+                onClick={onCancel}
+              >
+                Завершить
+              </button>
+            </Col>
+          </Row>
         </div>
       );
     }
@@ -586,14 +591,7 @@ const CreateEquipmentModal = ({
     return (
       <div className="px-6 py-4">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-medium">QR-код</h3>
-          <Button
-            icon={<FiDownload />}
-            onClick={handleDownloadQRCodes}
-            className="text-[#4E38F2] border-[#4E38F2] hover:bg-[#4E38F2] hover:text-white"
-          >
-            Скачать
-          </Button>
+          <h3 className="text-lg font-medium">ИНН</h3>
         </div>
         <div className="space-y-4">
           {createdEquipment.map((equipment, index) => (
@@ -621,20 +619,27 @@ const CreateEquipmentModal = ({
             </Row>
           ))}
         </div>
-        <div className="flex justify-between mt-8 pt-4">
-          <Button
-            onClick={() => setCurrentStep(1)}
-            className="px-8 py-2 h-[40px] bg-[#E5E7EB] text-gray-700 border-none hover:bg-[#D1D5DB]"
-          >
-            Назад
-          </Button>
-          <Button
-            type="primary"
-            onClick={handleStep3Submit}
-            className="px-8 py-2 h-[40px] bg-[#4E38F2] border-none hover:bg-[#4A63D7]"
-          >
-            Завершить
-          </Button>
+        <div>
+          <Row gutter={16} className="mt-4">
+            <Col span={12}>
+              <button
+                className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+                style={{ width: "100%" }}
+                onClick={() => setCurrentStep(1)}
+              >
+                Назад
+              </button>
+            </Col>
+            <Col span={12}>
+              <button
+                className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+                style={{ width: "100%" }}
+                onClick={handleStep3Submit}
+              >
+                Далее
+              </button>
+            </Col>
+          </Row>
         </div>
       </div>
     );

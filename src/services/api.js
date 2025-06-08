@@ -10,6 +10,9 @@ const api = axios.create({
   },
 });
 
+// Store refresh promise to avoid multiple refresh calls
+let refreshPromise = null;
+
 // Add token to requests
 api.interceptors.request.use(
   (config) => {
@@ -24,6 +27,52 @@ api.interceptors.request.use(
   }
 );
 
+// Function to refresh token
+const refreshToken = async () => {
+  try {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+
+    const response = await axios.post(`${BASE_URL}/user/login/refresh/`, {
+      refresh: refreshToken,
+    });
+
+    const newToken = response.data.access;
+    localStorage.setItem("token", newToken);
+
+    // Update default headers
+    api.defaults.headers.Authorization = `Bearer ${newToken}`;
+
+    return newToken;
+  } catch (error) {
+    // Clear tokens if refresh fails
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    window.location.href = "/login";
+    throw error;
+  }
+};
+
+// Auto refresh token every 50 minutes (10 minutes before expiry)
+const startTokenRefreshTimer = () => {
+  setInterval(async () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        await refreshToken();
+        console.log("Token automatically refreshed");
+      } catch (error) {
+        console.error("Auto token refresh failed:", error);
+      }
+    }
+  }, 50 * 60 * 1000); // 50 minutes
+};
+
+// Start the timer when the app loads
+startTokenRefreshTimer();
+
 // Handle token refresh
 api.interceptors.response.use(
   (response) => response,
@@ -34,20 +83,18 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem("refreshToken");
-        const response = await axios.post(`${BASE_URL}/user/login/refresh/`, {
-          refresh: refreshToken,
-        });
+        // Use shared refresh promise to avoid multiple refresh calls
+        if (!refreshPromise) {
+          refreshPromise = refreshToken();
+        }
 
-        const newToken = response.data.access;
-        localStorage.setItem("token", newToken);
+        const newToken = await refreshPromise;
+        refreshPromise = null;
 
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("refreshToken");
-        window.location.href = "/login";
+        refreshPromise = null;
         return Promise.reject(refreshError);
       }
     }
@@ -173,14 +220,8 @@ export const equipmentAPI = {
         }
       });
 
-      return api.put(`/inventory/equipment/${id}/`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      return api.put(`/inventory/equipment/${id}/`, data);
     }
-
-    return api.put(`/inventory/equipment/${id}/`, data);
   },
   patchEquipment: (id, data) => {
     // Check if data contains file
@@ -231,7 +272,7 @@ export const equipmentAPI = {
 
 export const specificationsAPI = {
   // Computer specifications
-  getComputerSpecs: () => api.get("/inventory/computer-specifications/"),
+  getComputerSpecs: () => api.get("/inventory/computer-specification/"),
   createComputerSpec: (data) =>
     api.post("/inventory/computer-specification/", data),
   updateComputerSpec: (id, data) =>
@@ -308,6 +349,15 @@ export const specificationsAPI = {
     api.patch(`/inventory/extender-specification/${id}/`, data),
   deleteExtenderSpec: (id) =>
     api.delete(`/inventory/extender-specification/${id}/`),
+
+  // Monitor specifications
+  getMonitorSpecs: () => api.get("/inventory/monitor-specification/"),
+  createMonitorSpec: (data) =>
+    api.post("/inventory/monitor-specification/", data),
+  updateMonitorSpec: (id, data) =>
+    api.patch(`/inventory/monitor-specification/${id}/`, data),
+  deleteMonitorSpec: (id) =>
+    api.delete(`/inventory/monitor-specification/${id}/`),
 
   // Get specification count
   getSpecificationCount: () =>

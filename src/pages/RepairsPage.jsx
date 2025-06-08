@@ -274,13 +274,6 @@ const RepairsPage = () => {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Ремонт оборудования
-        </h1>
-        <p className="text-gray-600">Оборудование, требующее ремонта</p>
-      </div>
-
       <Card className="shadow-sm">{renderEquipmentList()}</Card>
 
       {/* Модальное окно редактирования оборудования */}

@@ -459,12 +459,6 @@ const HomePage = () => {
     <div className="flex gap-6">
       <div className="flex-1">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Главная страница
-          </h1>
-        </div>
-
-        <div className="mb-6">
           <div className="flex space-x-8 border-b border-gray-200">
             <button
               className={`pb-3 px-1 border-b-2 font-medium text-sm ${

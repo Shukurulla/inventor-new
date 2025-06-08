@@ -1,29 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Card,
-  Form,
-  Input,
-  Button,
-  message,
-  Switch,
-  Avatar,
-  Upload,
-} from "antd";
+import { useState, useEffect } from "react";
+import { Card, Form, Input, Button, message, Avatar, Spin } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { FiEdit, FiUpload, FiUser } from "react-icons/fi";
+import { FiEdit, FiUser } from "react-icons/fi";
 import { setTheme, setFontSize } from "../store/slices/settingsSlice";
-import { authAPI } from "../services/api";
+import api from "../services/api";
 
 const SettingsPage = () => {
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileData, setProfileData] = useState(null);
   const [profileForm] = Form.useForm();
 
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { theme, fontSize } = useSelector((state) => state.settings);
+
+  // Fetch profile data on component mount
+  useEffect(() => {
+    fetchProfileData();
+  }, []);
+
+  const fetchProfileData = async () => {
+    try {
+      setProfileLoading(true);
+      const response = await api.get("/user/users/me/");
+      setProfileData(response.data);
+
+      // Set form values with fetched data
+      profileForm.setFieldsValue({
+        username: response.data.username || "",
+        first_name: response.data.first_name || "",
+        last_name: response.data.last_name || "",
+        email: response.data.email || "",
+        phone_number: response.data.phone_number || "",
+      });
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      message.error("Ошибка при загрузке профиля");
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const handleThemeChange = (value) => {
     dispatch(setTheme(value));
@@ -44,13 +64,17 @@ const SettingsPage = () => {
   };
 
   const handleProfileUpdate = async (values) => {
+    if (!profileData) return;
+
     setLoading(true);
     try {
-      // API call to update profile
-      const response = await authAPI.updateProfile(values);
+      const response = await api.patch(
+        `/user/users/${profileData.id}/`,
+        values
+      );
 
-      // Update user in store if needed
-      // dispatch(updateUser(response.data));
+      // Update local state with new data
+      setProfileData(response.data);
 
       message.success("Профиль успешно обновлен!");
       setEditMode(false);
@@ -60,6 +84,20 @@ const SettingsPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditToggle = () => {
+    if (editMode) {
+      // Reset form to original values when canceling edit
+      profileForm.setFieldsValue({
+        username: profileData?.username || "",
+        first_name: profileData?.first_name || "",
+        last_name: profileData?.last_name || "",
+        email: profileData?.email || "",
+        phone_number: profileData?.phone_number || "",
+      });
+    }
+    setEditMode(!editMode);
   };
 
   const themeOptions = [
@@ -74,29 +112,22 @@ const SettingsPage = () => {
     { label: "Roboto", value: "roboto" },
   ];
 
-  const uploadProps = {
-    beforeUpload: () => false,
-    maxCount: 1,
-    accept: "image/*",
-    listType: "picture",
-  };
+  if (profileLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Настройки</h1>
-      </div>
-
       {/* Profile Settings */}
       <Card
         title="Профиль пользователя"
         className="shadow-sm"
         extra={
-          <Button
-            type="primary"
-            icon={<FiEdit />}
-            onClick={() => setEditMode(!editMode)}
-          >
+          <Button type="primary" icon={<FiEdit />} onClick={handleEditToggle}>
             {editMode ? "Отмена" : "Редактировать"}
           </Button>
         }
@@ -105,32 +136,34 @@ const SettingsPage = () => {
           form={profileForm}
           layout="vertical"
           onFinish={handleProfileUpdate}
-          initialValues={{
-            username: user?.username || "admin",
-            first_name: user?.first_name || "Администратор",
-            last_name: user?.last_name || "Системы",
-            email: user?.email || "admin@imaster.com",
-            phone_number: user?.phone_number || "+998901234567",
-          }}
         >
           <div className="flex items-start space-x-6 mb-6">
             <div className="flex flex-col items-center space-y-3">
-              <Avatar size={80} icon={<FiUser />} className="bg-indigo-600" />
-              {editMode && (
-                <Upload {...uploadProps}>
-                  <Button icon={<FiUpload />} size="small">
-                    Загрузить фото
-                  </Button>
-                </Upload>
-              )}
+              <Avatar size={80} icon={<FiUser />} className="bg-indigo-600">
+                {profileData?.first_name?.charAt(0) ||
+                  profileData?.username?.charAt(0) ||
+                  "U"}
+              </Avatar>
             </div>
 
             <div className="flex-1 grid grid-cols-2 gap-4">
-              <Form.Item label="Имя пользователя" name="username">
+              <Form.Item
+                label="Имя пользователя"
+                name="username"
+                rules={[
+                  { required: true, message: "Введите имя пользователя!" },
+                ]}
+              >
                 <Input disabled={!editMode} />
               </Form.Item>
 
-              <Form.Item label="Email" name="email">
+              <Form.Item
+                label="Email"
+                name="email"
+                rules={[
+                  { type: "email", message: "Введите корректный email!" },
+                ]}
+              >
                 <Input disabled={!editMode} />
               </Form.Item>
 
@@ -147,13 +180,21 @@ const SettingsPage = () => {
               </Form.Item>
 
               <Form.Item label="Роль">
-                <Input value={user?.role || "Администратор"} disabled />
+                <Input
+                  value={
+                    profileData?.role_display ||
+                    profileData?.role ||
+                    "Пользователь"
+                  }
+                  disabled
+                />
               </Form.Item>
             </div>
           </div>
 
           {editMode && (
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-2">
+              <Button onClick={handleEditToggle}>Отмена</Button>
               <Button type="primary" htmlType="submit" loading={loading}>
                 Сохранить изменения
               </Button>
@@ -175,11 +216,13 @@ const SettingsPage = () => {
               }`}
               style={{
                 background:
-                  option.value == "system"
+                  option.value === "system"
                     ? "linear-gradient(to right, white 50%, rgb(26, 26, 26) 50%)"
-                    : "" || option.value == "light"
+                    : option.value === "light"
                     ? "#fff"
-                    : "#000",
+                    : option.value === "dark"
+                    ? "#000"
+                    : "#fff",
               }}
               onClick={() => handleThemeChange(option.value)}
             >
@@ -189,30 +232,28 @@ const SettingsPage = () => {
                     <span className="text-white font-bold text-sm">iM</span>
                   </div>
                 </div>
-                {option.value == "system" && (
-                  <span className="text-sm font-medium flex justify-center">
-                    <li className="text-black">{option.label.slice(0, 5)}</li>
-                    <li className="text-white">
-                      {option.label.slice(5, option.label.length)}
-                    </li>
+                {option.value === "system" && (
+                  <span className="text-sm  font-medium flex justify-center">
+                    <span className="text-black letter-space-2">
+                      {option.label.slice(0, 4)}
+                    </span>
+                    <span className="text-white letter-space-2">
+                      {option.label.slice(4, 8)}
+                    </span>
                   </span>
                 )}
-                {option.value == "light" && (
+                {option.value === "light" && (
                   <span
-                    className={`text-sm font-medium option-title`}
-                    style={{
-                      color: "#000",
-                    }}
+                    className="text-sm font-medium"
+                    style={{ color: "#000" }}
                   >
                     {option.label}
                   </span>
                 )}
-                {option.value == "dark" && (
+                {option.value === "dark" && (
                   <span
-                    className={`text-sm font-medium option-title`}
-                    style={{
-                      color: "#fff",
-                    }}
+                    className="text-sm font-medium"
+                    style={{ color: "#fff" }}
                   >
                     {option.label}
                   </span>

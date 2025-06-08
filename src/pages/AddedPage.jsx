@@ -23,6 +23,7 @@ import {
   getEquipmentTypes,
 } from "../store/slices/equipmentSlice";
 import { getBuildings } from "../store/slices/universitySlice";
+import api from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 
 const { Panel } = Collapse;
@@ -33,9 +34,10 @@ const AddedPage = () => {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [filters, setFilters] = useState({
     building_id: null,
-    room_number: "",
+    room_id: null,
     type_id: null,
   });
+  const [rooms, setRooms] = useState([]);
   const [form] = Form.useForm();
 
   const dispatch = useDispatch();
@@ -52,6 +54,9 @@ const AddedPage = () => {
         await dispatch(getMyEquipments()).unwrap();
         await dispatch(getEquipmentTypes()).unwrap();
         await dispatch(getBuildings()).unwrap();
+        // Load all rooms
+        const roomsResponse = await api.get("/university/rooms/");
+        setRooms(roomsResponse.data);
         console.log(myEquipments);
       } catch (error) {
         console.error("Ошибка при загрузке данных:", error);
@@ -84,7 +89,7 @@ const AddedPage = () => {
       NEW: "green",
       WORKING: "indigo",
       REPAIR: "orange",
-      BROKEN: "red",
+      NEEDS_REPAIR: "red",
       DISPOSED: "default",
     };
     return statusColors[status] || "default";
@@ -95,7 +100,7 @@ const AddedPage = () => {
       NEW: "Новое",
       WORKING: "Работает",
       REPAIR: "На ремонте",
-      BROKEN: "Неисправно",
+      NEEDS_REPAIR: "Требуется ремонт",
       DISPOSED: "Утилизировано",
     };
     return statusTexts[status] || status;
@@ -111,11 +116,9 @@ const AddedPage = () => {
         (item) => item.room_data?.building === filters.building_id
       );
     }
-    if (filters.room_number && filters.room_number.trim()) {
-      filteredEquipment = filteredEquipment.filter((item) =>
-        item.room_data?.number
-          ?.toLowerCase()
-          .includes(filters.room_number.toLowerCase())
+    if (filters.room_id) {
+      filteredEquipment = filteredEquipment.filter(
+        (item) => item.room_data?.id === filters.room_id
       );
     }
     if (filters.type_id) {
@@ -186,19 +189,27 @@ const AddedPage = () => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
+      // Reset room filter when building changes
+      ...(key === "building_id" ? { room_id: null } : {}),
     }));
   };
 
   const clearFilters = () => {
     setFilters({
       building_id: null,
-      room_number: "",
+      room_id: null,
       type_id: null,
     });
   };
 
   const hasActiveFilters = () => {
-    return filters.building_id || filters.room_number.trim() || filters.type_id;
+    return filters.building_id || filters.room_id || filters.type_id;
+  };
+
+  // Get rooms for selected building
+  const getFilteredRooms = () => {
+    if (!filters.building_id) return rooms;
+    return rooms.filter((room) => room.building === filters.building_id);
   };
 
   const renderEquipmentItem = (item) => (
@@ -336,13 +347,6 @@ const AddedPage = () => {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Добавленные</h1>
-        <p className="text-gray-600">
-          Всего найдено: {getTotalCount()} единиц оборудования
-        </p>
-      </div>
-
       <Card className="shadow-sm">
         {/* Filters */}
         <div className="flex space-x-4 mb-6 p-4 bg-gray-50 rounded-lg">
@@ -360,12 +364,20 @@ const AddedPage = () => {
             ))}
           </Select>
 
-          <Input
-            placeholder="Номер комнаты"
-            className="w-40"
-            value={filters.room_number}
-            onChange={(e) => handleFilterChange("room_number", e.target.value)}
-          />
+          <Select
+            placeholder="Комната"
+            className="w-48"
+            value={filters.room_id}
+            onChange={(value) => handleFilterChange("room_id", value)}
+            allowClear
+            disabled={!filters.building_id}
+          >
+            {getFilteredRooms().map((room) => (
+              <Option key={room.id} value={room.id}>
+                {room.number} - {room.name}
+              </Option>
+            ))}
+          </Select>
 
           <Select
             placeholder="Тип оборудования"
@@ -404,9 +416,10 @@ const AddedPage = () => {
                   {buildings.find((b) => b.id === filters.building_id)?.name}
                 </span>
               )}
-              {filters.room_number && (
+              {filters.room_id && (
                 <span className="px-2 py-1 bg-indigo-200 rounded text-xs">
-                  Комната: {filters.room_number}
+                  Комната: {rooms.find((r) => r.id === filters.room_id)?.number}{" "}
+                  - {rooms.find((r) => r.id === filters.room_id)?.name}
                 </span>
               )}
               {filters.type_id && (
