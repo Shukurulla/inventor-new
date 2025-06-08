@@ -572,18 +572,6 @@ const CreateEquipmentModal = ({
               </Button>
             </div>
           </div>
-          <Row gutter={16} className="mt-4">
-            <Col span={12}></Col>
-            <Col span={12} className="flex justify-end">
-              <button
-                className=" p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
-                style={{ width: "50%" }}
-                onClick={onCancel}
-              >
-                Завершить
-              </button>
-            </Col>
-          </Row>
         </div>
       );
     }

@@ -33,7 +33,15 @@ body {
 .overflow-y-scroll {
   overflow-y: scroll !important;
 }
-
+.dark .ant-input-number-input {
+  background: #222222 !important;
+}
+.dark .ant-input-number-input::placeholder {
+  color: #eef2ff59 !important;
+}
+.dark .ant-input-number-input {
+  background: #222222 !important;
+}
 /* Dark theme */
 .dark body {
   background-color: #000 !important;

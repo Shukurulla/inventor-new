@@ -522,7 +522,7 @@ const CharacteristicsPage = () => {
           specForm.resetFields();
         }}
         footer={null}
-        width={800}
+        width={1000}
         destroyOnClose
       >
         <CreateSpecificationForm

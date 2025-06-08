@@ -96,7 +96,6 @@ const CreateSpecificationForm = ({
           <Row key={storage.id} gutter={16} className="mb-2">
             <Col span={10}>
               <Form.Item
-                label={index === 0 ? "Объем накопителя (GB)" : ""}
                 name={`storage_${storage.id}_size`}
                 rules={[{ required: true, message: "Введите объем!" }]}
               >
@@ -108,9 +107,8 @@ const CreateSpecificationForm = ({
                 />
               </Form.Item>
             </Col>
-            <Col span={10}>
+            <Col span={8}>
               <Form.Item
-                label={index === 0 ? "Тип накопителя" : ""}
                 name={`storage_${storage.id}_type`}
                 rules={[{ required: true, message: "Выберите тип!" }]}
               >
@@ -121,13 +119,13 @@ const CreateSpecificationForm = ({
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={4} className="flex items-center">
+            <Col span={6} className="flex items-start">
               {index === 0 && storageList.length === 1 ? (
                 <Button
                   type="dashed"
                   icon={<FiPlus />}
                   onClick={addStorage}
-                  className="mt-6"
+                  className="ml-4"
                 >
                   Добавить
                 </Button>
@@ -137,7 +135,7 @@ const CreateSpecificationForm = ({
                   danger
                   icon={<FiTrash2 />}
                   onClick={() => removeStorage(storage.id)}
-                  className="mt-6"
+                  className="mt"
                 />
               )}
               {index === storageList.length - 1 && storageList.length > 1 && (
@@ -145,7 +143,7 @@ const CreateSpecificationForm = ({
                   type="dashed"
                   icon={<FiPlus />}
                   onClick={addStorage}
-                  className="mt-6 ml-2"
+                  className="ml-4"
                 >
                   Добавить
                 </Button>
@@ -159,13 +157,13 @@ const CreateSpecificationForm = ({
         <Col span={12}>
           <Form.Item
             label="Видеокарта"
-            name="gpu"
+            name="gpu_scpectifications"
             rules={[{ required: true, message: "Введите видеокарту!" }]}
           >
             <Input placeholder="NVIDIA GTX 1050 Ti" />
           </Form.Item>
         </Col>
-        <Col span={12}>
+        <Col span={6}>
           <Form.Item
             label="Есть клавиатура"
             name="has_keyboard"
@@ -175,9 +173,7 @@ const CreateSpecificationForm = ({
             <Switch />
           </Form.Item>
         </Col>
-      </Row>
-      <Row gutter={16}>
-        <Col span={12}>
+        <Col span={6}>
           <Form.Item
             label="Есть мышь"
             name="has_mouse"
@@ -397,7 +393,7 @@ const CreateSpecificationForm = ({
             />
           </Form.Item>
         </Col>
-        <Col span={12}>
+        <Col span={6}>
           <Form.Item
             label="Есть клавиатура"
             name="has_keyboard"
@@ -407,9 +403,7 @@ const CreateSpecificationForm = ({
             <Switch />
           </Form.Item>
         </Col>
-      </Row>
-      <Row gutter={16}>
-        <Col span={12}>
+        <Col span={6}>
           <Form.Item
             label="Есть мышь"
             name="has_mouse"
