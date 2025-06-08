@@ -43,12 +43,11 @@ body {
 .dark .ant-layout {
   background: #000 !important;
 }
-.dark
-  .ant-input-affix-wrapper.css-dev-only-do-not-override-12e2xlf.ant-input-outlined {
+.dark .ant-input-affix-wrapper.ant-input-outlined {
   background: #222222 !important;
 }
-.ant-input-affix-wrapper.css-dev-only-do-not-override-12e2xlf.ant-input-outlined
-  input {
+
+.ant-input-affix-wrapper.ant-input-outlined input {
   border: none !important;
 }
 
