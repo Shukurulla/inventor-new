@@ -1,4 +1,4 @@
-"use client";
+// 1. HomePage.jsx - Accordion loading states fix
 
 import { useEffect, useState } from "react";
 import { Card, Collapse, Button, Badge, Empty, Spin, Breadcrumb } from "antd";
@@ -41,6 +41,14 @@ const HomePage = () => {
   const [activeFacultyPanels, setActiveFacultyPanels] = useState({});
   const [activeRoomPanels, setActiveRoomPanels] = useState({});
   const [activeTab, setActiveTab] = useState("university");
+
+  // Loading states
+  const [loadingStates, setLoadingStates] = useState({
+    floors: {},
+    faculties: {},
+    rooms: {},
+    equipment: {},
+  });
 
   const {
     buildings = [],
@@ -108,6 +116,12 @@ const HomePage = () => {
     setActiveRoomPanels(newActiveRoomPanels);
 
     for (const buildingId of newBuildingIds) {
+      // Set loading state for floors
+      setLoadingStates((prev) => ({
+        ...prev,
+        floors: { ...prev.floors, [buildingId]: true },
+      }));
+
       if (!floorsByBuilding[buildingId]) {
         try {
           await dispatch(getFloorsByBuilding(buildingId)).unwrap();
@@ -115,6 +129,7 @@ const HomePage = () => {
           console.error(`Ошибка загрузки этажей здания ${buildingId}:`, error);
         }
       }
+
       if (!roomsByBuilding[buildingId]) {
         try {
           await dispatch(getRoomsByBuilding(buildingId)).unwrap();
@@ -122,6 +137,12 @@ const HomePage = () => {
           console.error(`Ошибка загрузки комнат здания ${buildingId}:`, error);
         }
       }
+
+      // Clear loading state for floors
+      setLoadingStates((prev) => ({
+        ...prev,
+        floors: { ...prev.floors, [buildingId]: false },
+      }));
     }
   };
 
@@ -155,8 +176,14 @@ const HomePage = () => {
     setActiveRoomPanels(newActiveRoomPanels);
   };
 
-  const handleFacultyExpand = (buildingId, floorId) => (facultyIds) => {
+  const handleFacultyExpand = (buildingId, floorId) => async (facultyIds) => {
     const key = `${buildingId}-${floorId}`;
+
+    // Set loading state for rooms
+    setLoadingStates((prev) => ({
+      ...prev,
+      rooms: { ...prev.rooms, [key]: true },
+    }));
 
     const newActiveRoomPanels = { ...activeRoomPanels };
 
@@ -176,6 +203,12 @@ const HomePage = () => {
       [key]: facultyIds,
     }));
     setActiveRoomPanels(newActiveRoomPanels);
+
+    // Clear loading state
+    setLoadingStates((prev) => ({
+      ...prev,
+      rooms: { ...prev.rooms, [key]: false },
+    }));
   };
 
   const handleRoomExpand =
@@ -187,6 +220,12 @@ const HomePage = () => {
       }));
 
       for (const roomId of roomIds) {
+        // Set loading state for equipment
+        setLoadingStates((prev) => ({
+          ...prev,
+          equipment: { ...prev.equipment, [roomId]: true },
+        }));
+
         if (!equipmentTypesByRoom[roomId]) {
           try {
             await dispatch(getEquipmentTypesByRoom(roomId)).unwrap();
@@ -197,6 +236,12 @@ const HomePage = () => {
             );
           }
         }
+
+        // Clear loading state
+        setLoadingStates((prev) => ({
+          ...prev,
+          equipment: { ...prev.equipment, [roomId]: false },
+        }));
       }
     };
 
@@ -218,7 +263,7 @@ const HomePage = () => {
 
   const renderEquipmentTypes = (roomId, room) => {
     const equipmentTypesData = equipmentTypesByRoom[roomId] || [];
-    const isLoading = universityLoading && !equipmentTypesByRoom[roomId];
+    const isLoading = loadingStates.equipment[roomId];
 
     return (
       <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
@@ -348,49 +393,68 @@ const HomePage = () => {
     }
 
     const key = `${buildingId}-${floorId}`;
+    const isLoading = loadingStates.rooms[key];
 
     return (
-      <Collapse
-        ghost
-        accordion
-        expandIcon={({ isActive }) => (
-          <FiChevronRight
-            className={`transition-transform ${isActive ? "rotate-90" : ""}`}
-          />
+      <>
+        {isLoading && (
+          <div className="text-center py-4">
+            <Spin size="small" />
+            <span className="ml-2 text-gray-500">Загрузка факультетов...</span>
+          </div>
         )}
-        onChange={handleFacultyExpand(buildingId, floorId)}
-        activeKey={activeFacultyPanels[key] || []}
-      >
-        {faculties.map((faculty) => (
-          <Panel
-            key={faculty.id}
-            header={
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center">
-                    <FiHome className="text-green-600 text-sm" />
+        <Collapse
+          ghost
+          accordion
+          expandIcon={({ isActive }) => (
+            <FiChevronRight
+              className={`transition-transform ${isActive ? "rotate-90" : ""}`}
+            />
+          )}
+          onChange={handleFacultyExpand(buildingId, floorId)}
+          activeKey={activeFacultyPanels[key] || []}
+        >
+          {faculties.map((faculty) => (
+            <Panel
+              key={faculty.id}
+              header={
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center">
+                      <FiHome className="text-green-600 text-sm" />
+                    </div>
+                    <span className="font-medium">{faculty.name}</span>
                   </div>
-                  <span className="font-medium">{faculty.name}</span>
+                  <FiChevronRight className="text-gray-400" />
                 </div>
-                <FiChevronRight className="text-gray-400" />
-              </div>
-            }
-          >
-            {renderRooms(buildingId, floorId, faculty.id)}
-          </Panel>
-        ))}
-      </Collapse>
+              }
+            >
+              {renderRooms(buildingId, floorId, faculty.id)}
+            </Panel>
+          ))}
+        </Collapse>
+      </>
     );
   };
 
   const renderFloors = (buildingId) => {
     const floors = floorsByBuilding[buildingId] || [];
+    const isLoading = loadingStates.floors[buildingId];
+
+    if (isLoading) {
+      return (
+        <div className="text-center py-8">
+          <Spin size="large" />
+          <p className="mt-4 text-gray-500">Загрузка этажей...</p>
+        </div>
+      );
+    }
 
     if (floors.length === 0) {
       return (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="этаж не найдены"
+          description="Этажи не найдены"
         />
       );
     }

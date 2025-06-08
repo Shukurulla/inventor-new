@@ -1,5 +1,4 @@
-// utils/statusUtils.js
-
+// 2. Status translation fix - src/utils/statusUtils.js
 export const getStatusConfig = (status) => {
   const statusConfigs = {
     NEW: {
@@ -42,6 +41,17 @@ export const getStatusConfig = (status) => {
       borderColor: "#d9d9d9",
     }
   );
+};
+
+export const getStatusText = (status) => {
+  const statusTexts = {
+    NEW: "Новое",
+    WORKING: "Работает",
+    REPAIR: "На ремонте",
+    NEEDS_REPAIR: "Требуется ремонт",
+    DISPOSED: "Утилизировано",
+  };
+  return statusTexts[status] || status;
 };
 
 export const getStatusBadge = (status, count) => {

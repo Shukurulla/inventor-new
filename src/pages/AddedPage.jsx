@@ -1,3 +1,4 @@
+// AddedPage.jsx - With loading and detailed view like HomePage
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,9 +14,17 @@ import {
   Form,
   Input,
   Select,
+  Spin,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { FiChevronRight, FiTrash2, FiEdit, FiFilter } from "react-icons/fi";
+import {
+  FiChevronRight,
+  FiTrash2,
+  FiEdit,
+  FiFilter,
+  FiEye,
+  FiMapPin,
+} from "react-icons/fi";
 import {
   getMyEquipments,
   updateEquipment,
@@ -23,14 +32,17 @@ import {
   getEquipmentTypes,
 } from "../store/slices/equipmentSlice";
 import { getBuildings } from "../store/slices/universitySlice";
+import EditEquipmentModal from "../components/Equipment/EditEquipmentModal";
 import api from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
+import { getStatusText, getStatusConfig } from "../utils/statusUtils";
 
 const { Panel } = Collapse;
 const { Option } = Select;
 
 const AddedPage = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [filters, setFilters] = useState({
     building_id: null,
@@ -39,6 +51,7 @@ const AddedPage = () => {
   });
   const [rooms, setRooms] = useState([]);
   const [form] = Form.useForm();
+  const [pageLoading, setPageLoading] = useState(false);
 
   const dispatch = useDispatch();
   const {
@@ -50,6 +63,7 @@ const AddedPage = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      setPageLoading(true);
       try {
         await dispatch(getMyEquipments()).unwrap();
         await dispatch(getEquipmentTypes()).unwrap();
@@ -57,10 +71,11 @@ const AddedPage = () => {
         // Load all rooms
         const roomsResponse = await api.get("/university/rooms/");
         setRooms(roomsResponse.data);
-        console.log(myEquipments);
       } catch (error) {
         console.error("Ошибка при загрузке данных:", error);
         message.error("Ошибка при загрузке данных");
+      } finally {
+        setPageLoading(false);
       }
     };
 
@@ -87,23 +102,12 @@ const AddedPage = () => {
   const getStatusColor = (status) => {
     const statusColors = {
       NEW: "green",
-      WORKING: "indigo",
+      WORKING: "blue",
       REPAIR: "orange",
       NEEDS_REPAIR: "red",
       DISPOSED: "default",
     };
     return statusColors[status] || "default";
-  };
-
-  const getStatusText = (status) => {
-    const statusTexts = {
-      NEW: "Новое",
-      WORKING: "Работает",
-      REPAIR: "На ремонте",
-      NEEDS_REPAIR: "Требуется ремонт",
-      DISPOSED: "Утилизировано",
-    };
-    return statusTexts[status] || status;
   };
 
   const groupEquipmentByType = () => {
@@ -142,35 +146,27 @@ const AddedPage = () => {
     return grouped;
   };
 
+  // Handle view button click
+  const handleView = (equipment) => {
+    setSelectedEquipment(equipment);
+    setDetailModalVisible(true);
+  };
+
   const handleEdit = (equipment) => {
     setSelectedEquipment(equipment);
-    form.setFieldsValue({
-      name: equipment.name,
-      description: equipment.description,
-      status: equipment.status,
-    });
     setEditModalVisible(true);
   };
 
-  const handleUpdateEquipment = async (values) => {
-    try {
-      await dispatch(
-        updateEquipment({
-          id: selectedEquipment.id,
-          data: values,
-        })
-      ).unwrap();
+  const handleEditModalClose = () => {
+    setEditModalVisible(false);
+    setSelectedEquipment(null);
+    // Refresh equipment data
+    dispatch(getMyEquipments());
+  };
 
-      message.success("Оборудование успешно обновлено!");
-      setEditModalVisible(false);
-      setSelectedEquipment(null);
-      form.resetFields();
-      // Обновить список
-      dispatch(getMyEquipments());
-    } catch (error) {
-      console.error("Ошибка при обновлении оборудования:", error);
-      message.error("Ошибка при обновлении оборудования");
-    }
+  const handleDetailModalClose = () => {
+    setDetailModalVisible(false);
+    setSelectedEquipment(null);
   };
 
   const handleDelete = async (id) => {
@@ -212,44 +208,68 @@ const AddedPage = () => {
     return rooms.filter((room) => room.building === filters.building_id);
   };
 
-  const renderEquipmentItem = (item) => (
-    <div
-      key={item.id}
-      className="flex items-center justify-between p-4 bg-white rounded-lg border hover:shadow-sm transition-shadow"
-    >
-      <div className="flex items-center space-x-4">
-        <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
-          <EquipmentIcon
-            type={
-              item.type_data?.name ||
-              equipmentTypes.find((t) => t.id === item.type)?.name
-            }
-            className="text-pink-600"
-          />
-        </div>
-        <div className="flex-1">
-          <div className="font-medium text-gray-800">{item.name}</div>
-          <div className="text-sm text-gray-500 mt-1">
-            {item.room_data?.number} - {item.room_data?.name} | ИНН:{" "}
-            {item.inn || "Не присвоен"} | ID: {item.id}
-          </div>
-          <div className="flex items-center space-x-2 mt-1">
-            <Badge
-              color={getStatusColor(item.status)}
-              text={getStatusText(item.status)}
+  const renderEquipmentItem = (item) => {
+    const statusConfig = getStatusConfig(item.status);
+
+    return (
+      <div
+        key={item.id}
+        className="flex items-center justify-between p-4 bg-white rounded-lg border hover:shadow-sm transition-shadow"
+      >
+        <div className="flex items-center space-x-4 flex-1">
+          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+            <EquipmentIcon
+              type={
+                item.type_data?.name ||
+                equipmentTypes.find((t) => t.id === item.type)?.name
+              }
             />
           </div>
+          <div className="flex-1">
+            <div className="flex items-center space-x-2 mb-1">
+              <span className="font-medium text-gray-800">{item.name}</span>
+              <span
+                className="px-2 py-1 rounded text-xs font-medium"
+                style={{
+                  backgroundColor: statusConfig.bgColor,
+                  color: statusConfig.color,
+                  border: `1px solid ${statusConfig.borderColor}`,
+                }}
+              >
+                {statusConfig.text}
+              </span>
+            </div>
+            <div className="flex items-center space-x-4 text-sm text-gray-500">
+              <div className="flex items-center space-x-1">
+                <FiMapPin className="text-gray-400" />
+                <span>
+                  {item.room_data?.number && item.room_data?.name
+                    ? `${item.room_data.number} - ${item.room_data.name}`
+                    : "Комната не указана"}
+                </span>
+              </div>
+              <span>ИНН: {item.inn || "Не присвоен"}</span>
+              <span>ID: {item.id}</span>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center space-x-3">
-        <Space size="small">
+        <div className="flex items-center space-x-2">
+          <Button
+            type="text"
+            icon={<FiEye />}
+            onClick={() => handleView(item)}
+            size="small"
+            title="Подробнее"
+            className="text-blue-500 hover:text-blue-700"
+          />
           <Button
             type="text"
             icon={<FiEdit />}
             onClick={() => handleEdit(item)}
             size="small"
             title="Редактировать"
+            className="text-indigo-500 hover:text-indigo-700"
           />
           <Button
             type="text"
@@ -266,13 +286,23 @@ const AddedPage = () => {
             }}
             size="small"
             title="Удалить"
+            className="text-red-500 hover:text-red-700"
           />
-        </Space>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderEquipmentList = () => {
+    if (pageLoading || loading) {
+      return (
+        <div className="flex justify-center items-center py-16">
+          <Spin size="large" />
+          <span className="ml-3 text-gray-500">Загрузка оборудования...</span>
+        </div>
+      );
+    }
+
     const groupedEquipment = groupEquipmentByType();
 
     if (Object.keys(groupedEquipment).length === 0) {
@@ -356,6 +386,7 @@ const AddedPage = () => {
             value={filters.building_id}
             onChange={(value) => handleFilterChange("building_id", value)}
             allowClear
+            loading={pageLoading}
           >
             {buildings.map((building) => (
               <Option key={building.id} value={building.id}>
@@ -371,6 +402,7 @@ const AddedPage = () => {
             onChange={(value) => handleFilterChange("room_id", value)}
             allowClear
             disabled={!filters.building_id}
+            loading={pageLoading}
           >
             {getFilteredRooms().map((room) => (
               <Option key={room.id} value={room.id}>
@@ -385,6 +417,7 @@ const AddedPage = () => {
             value={filters.type_id}
             onChange={(value) => handleFilterChange("type_id", value)}
             allowClear
+            loading={pageLoading}
           >
             {equipmentTypes.map((type) => (
               <Option key={type.id} value={type.id}>
@@ -436,59 +469,284 @@ const AddedPage = () => {
       </Card>
 
       {/* Edit Equipment Modal */}
-      <Modal
-        title="Редактировать оборудование"
+      <EditEquipmentModal
         visible={editModalVisible}
-        onCancel={() => {
-          setEditModalVisible(false);
-          setSelectedEquipment(null);
-          form.resetFields();
-        }}
-        footer={null}
-        width={600}
+        onCancel={handleEditModalClose}
+        equipment={selectedEquipment}
+        equipmentTypes={equipmentTypes}
+      />
+
+      {/* Detail Equipment Modal */}
+      <Modal
+        title="Подробная информация об оборудовании"
+        visible={detailModalVisible}
+        onCancel={handleDetailModalClose}
+        footer={[
+          <Button key="close" onClick={handleDetailModalClose}>
+            Закрыть
+          </Button>,
+        ]}
+        width={900}
       >
-        <Form form={form} layout="vertical" onFinish={handleUpdateEquipment}>
-          <Form.Item
-            label="Название"
-            name="name"
-            rules={[{ required: true, message: "Введите название!" }]}
-          >
-            <Input placeholder="Название оборудования" />
-          </Form.Item>
+        {selectedEquipment && (
+          <div className="space-y-6">
+            {/* Basic Info */}
+            <div>
+              <h3 className="text-lg font-medium text-indigo-600 mb-4">
+                {selectedEquipment.name}
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <span className="text-gray-500">ИНН:</span>
+                  <span className="ml-2 font-medium">
+                    {selectedEquipment.inn || "Не указан"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Тип:</span>
+                  <span className="ml-2 font-medium">
+                    {selectedEquipment.type_data?.name || "Неизвестный тип"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Статус:</span>
+                  <span
+                    className="ml-2 px-2 py-1 rounded text-sm"
+                    style={{
+                      backgroundColor: getStatusConfig(selectedEquipment.status)
+                        .bgColor,
+                      color: getStatusConfig(selectedEquipment.status).color,
+                      border: `1px solid ${
+                        getStatusConfig(selectedEquipment.status).borderColor
+                      }`,
+                    }}
+                  >
+                    {getStatusConfig(selectedEquipment.status).text}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Активность:</span>
+                  <span
+                    className={`ml-2 px-2 py-1 rounded text-sm ${
+                      selectedEquipment.is_active
+                        ? "bg-green-100 text-green-600"
+                        : "bg-red-100 text-red-600"
+                    }`}
+                  >
+                    {selectedEquipment.is_active ? "Активно" : "Неактивно"}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-          <Form.Item label="Описание" name="description">
-            <Input.TextArea rows={3} placeholder="Описание оборудования" />
-          </Form.Item>
+            {/* Description and Location */}
+            <div className="bg-indigo-50 p-4 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="font-medium mb-2">Описание</h4>
+                  <p className="text-gray-700">
+                    {selectedEquipment.description || "Описание не указано"}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2 flex items-center">
+                    <FiMapPin className="mr-2" />
+                    Местоположение
+                  </h4>
+                  <p className="text-gray-700">
+                    {selectedEquipment.room_data
+                      ? `${selectedEquipment.room_data.number} - ${selectedEquipment.room_data.name}`
+                      : "Не указано"}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-          <Form.Item
-            label="Статус"
-            name="status"
-            rules={[{ required: true, message: "Выберите статус!" }]}
-          >
-            <Select placeholder="Выберите статус">
-              <Option value="NEW">Новое</Option>
-              <Option value="WORKING">Работает</Option>
-              <Option value="REPAIR">На ремонте</Option>
-              <Option value="BROKEN">Неисправно</Option>
-              <Option value="DISPOSED">Утилизировано</Option>
-            </Select>
-          </Form.Item>
+            {/* Technical Characteristics */}
+            {selectedEquipment.computer_specification_data && (
+              <div>
+                <h4 className="font-medium mb-3">Характеристики компьютера</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Процессор:</span>
+                      <div className="font-medium">
+                        {selectedEquipment.computer_specification_data.cpu}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">ОЗУ:</span>
+                      <div className="font-medium">
+                        {selectedEquipment.computer_specification_data.ram}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Накопитель:</span>
+                      <div className="font-medium">
+                        {selectedEquipment.computer_specification_data.storage}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Размер монитора:</span>
+                      <div className="font-medium">
+                        {
+                          selectedEquipment.computer_specification_data
+                            .monitor_size
+                        }
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Клавиатура:</span>
+                      <div className="font-medium">
+                        {selectedEquipment.computer_specification_data
+                          .has_keyboard
+                          ? "Есть"
+                          : "Нет"}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Мышь:</span>
+                      <div className="font-medium">
+                        {selectedEquipment.computer_specification_data.has_mouse
+                          ? "Есть"
+                          : "Нет"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
-          <div className="flex justify-end space-x-2 mt-6">
-            <Button
-              onClick={() => {
-                setEditModalVisible(false);
-                setSelectedEquipment(null);
-                form.resetFields();
-              }}
-            >
-              Отмена
-            </Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Сохранить изменения
-            </Button>
+            {selectedEquipment.projector_specification_data && (
+              <div>
+                <h4 className="font-medium mb-3">Характеристики проектора</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Модель:</span>
+                      <div className="font-medium">
+                        {selectedEquipment.projector_specification_data.model}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Яркость:</span>
+                      <div className="font-medium">
+                        {selectedEquipment.projector_specification_data.lumens}{" "}
+                        люмен
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Разрешение:</span>
+                      <div className="font-medium">
+                        {
+                          selectedEquipment.projector_specification_data
+                            .resolution
+                        }
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Тип проекции:</span>
+                      <div className="font-medium">
+                        {
+                          selectedEquipment.projector_specification_data
+                            .throw_type
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedEquipment.printer_specification_data && (
+              <div>
+                <h4 className="font-medium mb-3">Характеристики принтера</h4>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Модель:</span>
+                      <div className="font-medium">
+                        {selectedEquipment.printer_specification_data.model}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Цветная печать:</span>
+                      <div className="font-medium">
+                        {selectedEquipment.printer_specification_data.color
+                          ? "Да"
+                          : "Нет"}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">
+                        Двусторонняя печать:
+                      </span>
+                      <div className="font-medium">
+                        {selectedEquipment.printer_specification_data.duplex
+                          ? "Да"
+                          : "Нет"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Information about creation */}
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-2">Информация о создании</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Автор:</span>
+                  <div className="font-medium">
+                    {selectedEquipment.author
+                      ? `${selectedEquipment.author.first_name} ${selectedEquipment.author.last_name}`
+                      : "Неизвестно"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Роль автора:</span>
+                  <div className="font-medium">
+                    {selectedEquipment.author?.role || "Неизвестно"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Email:</span>
+                  <div className="font-medium">
+                    {selectedEquipment.author?.email || "Неизвестно"}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Дата создания:</span>
+                  <div className="font-medium">
+                    {selectedEquipment.created_at
+                      ? new Date(
+                          selectedEquipment.created_at
+                        ).toLocaleDateString()
+                      : "Неизвестно"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* QR Code */}
+            {selectedEquipment.qr_code_url && (
+              <div className="bg-blue-50 p-4 rounded-lg text-center">
+                <h4 className="font-medium mb-3">QR Код</h4>
+                <div className="inline-block p-3 bg-white rounded-lg shadow-sm">
+                  <img
+                    src={selectedEquipment.qr_code_url}
+                    alt="QR Code"
+                    className="w-32 h-32 mx-auto"
+                  />
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  Уникальный идентификатор: {selectedEquipment.uid}
+                </p>
+              </div>
+            )}
           </div>
-        </Form>
+        )}
       </Modal>
     </div>
   );

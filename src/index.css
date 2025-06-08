@@ -42,6 +42,9 @@ body {
 .dark .ant-input-number-input {
   background: #222222 !important;
 }
+.dark .bg-purple-50 {
+  background: #000 !important;
+}
 /* Dark theme */
 .dark body {
   background-color: #000 !important;

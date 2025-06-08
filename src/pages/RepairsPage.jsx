@@ -1,3 +1,4 @@
+// 6. RepairsPage.jsx - Status fix with correct values
 "use client";
 
 import { useEffect, useState } from "react";
@@ -35,7 +36,7 @@ import {
 } from "react-icons/fi";
 import { equipmentAPI } from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
-import { getStatusConfig } from "../utils/statusUtils";
+import { getStatusConfig, getStatusText } from "../utils/statusUtils";
 
 const { Panel } = Collapse;
 const { Option } = Select;
@@ -104,7 +105,6 @@ const RepairsPage = () => {
     const filteredEquipment = getFilteredEquipment();
     const grouped = {};
     filteredEquipment.forEach((item) => {
-      // Fix: Use type_data.name instead of type.name
       const typeName = item.type_data?.name || "Неизвестный тип";
       if (!grouped[typeName]) {
         grouped[typeName] = [];
@@ -137,17 +137,25 @@ const RepairsPage = () => {
     try {
       await equipmentAPI.patchEquipment(equipmentId, {
         status: newStatus,
-        type: equipment.find((c) => c.id == equipmentId).type,
+        type: currentEquipment.type_data?.id || currentEquipment.type,
       });
 
       const statusMessages = {
         WORKING: "Оборудование помечено как рабочее",
         DISPOSED: "Оборудование утилизировано",
         NEEDS_REPAIR: "Оборудование помечено как требующее ремонта",
+        REPAIR: "Оборудование отправлено на ремонт",
         NEW: "Оборудование помечено как новое",
       };
 
       message.success(statusMessages[newStatus] || "Статус обновлен");
+
+      // Update local state
+      setEquipment((prev) =>
+        prev.map((item) =>
+          item.id === equipmentId ? { ...item, status: newStatus } : item
+        )
+      );
     } catch (error) {
       message.error("Ошибка при обновлении статуса");
       console.error("Update status error:", error);
@@ -161,7 +169,7 @@ const RepairsPage = () => {
     }
   };
 
-  // Status variantlari
+  // Status variantlari - to'g'ri qiymatlar bilan
   const getStatusOptions = () => [
     { value: "NEW", label: "Новое" },
     { value: "WORKING", label: "Работает" },
@@ -192,12 +200,15 @@ const RepairsPage = () => {
 
   const handleUpdateEquipment = async (values) => {
     try {
-      await equipmentAPI.updateEquipment(selectedEquipment.id, values);
+      await equipmentAPI.updateEquipment(selectedEquipment.id, {
+        ...values,
+        type: selectedEquipment.type_data?.id || selectedEquipment.type,
+      });
       message.success("Оборудование успешно обновлено!");
       setEditModalVisible(false);
       setSelectedEquipment(null);
       form.resetFields();
-      loadEquipment(); // Ma'lumotlarni qayta yuklash
+      loadEquipment();
     } catch (error) {
       message.error("Ошибка при обновлении оборудования");
       console.error("Update equipment error:", error);
@@ -206,15 +217,16 @@ const RepairsPage = () => {
 
   const handleStatusUpdate = async (values) => {
     try {
-      await equipmentAPI.updateEquipment(selectedEquipment.id, {
+      await equipmentAPI.patchEquipment(selectedEquipment.id, {
         status: values.status,
         reason: values.reason,
+        type: selectedEquipment.type_data?.id || selectedEquipment.type,
       });
       message.success("Статус успешно обновлен!");
       setStatusModalVisible(false);
       setSelectedEquipment(null);
       statusForm.resetFields();
-      loadEquipment(); // Ma'lumotlarni qayta yuklash
+      loadEquipment();
     } catch (error) {
       message.error("Ошибка при обновлении статуса");
       console.error("Update status error:", error);
@@ -225,7 +237,7 @@ const RepairsPage = () => {
     try {
       await equipmentAPI.deleteEquipment(id);
       message.success("Оборудование успешно удалено!");
-      loadEquipment(); // Ma'lumotlarni qayta yuklash
+      loadEquipment();
     } catch (error) {
       message.error("Ошибка при удалении оборудования");
       console.error("Delete equipment error:", error);
@@ -235,8 +247,9 @@ const RepairsPage = () => {
   // Tez status o'zgartirish funksiyalari
   const handleQuickStatusChange = async (equipment, newStatus) => {
     try {
-      await equipmentAPI.updateEquipment(equipment.id, {
+      await equipmentAPI.patchEquipment(equipment.id, {
         status: newStatus,
+        type: equipment.type_data?.id || equipment.type,
       });
 
       const statusMessages = {
@@ -267,7 +280,6 @@ const RepairsPage = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-              {/* Fix: Use type_data.name instead of type.name */}
               <EquipmentIcon type={item.type_data?.name} />
             </div>
             <div className="flex-1">
@@ -275,11 +287,11 @@ const RepairsPage = () => {
                 <h4 className="font-medium text-gray-800">{item.name}</h4>
               </div>
               <p className="mt-2 flex items-center gap-2">
-                <FiMapPin />{" "}
+                <FiMapPin />
                 <span>
-                  {item.location == null
-                    ? "комната не показана"
-                    : item.location + "-комната"}
+                  {item.room_data?.number && item.room_data?.name
+                    ? `${item.room_data.number} - ${item.room_data.name}`
+                    : "Комната не указана"}
                 </span>
               </p>
             </div>
@@ -403,7 +415,6 @@ const RepairsPage = () => {
   const disposedCount = equipment.filter(
     (item) => item.status === "DISPOSED"
   ).length;
-  console.log(repairCount);
 
   return (
     <div>
@@ -524,7 +535,6 @@ const RepairsPage = () => {
             <div className="p-4 bg-gray-50 rounded-lg border">
               <div className="flex items-center space-x-3 mb-3">
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  {/* Fix: Use type_data.name instead of type.name */}
                   <EquipmentIcon type={selectedEquipment.type_data?.name} />
                 </div>
                 <div>
@@ -563,7 +573,6 @@ const RepairsPage = () => {
                 <div>
                   <span className="text-gray-600">Тип оборудования:</span>
                   <div className="mt-1 font-medium">
-                    {/* Fix: Use type_data.name instead of type.name */}
                     {selectedEquipment.type_data?.name}
                   </div>
                 </div>
@@ -648,6 +657,7 @@ const RepairsPage = () => {
               <Option value="NEW">Новое</Option>
               <Option value="WORKING">Работает</Option>
               <Option value="NEEDS_REPAIR">Требуется ремонт</Option>
+              <Option value="REPAIR">На ремонте</Option>
               <Option value="DISPOSED">Утилизировано</Option>
             </Select>
           </Form.Item>
