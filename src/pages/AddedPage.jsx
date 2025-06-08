@@ -17,9 +17,10 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { FiChevronRight, FiTrash2, FiEdit, FiFilter } from "react-icons/fi";
 import {
-  getEquipment,
+  getMyEquipments,
   updateEquipment,
   deleteEquipment,
+  getEquipmentTypes,
 } from "../store/slices/equipmentSlice";
 import { getBuildings } from "../store/slices/universitySlice";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
@@ -38,37 +39,50 @@ const AddedPage = () => {
   const [form] = Form.useForm();
 
   const dispatch = useDispatch();
-  const { equipment, equipmentTypes, loading } = useSelector(
-    (state) => state.equipment
-  );
-  const { buildings } = useSelector((state) => state.university);
+  const {
+    myEquipments = [],
+    equipmentTypes = [],
+    loading,
+  } = useSelector((state) => state.equipment);
+  const { buildings = [] } = useSelector((state) => state.university);
 
   useEffect(() => {
-    dispatch(getEquipment());
-    dispatch(getBuildings());
+    const loadData = async () => {
+      try {
+        await dispatch(getMyEquipments()).unwrap();
+        await dispatch(getEquipmentTypes()).unwrap();
+        await dispatch(getBuildings()).unwrap();
+        console.log(myEquipments);
+      } catch (error) {
+        console.error("Ошибка при загрузке данных:", error);
+        message.error("Ошибка при загрузке данных");
+      }
+    };
+
+    loadData();
   }, [dispatch]);
 
-  // Equipment ma'lumotlarini to'g'ri formatda olish
+  // Получение данных оборудования в правильном формате
   const getValidEquipment = () => {
-    if (!Array.isArray(equipment)) {
+    if (!Array.isArray(myEquipments)) {
+      console.warn("myEquipments не является массивом:", myEquipments);
       return [];
     }
 
-    // Ma'lumotlar to'g'ri formatda bo'lsa, ularni qaytarish
-    return equipment.filter(
+    return myEquipments.filter(
       (item) =>
         item &&
         typeof item === "object" &&
         item.id &&
         item.name &&
-        item.type_data
+        (item.type_data || item.type)
     );
   };
 
   const getStatusColor = (status) => {
     const statusColors = {
       NEW: "green",
-      WORKING: "blue",
+      WORKING: "indigo",
       REPAIR: "orange",
       BROKEN: "red",
       DISPOSED: "default",
@@ -81,7 +95,7 @@ const AddedPage = () => {
       NEW: "Новое",
       WORKING: "Работает",
       REPAIR: "На ремонте",
-      BROKEN: "Сломано",
+      BROKEN: "Неисправно",
       DISPOSED: "Утилизировано",
     };
     return statusTexts[status] || status;
@@ -106,13 +120,16 @@ const AddedPage = () => {
     }
     if (filters.type_id) {
       filteredEquipment = filteredEquipment.filter(
-        (item) => item.type === filters.type_id
+        (item) => (item.type_data?.id || item.type) === filters.type_id
       );
     }
 
     const grouped = {};
     filteredEquipment.forEach((item) => {
-      const typeName = item.type_data?.name || "Неизвестный тип";
+      const typeName =
+        item.type_data?.name ||
+        equipmentTypes.find((t) => t.id === item.type)?.name ||
+        "Неизвестный тип";
       if (!grouped[typeName]) {
         grouped[typeName] = [];
       }
@@ -145,8 +162,10 @@ const AddedPage = () => {
       setEditModalVisible(false);
       setSelectedEquipment(null);
       form.resetFields();
-      dispatch(getEquipment());
+      // Обновить список
+      dispatch(getMyEquipments());
     } catch (error) {
+      console.error("Ошибка при обновлении оборудования:", error);
       message.error("Ошибка при обновлении оборудования");
     }
   };
@@ -155,8 +174,10 @@ const AddedPage = () => {
     try {
       await dispatch(deleteEquipment(id)).unwrap();
       message.success("Оборудование успешно удалено!");
-      dispatch(getEquipment());
+      // Обновить список
+      dispatch(getMyEquipments());
     } catch (error) {
+      console.error("Ошибка при удалении оборудования:", error);
       message.error("Ошибка при удалении оборудования");
     }
   };
@@ -188,7 +209,10 @@ const AddedPage = () => {
       <div className="flex items-center space-x-4">
         <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
           <EquipmentIcon
-            type={item.type_data?.name}
+            type={
+              item.type_data?.name ||
+              equipmentTypes.find((t) => t.id === item.type)?.name
+            }
             className="text-pink-600"
           />
         </div>
@@ -323,7 +347,7 @@ const AddedPage = () => {
         {/* Filters */}
         <div className="flex space-x-4 mb-6 p-4 bg-gray-50 rounded-lg">
           <Select
-            placeholder="Блок"
+            placeholder="Корпус"
             className="w-40"
             value={filters.building_id}
             onChange={(value) => handleFilterChange("building_id", value)}
@@ -371,22 +395,22 @@ const AddedPage = () => {
 
         {/* Show active filters */}
         {hasActiveFilters() && (
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-            <div className="flex items-center space-x-2 text-sm text-blue-800">
+          <div className="mb-4 p-3 bg-indigo-50 rounded-lg">
+            <div className="flex items-center space-x-2 text-sm text-indigo-800">
               <span>Активные фильтры:</span>
               {filters.building_id && (
-                <span className="px-2 py-1 bg-blue-200 rounded text-xs">
-                  Блок:{" "}
+                <span className="px-2 py-1 bg-indigo-200 rounded text-xs">
+                  Корпус:{" "}
                   {buildings.find((b) => b.id === filters.building_id)?.name}
                 </span>
               )}
               {filters.room_number && (
-                <span className="px-2 py-1 bg-blue-200 rounded text-xs">
+                <span className="px-2 py-1 bg-indigo-200 rounded text-xs">
                   Комната: {filters.room_number}
                 </span>
               )}
               {filters.type_id && (
-                <span className="px-2 py-1 bg-blue-200 rounded text-xs">
+                <span className="px-2 py-1 bg-indigo-200 rounded text-xs">
                   Тип:{" "}
                   {equipmentTypes.find((t) => t.id === filters.type_id)?.name}
                 </span>
@@ -432,7 +456,7 @@ const AddedPage = () => {
               <Option value="NEW">Новое</Option>
               <Option value="WORKING">Работает</Option>
               <Option value="REPAIR">На ремонте</Option>
-              <Option value="BROKEN">Сломано</Option>
+              <Option value="BROKEN">Неисправно</Option>
               <Option value="DISPOSED">Утилизировано</Option>
             </Select>
           </Form.Item>

@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { authAPI } from "../../services/api";
-
 // Login thunk
 export const login = createAsyncThunk(
   "auth/login",
@@ -11,7 +10,7 @@ export const login = createAsyncThunk(
       localStorage.setItem("refreshToken", response.data.refresh);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -26,7 +25,7 @@ export const refreshToken = createAsyncThunk(
       localStorage.setItem("token", response.data.access);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -39,11 +38,10 @@ export const getUserActions = createAsyncThunk(
       const response = await authAPI.getUserActions();
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
-
 const authSlice = createSlice({
   name: "auth",
   initialState: {

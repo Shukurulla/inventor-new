@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { specificationsAPI } from "../../services/api";
-
 // Get all specifications
 export const getAllSpecifications = createAsyncThunk(
   "specifications/getAllSpecifications",
@@ -53,7 +52,7 @@ export const getSpecificationCount = createAsyncThunk(
       const response = await specificationsAPI.getSpecificationCount();
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );

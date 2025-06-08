@@ -55,6 +55,20 @@ const CharacteristicsPage = () => {
     dispatch(getSpecificationCount());
     dispatch(getEquipmentTypes());
   }, [dispatch]);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await dispatch(getAllSpecifications()).unwrap();
+        await dispatch(getSpecificationCount()).unwrap();
+        await dispatch(getEquipmentTypes()).unwrap();
+      } catch (error) {
+        console.error("Spetsifikatsiyalarni yuklashda xato:", error);
+        message.error("Ma'lumotlarni yuklashda xato yuz berdi");
+      }
+    };
+
+    loadData();
+  }, [dispatch]);
 
   const equipmentTypeTemplates = [
     {
@@ -65,7 +79,7 @@ const CharacteristicsPage = () => {
     {
       name: "Компьютер",
       icon: "компьютер",
-      color: "bg-blue-100 text-blue-600",
+      color: "bg-indigo-100 text-indigo-600",
     },
     {
       name: "Принтер",
@@ -90,7 +104,7 @@ const CharacteristicsPage = () => {
     {
       name: "Ноутбук",
       icon: "ноутбук",
-      color: "bg-blue-100 text-blue-600",
+      color: "bg-indigo-100 text-indigo-600",
     },
     {
       name: "Роутер",
@@ -235,7 +249,7 @@ const CharacteristicsPage = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+          <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
           <span className="font-medium text-gray-900">Элемент инвентаря</span>
         </div>
         <span className="text-gray-600">Наличие шаблонов</span>
@@ -259,7 +273,7 @@ const CharacteristicsPage = () => {
               type="text"
               icon={<FiPlus />}
               onClick={() => handleCreateSpec(template.name)}
-              className="text-blue-500 hover:text-blue-600"
+              className="text-indigo-500 hover:text-indigo-600"
             />
           </div>
         ))}
@@ -322,7 +336,7 @@ const CharacteristicsPage = () => {
         name: "Компьютер",
         icon: "компьютер",
         data: specifications.computer,
-        color: "bg-blue-100 text-blue-600",
+        color: "bg-indigo-100 text-indigo-600",
         count: specifications.computer?.length || 0,
       },
       {
@@ -362,7 +376,7 @@ const CharacteristicsPage = () => {
         name: "Ноутбук",
         icon: "ноутбук",
         data: specifications.notebook,
-        color: "bg-blue-100 text-blue-600",
+        color: "bg-indigo-100 text-indigo-600",
         count: specifications.notebook?.length || 0,
       },
       {
@@ -487,7 +501,6 @@ const CharacteristicsPage = () => {
 
       {/* Create Modal */}
       <Modal
-        title={`Создать характеристику: ${selectedType}`}
         visible={createModalVisible}
         onCancel={() => {
           setCreateModalVisible(false);
@@ -495,7 +508,7 @@ const CharacteristicsPage = () => {
           specForm.resetFields();
         }}
         footer={null}
-        width={600}
+        width={800}
         destroyOnClose
       >
         <CreateSpecificationForm
@@ -512,7 +525,6 @@ const CharacteristicsPage = () => {
 
       {/* Edit Modal */}
       <Modal
-        title={`Редактировать характеристику: ${selectedType}`}
         visible={editModalVisible}
         onCancel={() => {
           setEditModalVisible(false);
@@ -521,7 +533,7 @@ const CharacteristicsPage = () => {
           editForm.resetFields();
         }}
         footer={null}
-        width={600}
+        width={800}
         destroyOnClose
       >
         <CreateSpecificationForm

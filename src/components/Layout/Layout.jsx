@@ -30,9 +30,17 @@ import {
   FiX,
   FiBell,
   FiUser,
+  FiMap,
+  FiMapPin,
 } from "react-icons/fi";
 import { logout, getUserActions } from "../../store/slices/authSlice";
-import { equipmentAPI } from "../../services/api";
+import api, { equipmentAPI } from "../../services/api";
+import {
+  getFilteredEquipment,
+  scanQRCode,
+} from "../../store/slices/equipmentSlice";
+import { LogoDark, LogoLight } from "../../../public";
+import { inventoryTypes } from "../../constants";
 
 const { Header, Sider, Content } = AntLayout;
 
@@ -45,6 +53,7 @@ const Layout = ({ children }) => {
   const [searchValue, setSearchValue] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
+  const [rooms, setRooms] = useState([]);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -52,8 +61,18 @@ const Layout = ({ children }) => {
   const { user, userActions } = useSelector((state) => state.auth);
   const { theme } = useSelector((state) => state.settings);
 
+  const getRooms = async () => {
+    try {
+      const { data } = await api.get("/university/rooms");
+      setRooms(data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     dispatch(getUserActions());
+    getRooms();
   }, [dispatch]);
 
   const menuItems = [
@@ -104,22 +123,28 @@ const Layout = ({ children }) => {
 
     setSearchLoading(true);
     try {
-      // Сначала пробуем поиск по QR коду
-      const response = await equipmentAPI.scanQR(searchValue);
-      setSearchResults([response.data]);
+      // Avval QR kod bo'yicha qidirish
+      const qrResponse = await dispatch(scanQRCode(searchValue)).unwrap();
+      setSearchResults([qrResponse]);
       setSearchModalVisible(true);
     } catch (error) {
-      // Если не найдено по QR, ищем по ИНН
+      // QR bo'yicha topilmasa, INN yoki nom bo'yicha qidirish
       try {
-        const response = await equipmentAPI.getEquipment({
-          search: searchValue,
-          inn: searchValue,
-        });
-        setSearchResults(response.data.results || []);
+        const filterResponse = await dispatch(
+          getFilteredEquipment({
+            search: searchValue,
+            inn: searchValue,
+          })
+        ).unwrap();
+
+        const results = filterResponse.results || filterResponse || [];
+        setSearchResults(Array.isArray(results) ? results : []);
         setSearchModalVisible(true);
       } catch (err) {
+        console.error("Qidirishda xato:", err);
         setSearchResults([]);
         setSearchModalVisible(true);
+        message.error("Qidirishda xato yuz berdi");
       }
     } finally {
       setSearchLoading(false);
@@ -128,9 +153,12 @@ const Layout = ({ children }) => {
 
   const handleEquipmentDetails = (equipment) => {
     setSelectedEquipment(equipment);
+    console.log(equipment);
+
     setDetailModalVisible(true);
     setSearchModalVisible(false);
   };
+  console.log(theme);
 
   const renderUserActions = () => {
     if (!userActions || userActions.length === 0) {
@@ -149,8 +177,8 @@ const Layout = ({ children }) => {
             key={index}
             className="flex items-center space-x-3 p-3 bg-white rounded-lg border hover:shadow-sm transition-shadow cursor-pointer"
           >
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <FiClock className="text-blue-600 text-sm" />
+            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <FiClock className="text-indigo-600 text-sm" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-medium text-sm text-gray-800 truncate">
@@ -188,7 +216,7 @@ const Layout = ({ children }) => {
   const getStatusColor = (status) => {
     const colors = {
       NEW: "bg-green-100 text-green-600",
-      WORKING: "bg-blue-100 text-blue-600",
+      WORKING: "bg-indigo-100 text-indigo-600",
       REPAIR: "bg-orange-100 text-orange-600",
       BROKEN: "bg-red-100 text-red-600",
       DISPOSED: "bg-gray-100 text-gray-600",
@@ -207,8 +235,13 @@ const Layout = ({ children }) => {
     return texts[status] || status;
   };
 
+  useEffect(() => {
+    console.log(searchResults);
+  }, [searchResults]);
+
   return (
     <AntLayout className="min-h-screen">
+      {/* Left Sidebar */}
       <Sider
         trigger={null}
         collapsible
@@ -221,17 +254,12 @@ const Layout = ({ children }) => {
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-gray-100">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">iM</span>
-            </div>
-            {!collapsed && (
-              <span className="font-bold text-lg text-gray-900">iMaster</span>
-            )}
+            <img src={theme == "dark" ? LogoDark : LogoLight} />
           </div>
         </div>
 
         {/* Menu */}
-        <div className="py-4">
+        <div className="py-4 pr-4">
           <Menu
             mode="inline"
             selectedKeys={[location.pathname]}
@@ -300,94 +328,70 @@ const Layout = ({ children }) => {
         />
       </Modal>
 
-      <AntLayout>
-        <div className="">
+      <AntLayout className="flex">
+        <AntLayout className="flex-1">
           <Header className="!bg-white border-b border-gray-100 !px-4 lg:!px-6 flex items-center justify-between">
-            {/* Mobile Menu Button */}
             <Button
               type="text"
               icon={<FiMenu />}
               onClick={() => setMobileMenuVisible(true)}
               className="lg:hidden"
             />
-
-            {/* Search Bar */}
             <div className="flex-1 max-w-md mx-4">
               <Input
                 placeholder="Поиск по ИНН или QR коду..."
                 prefix={<FiSearch className="text-gray-400" />}
-                className="rounded-lg"
+                className="rounded search"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 onPressEnter={handleSearch}
                 loading={searchLoading}
               />
             </div>
-
-            {/* Header Actions */}
-            <div className="flex items-center space-x-4">
-              <Tooltip title="Уведомления">
-                <Button
-                  type="text"
-                  icon={<FiBell />}
-                  className="text-gray-600 hover:text-gray-800"
-                />
-              </Tooltip>
-
-              <Dropdown
-                menu={{ items: userMenuItems }}
-                placement="bottomRight"
-                trigger={["click"]}
-                className="lg:hidden"
-              >
-                <Avatar size="small" className="bg-indigo-600 cursor-pointer">
-                  {user?.first_name?.charAt(0) ||
-                    user?.username?.charAt(0) ||
-                    "U"}
-                </Avatar>
-              </Dropdown>
-            </div>
           </Header>
 
-          {/* Main Content */}
-          <Content className="flex-1 p-4 lg:p-6 bg-gray-50 min-h-[calc(100vh-64px)] overflow-auto">
-            {children}
+          <Content className="flex-1 p-4 lg:p-6 bg-gray-50  overflow-y-scroll">
+            <div className=" h-[50vh] w-100">{children}</div>
           </Content>
-
-          {/* Right Sidebar - User Actions (Desktop only) */}
-        </div>
-        <div className="hidden xl:block w-80 flex-shrink-0 p-6 bg-gray-50">
-          <Card
-            title={
-              <div className="flex items-center space-x-2">
-                <FiClock className="text-lg" />
-                <span>Последние действия</span>
-              </div>
-            }
-            className="shadow-sm sticky top-6"
-            style={{
-              maxHeight: "400px",
-              overflowY: "auto",
-              padding: "16px",
-            }}
-          >
-            {renderUserActions()}
-          </Card>
-        </div>
+        </AntLayout>
+        <Sider
+          width={300}
+          className="!bg-gray-50 border-l border-gray-100 hidden xl:block"
+          theme="light"
+        >
+          <div className="p- h-full">
+            <Card
+              title={
+                <div className="flex items-center space-x-2">
+                  <FiClock className="text-lg text-indigo-600" />
+                  <span className="font-medium">Мои действия</span>
+                </div>
+              }
+              className="shadow-sm h-full"
+              bodyStyle={{
+                padding: "16px",
+                height: "calc(100% - 60px)",
+                overflowY: "auto",
+              }}
+            >
+              {renderUserActions()}
+            </Card>
+          </div>
+        </Sider>
       </AntLayout>
 
       {/* Search Results Modal */}
       <Modal
         title={
-          <div className="flex items-center space-x-2">
+          <div className="flex text-lg items-center space-x-2">
             <FiSearch className="text-lg" />
-            <span>Результаты поиска: "{searchValue}"</span>
+            <span>Результаты поиска: ИНН: {searchValue}</span>
           </div>
         }
         visible={searchModalVisible}
         onCancel={() => setSearchModalVisible(false)}
         footer={null}
-        width={1000}
+        width={800}
       >
         <div className="space-y-3">
           {searchLoading ? (
@@ -396,47 +400,67 @@ const Layout = ({ children }) => {
               <p className="mt-4 text-gray-500">Поиск...</p>
             </div>
           ) : searchResults.length > 0 ? (
-            searchResults.map((equipment) => (
-              <Card
-                key={equipment.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                size="small"
-                onClick={() => handleEquipmentDetails(equipment)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className="text-blue-600 font-medium">
-                        {equipment.name}
-                      </span>
-                      <span className="text-gray-500 text-sm">
-                        {equipment.type_data?.name}
-                      </span>
+            searchResults.map((eq) => {
+              const equipment = JSON.parse(eq.body);
+
+              return (
+                <Card
+                  key={equipment.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  size="small"
+                  onClick={() =>
+                    handleEquipmentDetails({
+                      ...equipment,
+                      title: eq.title,
+                      room: rooms.find((c) => c.id == equipment.room)?.name,
+                    })
+                  }
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-indigo-600 font-medium">
+                          {eq.title}
+                        </span>
+                        <span className="text-gray-500 text-sm">
+                          {equipment.type_data?.name}
+                        </span>
+                      </div>
+                      <div className="  text-sm text-gray-500 flex-wrap">
+                        <div className="flex gap-3">
+                          <span>ИНН: {equipment.inn}</span>
+
+                          <span
+                            className={`px-2 py-1 rounded text-xs ${getStatusColor(
+                              equipment.status
+                            )}`}
+                          >
+                            {getStatusText(equipment.status)}
+                          </span>
+                        </div>
+                        <div className="flex ml-0 justify-start gap-3 mt-3">
+                          <span className="flex items-center gap-1">
+                            <FiMapPin size={20} />
+                            <span>
+                              {rooms.find((c) => c.id == equipment.room)?.name}
+                            </span>
+                          </span>
+                          <span className="flex gap-1">
+                            <FiClock size={20} />
+                            {new Date(
+                              equipment.created_at
+                            ).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 flex-wrap">
-                      <span>ИНН: {equipment.inn || "Не присвоен"}</span>
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${getStatusColor(
-                          equipment.status
-                        )}`}
-                      >
-                        {getStatusText(equipment.status)}
-                      </span>
-                      <span>
-                        📍 {equipment.room_data?.number} -{" "}
-                        {equipment.room_data?.name}
-                      </span>
-                      <span>
-                        📅 {new Date(equipment.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
+                    <button type="link" className="text-indigo-600 font-medium">
+                      Подробнее →
+                    </button>
                   </div>
-                  <Button type="link" className="text-blue-500">
-                    Подробнее →
-                  </Button>
-                </div>
-              </Card>
-            ))
+                </Card>
+              );
+            })
           ) : (
             <Empty
               description="Оборудование не найдено"
@@ -448,30 +472,35 @@ const Layout = ({ children }) => {
 
       {/* Equipment Details Modal */}
       <Modal
-        title="Подробная информация об оборудовании"
         visible={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
         footer={null}
-        width={800}
+        width={900}
       >
+        <h1 className="text-3xl font-semibold">
+          Подробная информация об оборудовании
+        </h1>
         {selectedEquipment && (
           <div className="space-y-6">
             {/* Basic Info */}
             <div>
-              <h3 className="text-lg font-medium mb-4">
-                {selectedEquipment.name}
+              <h3 className="text-lg font-medium text-indigo-600 my-4">
+                {selectedEquipment.title}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <span className="text-gray-500">ИНН:</span>
                   <span className="ml-2 font-medium">
-                    {selectedEquipment.inn || "Не присвоен"}
+                    {selectedEquipment.inn}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-500">Тип:</span>
                   <span className="ml-2 font-medium">
-                    {selectedEquipment.type_data?.name}
+                    {
+                      inventoryTypes.find((c) => c.id == selectedEquipment.type)
+                        ?.name
+                    }
                   </span>
                 </div>
                 <div>
@@ -501,50 +530,26 @@ const Layout = ({ children }) => {
 
             {/* Description */}
             {selectedEquipment.description && (
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium mb-2">Описание</h4>
-                <p className="text-gray-700">{selectedEquipment.description}</p>
+              <div className="bg-indigo-50 p-4 flex items-center rounded-lg">
+                <div className="w-[50%]">
+                  <h4 className="font-medium mb-2">Описание</h4>
+                  <p className="text-gray-700">
+                    {selectedEquipment.description}
+                  </p>
+                </div>
+                <div className="w-[50%]">
+                  <h4 className="font-medium mb-2 flex items-center">
+                    <span className="mr-2">
+                      <FiMapPin />
+                    </span>
+                    Местоположение
+                  </h4>
+                  <p>{selectedEquipment.room}</p>
+                </div>
               </div>
             )}
 
             {/* Location */}
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2 flex items-center">
-                <span className="mr-2">📍</span>
-                Местоположение
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-gray-500">Комната:</span>
-                  <span className="ml-2">
-                    {selectedEquipment.room_data?.number} -{" "}
-                    {selectedEquipment.room_data?.name}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Специальная комната:</span>
-                  <span className="ml-2">
-                    {selectedEquipment.room_data?.is_special ? "Да" : "Нет"}
-                  </span>
-                </div>
-                {selectedEquipment.room_data?.building && (
-                  <div>
-                    <span className="text-gray-500">Корпус:</span>
-                    <span className="ml-2">
-                      {selectedEquipment.room_data.building}
-                    </span>
-                  </div>
-                )}
-                {selectedEquipment.room_data?.floor && (
-                  <div>
-                    <span className="text-gray-500">Этаж:</span>
-                    <span className="ml-2">
-                      {selectedEquipment.room_data.floor}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* Technical Characteristics */}
             {(selectedEquipment.computer_specification_data ||
@@ -558,7 +563,7 @@ const Layout = ({ children }) => {
               selectedEquipment.extender_specification_data) && (
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="font-medium mb-3">Технические характеристики</h4>
-                <div className="bg-blue-50 p-3 rounded">
+                <div className="bg-indigo-50 p-3 rounded">
                   <h5 className="font-medium mb-2">
                     Характеристики{" "}
                     {selectedEquipment.type_data?.name?.toLowerCase()}
@@ -935,19 +940,6 @@ const Layout = ({ children }) => {
             )}
 
             {/* Actions */}
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-              <Button onClick={() => setDetailModalVisible(false)}>
-                Закрыть
-              </Button>
-              <Button
-                type="primary"
-                onClick={() =>
-                  navigate(`/equipment/${selectedEquipment.id}/edit`)
-                }
-              >
-                Редактировать
-              </Button>
-            </div>
           </div>
         )}
       </Modal>

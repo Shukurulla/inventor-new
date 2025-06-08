@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { contractsAPI } from "../../services/api";
-
 // Get contracts
 export const getContracts = createAsyncThunk(
   "contracts/getContracts",
@@ -9,7 +8,7 @@ export const getContracts = createAsyncThunk(
       const response = await contractsAPI.getContracts(params);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -22,7 +21,7 @@ export const createContract = createAsyncThunk(
       const response = await contractsAPI.createContract(contractData);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -35,7 +34,7 @@ export const updateContract = createAsyncThunk(
       const response = await contractsAPI.updateContract(id, data);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );
@@ -48,7 +47,7 @@ export const deleteContract = createAsyncThunk(
       await contractsAPI.deleteContract(id);
       return id;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(error.response?.data || error.message);
     }
   }
 );

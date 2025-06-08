@@ -17,10 +17,11 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { FiChevronRight, FiTrash2, FiEdit, FiTool } from "react-icons/fi";
 import {
-  getEquipment,
+  getFilteredEquipment,
   updateEquipment,
   deleteEquipment,
   sendToRepair,
+  getEquipmentTypes,
 } from "../store/slices/equipmentSlice";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 
@@ -33,12 +34,27 @@ const RepairsPage = () => {
   const [form] = Form.useForm();
 
   const dispatch = useDispatch();
-  const { equipment, loading } = useSelector((state) => state.equipment);
+  const {
+    filteredEquipment = [],
+    equipmentTypes = [],
+    loading,
+  } = useSelector((state) => state.equipment);
 
   useEffect(() => {
-    // Загружаем только оборудование, требующее ремонта
-    dispatch(getEquipment({ status: "NEEDS_REPAIR" }));
-    console.log(equipment);
+    const loadRepairEquipment = async () => {
+      try {
+        // Загрузка оборудования, требующего ремонта
+        await dispatch(
+          getFilteredEquipment({ status: "NEEDS_REPAIR" })
+        ).unwrap();
+        await dispatch(getEquipmentTypes()).unwrap();
+      } catch (error) {
+        console.error("Ошибка при загрузке оборудования для ремонта:", error);
+        message.error("Произошла ошибка при загрузке данных");
+      }
+    };
+
+    loadRepairEquipment();
   }, [dispatch]);
 
   const getStatusColor = (status) => {
@@ -56,7 +72,7 @@ const RepairsPage = () => {
     const statusTexts = {
       NEW: "Новое",
       WORKING: "Работает",
-      REPAIR: "На ремонте",
+      REPAIR: "В ремонте",
       BROKEN: "Требует ремонта",
       DISPOSED: "Утилизировано",
     };
@@ -64,14 +80,18 @@ const RepairsPage = () => {
   };
 
   const groupEquipmentByType = () => {
-    // Фильтруем только оборудование со статусом BROKEN (требует ремонта)
-    const brokenEquipment = equipment.filter(
-      (item) => item.status === "BROKEN"
-    );
+    // Фильтрация только сломанного оборудования
+    const brokenEquipment = Array.isArray(filteredEquipment)
+      ? filteredEquipment.filter((item) => item.status === "BROKEN")
+      : [];
+
     const grouped = {};
 
     brokenEquipment.forEach((item) => {
-      const typeName = item.type_data?.name || "Неизвестный тип";
+      const typeName =
+        item.type_data?.name ||
+        equipmentTypes.find((t) => t.id === item.type)?.name ||
+        "Неизвестный тип";
       if (!grouped[typeName]) {
         grouped[typeName] = [];
       }
@@ -104,9 +124,11 @@ const RepairsPage = () => {
       setEditModalVisible(false);
       setSelectedEquipment(null);
       form.resetFields();
-      dispatch(getEquipment({ status: "BROKEN" }));
+      // Обновление списка
+      dispatch(getFilteredEquipment({ status: "BROKEN" }));
     } catch (error) {
-      message.error("Ошибка при обновлении оборудования");
+      console.error("Ошибка при обновлении оборудования:", error);
+      message.error("Произошла ошибка при обновлении оборудования");
     }
   };
 
@@ -114,19 +136,23 @@ const RepairsPage = () => {
     try {
       await dispatch(deleteEquipment(id)).unwrap();
       message.success("Оборудование успешно удалено!");
-      dispatch(getEquipment({ status: "BROKEN" }));
+      // Обновление списка
+      dispatch(getFilteredEquipment({ status: "BROKEN" }));
     } catch (error) {
-      message.error("Ошибка при удалении оборудования");
+      console.error("Ошибка при удалении оборудования:", error);
+      message.error("Произошла ошибка при удалении оборудования");
     }
   };
 
   const handleSendToRepair = async (id) => {
     try {
       await dispatch(sendToRepair(id)).unwrap();
-      message.success("Оборудование отправлено на ремонт!");
-      dispatch(getEquipment({ status: "BROKEN" }));
+      message.success("Оборудование отправлено в ремонт!");
+      // Обновление списка
+      dispatch(getFilteredEquipment({ status: "BROKEN" }));
     } catch (error) {
-      message.error("Ошибка при отправке на ремонт");
+      console.error("Ошибка при отправке в ремонт:", error);
+      message.error("Произошла ошибка при отправке в ремонт");
     }
   };
 
@@ -137,13 +163,19 @@ const RepairsPage = () => {
     >
       <div className="flex items-center space-x-4">
         <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-          <EquipmentIcon type={item.type_data?.name} className="text-red-600" />
+          <EquipmentIcon
+            type={
+              item.type_data?.name ||
+              equipmentTypes.find((t) => t.id === item.type)?.name
+            }
+            className="text-red-600"
+          />
         </div>
         <div className="flex-1">
           <div className="font-medium text-gray-800">{item.name}</div>
           <div className="text-sm text-gray-500 mt-1">
             {item.room_data?.number} - {item.room_data?.name} | ИНН:{" "}
-            {item.inn || "Не присвоен"} | ID: {item.id}
+            {item.inn || "Не указан"} | ID: {item.id}
           </div>
           <div className="flex items-center space-x-2 mt-1">
             <Badge
@@ -161,9 +193,9 @@ const RepairsPage = () => {
             icon={<FiTool />}
             onClick={() => handleSendToRepair(item.id)}
             size="small"
-            title="Отправить на ремонт"
+            title="Отправить в ремонт"
           >
-            На ремонт
+            В ремонт
           </Button>
           <Button
             type="text"
@@ -251,7 +283,7 @@ const RepairsPage = () => {
 
       <Card className="shadow-sm">{renderEquipmentList()}</Card>
 
-      {/* Edit Equipment Modal */}
+      {/* Модальное окно редактирования оборудования */}
       <Modal
         title="Редактировать оборудование"
         visible={editModalVisible}
@@ -277,14 +309,14 @@ const RepairsPage = () => {
           </Form.Item>
 
           <Form.Item
-            label="Статус"
+            label="Состояние"
             name="status"
-            rules={[{ required: true, message: "Выберите статус!" }]}
+            rules={[{ required: true, message: "Выберите состояние!" }]}
           >
-            <Select placeholder="Выберите статус">
+            <Select placeholder="Выберите состояние">
               <Option value="NEW">Новое</Option>
               <Option value="WORKING">Работает</Option>
-              <Option value="REPAIR">На ремонте</Option>
+              <Option value="REPAIR">В ремонте</Option>
               <Option value="BROKEN">Требует ремонта</Option>
               <Option value="DISPOSED">Утилизировано</Option>
             </Select>
@@ -298,7 +330,7 @@ const RepairsPage = () => {
                 form.resetFields();
               }}
             >
-              Отмена
+              Отменить
             </Button>
             <Button type="primary" htmlType="submit" loading={loading}>
               Сохранить изменения

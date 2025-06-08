@@ -435,17 +435,41 @@ const CreateSpecificationForm = ({
       </Form.Item>
     );
   };
+  const handleLog = async () => {
+    const validate = await form.validateFields();
+    console.log(validate);
+  };
 
   return (
     <Form form={form} layout="vertical" onFinish={onSubmit}>
+      <div className="mb-3 flex items-center justify-center relative">
+        <div className="line w-[100%] h-[6px] rounded-full z-10 absolute bg-[#4E38F2]"></div>
+        <div className="bg-[#4E38F2] inline py-2 relative z-20 px-4 font-bold text-white rounded-[10px]">
+          {equipmentType.name}
+        </div>
+      </div>
       {renderFieldsByType()}
 
-      <div className="flex justify-end space-x-2 mt-6">
-        <Button onClick={onCancel}>Отмена</Button>
-        <Button type="primary" htmlType="submit">
-          Создать характеристику
-        </Button>
-      </div>
+      <Row gutter={16}>
+        <Col span={12}>
+          <button
+            className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+            style={{ width: "100%" }}
+            onClick={onCancel}
+          >
+            Отмена
+          </button>
+        </Col>
+        <Col span={12}>
+          <button
+            className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+            style={{ width: "100%" }}
+            onClick={() => handleLog()}
+          >
+            Создать шаблон
+          </button>
+        </Col>
+      </Row>
     </Form>
   );
 };

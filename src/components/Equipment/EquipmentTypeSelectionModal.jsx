@@ -28,7 +28,7 @@ const EquipmentTypeSelectionModal = ({
       onCancel={onCancel}
       footer={null}
       width={800}
-      className="mt-[-40px]"
+      className="mt-[-50px]"
       destroyOnClose
     >
       <div className="space-y-3">
@@ -44,7 +44,7 @@ const EquipmentTypeSelectionModal = ({
               </div>
               <span className="font-medium text-gray-800">{type.name}</span>
             </div>
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-ful bg-indigo-500 rounded-full flex items-center justify-center">
               <FiPlus className="text-white text-sm" />
             </div>
           </div>

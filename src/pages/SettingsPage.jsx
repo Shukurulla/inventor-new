@@ -170,9 +170,17 @@ const SettingsPage = () => {
               key={option.value}
               className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                 theme === option.value
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-300"
+                  ? "border-indigo-500 "
+                  : " hover:border-gray-300"
               }`}
+              style={{
+                background:
+                  option.value == "system"
+                    ? "linear-gradient(to right, white 50%, rgb(26, 26, 26) 50%)"
+                    : "" || option.value == "light"
+                    ? "#fff"
+                    : "#000",
+              }}
               onClick={() => handleThemeChange(option.value)}
             >
               <div className="text-center">
@@ -181,35 +189,34 @@ const SettingsPage = () => {
                     <span className="text-white font-bold text-sm">iM</span>
                   </div>
                 </div>
-                <div
-                  className={`w-full h-16 rounded-lg mb-3 ${
-                    option.value === "light"
-                      ? "bg-white border border-gray-200"
-                      : option.value === "dark"
-                      ? "bg-black"
-                      : "bg-gradient-to-r from-white to-black"
-                  }`}
-                >
-                  <div className="p-2 text-xs">
-                    <div
-                      className={`font-bold ${
-                        option.value === "dark" ? "text-white" : "text-black"
-                      }`}
-                    >
-                      iMaster
-                    </div>
-                    <div
-                      className={`text-xs ${
-                        option.value === "dark"
-                          ? "text-gray-300"
-                          : "text-gray-600"
-                      }`}
-                    >
-                      {option.label}
-                    </div>
-                  </div>
-                </div>
-                <span className="text-sm font-medium">{option.label}</span>
+                {option.value == "system" && (
+                  <span className="text-sm font-medium flex justify-center">
+                    <li className="text-black">{option.label.slice(0, 5)}</li>
+                    <li className="text-white">
+                      {option.label.slice(5, option.label.length)}
+                    </li>
+                  </span>
+                )}
+                {option.value == "light" && (
+                  <span
+                    className={`text-sm font-medium option-title`}
+                    style={{
+                      color: "#000",
+                    }}
+                  >
+                    {option.label}
+                  </span>
+                )}
+                {option.value == "dark" && (
+                  <span
+                    className={`text-sm font-medium option-title`}
+                    style={{
+                      color: "#fff",
+                    }}
+                  >
+                    {option.label}
+                  </span>
+                )}
               </div>
             </div>
           ))}
@@ -224,7 +231,7 @@ const SettingsPage = () => {
               key={option.value}
               className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
                 fontSize === option.value
-                  ? "border-blue-500 bg-blue-50"
+                  ? "border-indigo-500 "
                   : "border-gray-200 hover:border-gray-300"
               }`}
               onClick={() => handleFontSizeChange(option.value)}
@@ -243,51 +250,14 @@ const SettingsPage = () => {
                 >
                   Aa
                 </div>
-                <div
-                  className="text-lg font-medium mb-2"
-                  style={{
-                    fontFamily:
-                      option.value === "sf-pro"
-                        ? "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif"
-                        : option.value === "inter"
-                        ? "'Inter', system-ui, sans-serif"
-                        : "'Roboto', system-ui, sans-serif",
-                  }}
-                >
-                  iMaster
-                </div>
+
                 <span className="text-sm font-medium">{option.label}</span>
               </div>
             </div>
           ))}
         </div>
-        <div className="mt-4 text-sm text-blue-600">
+        <div className="mt-4 text-sm text-indigo-600">
           Текущий шрифт: {fontOptions.find((f) => f.value === fontSize)?.label}
-        </div>
-      </Card>
-
-      {/* Additional Settings */}
-      <Card title="Дополнительные настройки" className="shadow-sm">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">Уведомления</div>
-              <div className="text-sm text-gray-500">
-                Получать уведомления о системных событиях
-              </div>
-            </div>
-            <Switch defaultChecked />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">Автосохранение</div>
-              <div className="text-sm text-gray-500">
-                Автоматически сохранять изменения
-              </div>
-            </div>
-            <Switch defaultChecked />
-          </div>
         </div>
       </Card>
     </div>

@@ -45,7 +45,16 @@ const ContractsPage = () => {
   );
 
   useEffect(() => {
-    dispatch(getContracts());
+    const loadContracts = async () => {
+      try {
+        await dispatch(getContracts()).unwrap();
+      } catch (error) {
+        console.error("Shartnomalarni yuklashda xato:", error);
+        message.error("Ma'lumotlarni yuklashda xato yuz berdi");
+      }
+    };
+
+    loadContracts();
   }, [dispatch]);
 
   const handleCreate = async (values) => {
@@ -139,8 +148,8 @@ const ContractsPage = () => {
       key: "number",
       render: (text) => (
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-            <FiFileText className="text-blue-600" />
+          <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+            <FiFileText className="text-indigo-600" />
           </div>
           <span className="font-medium text-gray-800">{text}</span>
         </div>
@@ -165,7 +174,7 @@ const ContractsPage = () => {
             type="text"
             icon={<FiEye />}
             onClick={() => handleView(record)}
-            className="text-blue-500 hover:text-blue-600"
+            className="text-indigo-500 hover:text-indigo-600"
           />
           <Button
             type="text"
@@ -212,14 +221,13 @@ const ContractsPage = () => {
 
       <Card className="shadow-sm">
         <div className="flex items-center justify-between mb-6">
-          <Button
-            type="primary"
-            icon={<FiPlus />}
+          <button
             onClick={() => setCreateModalVisible(true)}
-            className="bg-blue-500 hover:bg-blue-600"
+            className="bg-[#EEF2FF] p-7 border-[3px] rounded-xl border-[#6366F1] border-dashed text-lg font-semibold text-[#6366F1] items-center justify-center"
+            style={{ display: "flex", width: "100%" }}
           >
-            Добавить новый договор
-          </Button>
+            <FiPlus /> Добавить новый договор
+          </button>
         </div>
 
         <div className="mb-4">
