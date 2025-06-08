@@ -60,6 +60,7 @@ const SettingsPage = () => {
 
   const handleFontSizeChange = (value) => {
     dispatch(setFontSize(value));
+    document.body.classList.add(`font-${value}`);
     message.success("Шрифт изменен");
   };
 
@@ -234,7 +235,7 @@ const SettingsPage = () => {
                 </div>
                 {option.value === "system" && (
                   <span className="text-sm  font-medium flex justify-center">
-                    <span className="text-black letter-space-2">
+                    <span className="text-black">
                       {option.label.slice(0, 4)}
                     </span>
                     <span className="text-white letter-space-2">

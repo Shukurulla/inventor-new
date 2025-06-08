@@ -41,10 +41,9 @@ const settingsSlice = createSlice({
 
       // Apply font family to document
       const fontFamilies = {
-        "sf-pro":
-          "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif",
-        inter: "'Inter', system-ui, sans-serif",
-        roboto: "'Roboto', system-ui, sans-serif",
+        "sf-pro": "'SF Pro Display', sans-serif",
+        inter: "'Inter', sans-serif",
+        roboto: "'Roboto', sans-serif",
       };
 
       const body = document.body;
@@ -87,10 +86,9 @@ const settingsSlice = createSlice({
       // Initialize font
       const savedFont = state.fontSize;
       const fontFamilies = {
-        "sf-pro":
-          "'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif",
-        inter: "'Inter', system-ui, sans-serif",
-        roboto: "'Roboto', system-ui, sans-serif",
+        "sf-pro": "'SF Pro Display', sans-serif",
+        inter: "'Inter' sans-serif",
+        roboto: "'Roboto', sans-serif",
       };
 
       body.style.fontFamily = fontFamilies[savedFont] || fontFamilies["sf-pro"];

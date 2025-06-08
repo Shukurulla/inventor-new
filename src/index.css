@@ -1,5 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,7 +14,7 @@
 body {
   font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI",
     "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
-    "Helvetica Neue", sans-serif;
+    "Helvetica Neue", sans-serif !important;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #f8fafc;
@@ -24,20 +23,15 @@ body {
   height: 100vh;
   overflow: hidden;
 }
-.overflow-y-scroll {
-  overflow-y: scroll !important;
-}
-/* Font classes */
-.font-sf-pro {
-  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif !important;
-}
 
 .font-inter {
-  font-family: "Inter", system-ui, sans-serif !important;
+  font-family: "Inter", sans-serif !important;
 }
-
 .font-roboto {
-  font-family: "Roboto", system-ui, sans-serif !important;
+  font-family: "Roboto", sans-serif !important;
+}
+.overflow-y-scroll {
+  overflow-y: scroll !important;
 }
 
 /* Dark theme */
@@ -49,12 +43,28 @@ body {
 .dark .ant-layout {
   background: #000 !important;
 }
+.dark
+  .ant-input-affix-wrapper.css-dev-only-do-not-override-12e2xlf.ant-input-outlined {
+  background: #222222 !important;
+}
+.ant-input-affix-wrapper.css-dev-only-do-not-override-12e2xlf.ant-input-outlined
+  input {
+  border: none !important;
+}
 
 .dark .ant-layout-sider {
   background: #000 !important;
   border-right: 1px solid #404040 !important;
 }
-
+.dark .bg-indigo-50 {
+  background: #eef2ff38 !important;
+}
+.dark .ant-modal-mask {
+  background: #2c2c2c80 !important;
+}
+.dark .ant-modal-close-x {
+  color: #fff !important;
+}
 .dark .ant-layout-header {
   background: #000 !important;
   border-bottom: 1px solid #404040 !important;

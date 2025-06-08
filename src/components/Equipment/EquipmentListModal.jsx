@@ -155,14 +155,6 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
         visible={visible}
         onCancel={onCancel}
         footer={[
-          <Button
-            key="add"
-            icon={<FiPlus />}
-            onClick={handleAddNew}
-            type="primary"
-          >
-            Добавить
-          </Button>,
           <Button key="cancel" onClick={onCancel}>
             Закрыть
           </Button>,

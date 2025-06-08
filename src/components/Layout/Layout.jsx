@@ -60,6 +60,19 @@ const Layout = ({ children }) => {
   const dispatch = useDispatch();
   const { user, userActions } = useSelector((state) => state.auth);
   const { theme } = useSelector((state) => state.settings);
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    loadEquipment();
+  }, []);
+
+  const loadEquipment = async () => {
+    try {
+      const response = await equipmentAPI.getMyEquipments();
+      setCount(response.data.length);
+    } catch (error) {
+      console.error("Load equipment error:", error);
+    }
+  };
 
   // Get page title based on current route
   const getPageTitle = () => {
@@ -108,7 +121,7 @@ const Layout = ({ children }) => {
       key: "/added",
       icon: <FiLayers className="text-lg" />,
       label: "Добавленные",
-      badge: userActions?.length || 0,
+      badge: count || 0,
     },
     {
       key: "/repairs",
@@ -254,7 +267,6 @@ const Layout = ({ children }) => {
       NEW: "bg-green-100 text-green-600",
       WORKING: "bg-indigo-100 text-indigo-600",
       REPAIR: "bg-orange-100 text-orange-600",
-      BROKEN: "bg-red-100 text-red-600",
       DISPOSED: "bg-gray-100 text-gray-600",
     };
     return colors[status] || "bg-gray-100 text-gray-600";
@@ -265,7 +277,6 @@ const Layout = ({ children }) => {
       NEW: "Новое",
       WORKING: "Работает",
       REPAIR: "На ремонте",
-      BROKEN: "Сломано",
       DISPOSED: "Утилизировано",
     };
     return texts[status] || status;
