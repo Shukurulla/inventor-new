@@ -12,8 +12,11 @@ import {
   Popconfirm,
 } from "antd";
 import { FiEdit, FiTrash2, FiPlus } from "react-icons/fi";
+import { useDispatch } from "react-redux";
 import EquipmentIcon from "./EquipmentIcon";
+import EditEquipmentModal from "./EditEquipmentModal";
 import { equipmentAPI, specificationsAPI } from "../../services/api";
+import { getEquipmentTypesByRoom } from "../../store/slices/universitySlice";
 
 const { Option } = Select;
 
@@ -22,7 +25,27 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [form] = Form.useForm();
   const [specs, setSpecs] = useState([]);
-  console.log(equipmentTypeData);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const dispatch = useDispatch();
+
+  // Force refresh when modal opens
+  useEffect(() => {
+    if (visible && room) {
+      setRefreshTrigger((prev) => prev + 1);
+    }
+  }, [visible, room]);
+
+  // Refresh room data when needed
+  const refreshRoomData = async () => {
+    if (room) {
+      try {
+        await dispatch(getEquipmentTypesByRoom(room.id)).unwrap();
+        setRefreshTrigger((prev) => prev + 1);
+      } catch (error) {
+        console.error("Error refreshing room data:", error);
+      }
+    }
+  };
 
   // Determine the specification type based on equipment type
   const getSpecEndpoint = () => {
@@ -80,35 +103,14 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
   // Handle edit button click
   const handleEdit = (equipment) => {
     setSelectedEquipment(equipment);
-    form.setFieldsValue({
-      name: equipment.name || "",
-      inn: equipment.inn || "",
-      description: equipment.description || "",
-      status: equipment.status || "NEW",
-      specificationId:
-        equipment.projector_specification_id ||
-        equipment.computer_specification_id ||
-        null,
-    });
     setEditModalVisible(true);
   };
 
-  // Handle form submission for edit
-  const onFinish = async (values) => {
-    try {
-      const payload = {
-        ...values,
-        room: room.id,
-        is_active: true,
-        type: equipmentTypeData.type?.id,
-      };
-      await equipmentAPI.updateEquipment(selectedEquipment.id, payload);
-      message.success("Equipment updated successfully");
-      setEditModalVisible(false);
-      onCancel(); // Refresh the parent modal
-    } catch (error) {
-      message.error("Failed to update equipment");
-    }
+  // Handle edit modal close with refresh
+  const handleEditModalClose = () => {
+    setEditModalVisible(false);
+    setSelectedEquipment(null);
+    refreshRoomData(); // Refresh the data when edit modal closes
   };
 
   // Handle delete confirmation
@@ -116,7 +118,7 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
     try {
       await equipmentAPI.deleteEquipment(equipment.id);
       message.success("Equipment deleted successfully");
-      onCancel(); // Refresh the parent modal
+      refreshRoomData(); // Refresh the data after deletion
     } catch (error) {
       message.error("Failed to delete equipment");
     }
@@ -217,85 +219,13 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
         )}
       </Modal>
 
-      {/* Edit Modal */}
-      <Modal
-        title={
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-              <EquipmentIcon type={typeName} />
-            </div>
-            <span className="text-lg font-medium">
-              Редактировать оборудование
-            </span>
-          </div>
-        }
+      {/* Edit Equipment Modal */}
+      <EditEquipmentModal
         visible={editModalVisible}
-        onCancel={() => setEditModalVisible(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setEditModalVisible(false)}>
-            Отмена
-          </Button>,
-          <Button key="submit" type="primary" onClick={() => form.submit()}>
-            Сохранить
-          </Button>,
-        ]}
-        width={500}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onFinish}
-          initialValues={{ status: "NEW" }}
-        >
-          <Form.Item
-            name="name"
-            label="Название"
-            rules={[
-              { required: true, message: "Пожалуйста, введите название" },
-            ]}
-          >
-            <Input placeholder="Введите название" />
-          </Form.Item>
-          <Form.Item
-            name="inn"
-            label="ИНН"
-            rules={[{ message: "Пожалуйста, введите ИНН" }]}
-          >
-            <Input placeholder="Введите ИНН" type="number" />
-          </Form.Item>
-          <Form.Item
-            name="description"
-            label="Описание"
-            rules={[{ message: "Пожалуйста, введите описание" }]}
-          >
-            <Input.TextArea placeholder="Введите описание" />
-          </Form.Item>
-          <Form.Item
-            name="status"
-            label="Статус"
-            rules={[{ required: true, message: "Пожалуйста, выберите статус" }]}
-          >
-            <Select placeholder="Выберите статус">
-              <Option value="NEW">Новый</Option>
-              <Option value="USED">Использован</Option>
-              <Option value="REPAIR">В ремонте</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item
-            name="specificationId"
-            label="Шаблон"
-            rules={[{ message: "Пожалуйста, выберите шаблон" }]}
-          >
-            <Select placeholder="Выберите шаблон" onFocus={fetchSpecifications}>
-              {specs.map((spec) => (
-                <Option key={spec.id} value={spec.id}>
-                  {spec.name || `Шаблон ${spec.id}`}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
+        onCancel={handleEditModalClose}
+        equipment={selectedEquipment}
+        equipmentTypes={[]} // Pass equipment types if needed
+      />
     </>
   );
 };
