@@ -494,12 +494,6 @@ const CharacteristicsPage = () => {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          Характеристики
-        </h1>
-      </div>
-
       <Card className="shadow-sm">
         <Tabs
           activeKey={activeTab}

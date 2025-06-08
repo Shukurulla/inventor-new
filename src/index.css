@@ -62,6 +62,15 @@ body {
 .dark .ant-modal-mask {
   background: #2c2c2c80 !important;
 }
+.dark .create-contract {
+  background: #272727bd;
+}
+.dark .ant-popconfirm-title {
+  color: #fff !important;
+}
+.dark .ant-message-custom-content {
+  color: #000 !important;
+}
 .dark .ant-modal-close-x {
   color: #fff !important;
 }

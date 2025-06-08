@@ -219,10 +219,10 @@ const ContractsPage = () => {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => setCreateModalVisible(true)}
-            className="bg-[#EEF2FF] p-7 border-[3px] rounded-xl border-[#6366F1] border-dashed text-lg font-semibold text-[#6366F1] items-center justify-center"
+            className="bg-[#EEF2FF] create-contract p-7 border-[3px] rounded-xl border-[#6366F1] border-dashed text-lg font-semibold text-[#6366F1] items-center justify-center"
             style={{ display: "flex", width: "100%" }}
           >
-            <FiPlus /> Добавить новый договор
+            <FiPlus size={20} /> Добавить новый договор
           </button>
         </div>
 
