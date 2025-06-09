@@ -80,7 +80,6 @@ export const generateQRCodesPDF = async (equipmentData) => {
       pdf.setFontSize(14);
       pdf.setFont("helvetica", "bold");
       pdf.setTextColor(0, 0, 0);
-      pdf.text("QR-коды оборудования", pageWidth / 2, 15, { align: "center" });
 
       if (equipmentData.length > itemsPerPage) {
         pdf.setFontSize(8);
