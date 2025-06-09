@@ -61,35 +61,22 @@ const EditEquipmentModal = ({
 
   useEffect(() => {
     if (visible && equipment) {
-      console.log("Equipment data:", equipment);
-
+      const typeId = equipment.type_data?.id || equipment.type;
+      if (!typeId) {
+        message.error("Тип оборудования не указан");
+        return;
+      }
+      const specFieldName = getSpecificationFieldName(typeId);
       const initialValues = {
         name: equipment.name || "",
         description: equipment.description || "",
         status: equipment.status || "NEW",
         contract_id: equipment.contract_id || equipment.contract?.id || null,
+        type: typeId,
       };
 
-      console.log(
-        "Contract ID found:",
-        equipment.contract_id,
-        equipment.contract?.id
-      );
-
-      // Set specification field based on equipment type
-      const specFieldName = getSpecificationFieldName(
-        equipment.type || equipment.type_data?.id
-      );
-      console.log("Spec field name:", specFieldName);
-
       if (specFieldName) {
-        // Get the specification ID from the equipment - try different possible field names
-        let specId = null;
-
-        // Try direct field access first
-        specId = equipment[specFieldName];
-
-        // If not found, try nested object access
+        let specId = equipment[specFieldName];
         if (!specId) {
           const specObjectName = specFieldName.replace("_id", "");
           const specObject = equipment[specObjectName];
@@ -97,14 +84,11 @@ const EditEquipmentModal = ({
             specId = specObject.id;
           }
         }
-
-        console.log("Spec ID found:", specId);
         if (specId) {
           initialValues[specFieldName] = specId;
         }
       }
 
-      // Set specification characteristics from the equipment's specification object
       const spec =
         equipment.computer_specification ||
         equipment.projector_specification ||
@@ -117,13 +101,9 @@ const EditEquipmentModal = ({
         equipment.extender_specification ||
         equipment.monitor_specification;
 
-      console.log("Specification object:", spec);
-
       if (spec) {
         initialValues.cpu = spec.cpu || "";
         initialValues.ram = spec.ram || "";
-
-        // Handle disk specifications for storage display
         if (spec.disk_specifications && spec.disk_specifications.length > 0) {
           const storageInfo = spec.disk_specifications
             .map((disk) => `${disk.capacity_gb}GB ${disk.disk_type}`)
@@ -132,15 +112,25 @@ const EditEquipmentModal = ({
         } else {
           initialValues.storage = spec.storage || "";
         }
-
-        initialValues.monitor_size =
-          spec.monitor_size || spec.screen_size || "";
+        if (
+          (typeId &&
+            equipmentTypes
+              .find((t) => t.id === typeId)
+              ?.name?.toLowerCase()
+              .includes("ноутбук")) ||
+          equipmentTypes
+            .find((t) => t.id === typeId)
+            ?.name?.toLowerCase()
+            .includes("моноблок")
+        ) {
+          initialValues.monitor_size =
+            spec.monitor_size || spec.screen_size || "";
+        }
         initialValues.has_mouse = spec.has_mouse || false;
         initialValues.has_keyboard = spec.has_keyboard || false;
         setSelectedSpecification(spec);
       }
 
-      // Handle existing image
       if (equipment.image) {
         setFileList([
           {
@@ -152,11 +142,10 @@ const EditEquipmentModal = ({
         ]);
       }
 
-      console.log("Initial values:", initialValues);
       setFormValues(initialValues);
       form.setFieldsValue(initialValues);
     }
-  }, [visible, equipment, form]);
+  }, [visible, equipment, form, equipmentTypes]);
 
   const getSpecificationFieldName = (typeId) => {
     const type = equipmentTypes.find((t) => t.id === typeId);
@@ -213,7 +202,7 @@ const EditEquipmentModal = ({
       message.error("Изображение должно быть меньше 2MB!");
       return false;
     }
-    return false; // Prevent auto upload
+    return false;
   };
 
   const handleImageChange = ({ fileList: newFileList }) => {
@@ -223,18 +212,19 @@ const EditEquipmentModal = ({
         ...prev,
         image: newFileList[0].originFileObj,
       }));
+    } else {
+      setFormValues((prev) => ({ ...prev, image: null }));
     }
   };
 
   const handleSpecificationChange = (value) => {
-    const typeId = equipment?.type || equipment?.type_data?.id;
+    const typeId = equipment?.type_data?.id || equipment?.type;
     const availableSpecs = getSpecificationsForType(typeId);
     const spec = availableSpecs.find((s) => s.id === value);
     setSelectedSpecification(spec);
 
     const specFieldName = getSpecificationFieldName(typeId);
     if (specFieldName) {
-      // Handle disk specifications for storage display
       let storageDisplay = "";
       if (spec?.disk_specifications && spec.disk_specifications.length > 0) {
         storageDisplay = spec.disk_specifications
@@ -255,16 +245,7 @@ const EditEquipmentModal = ({
         has_keyboard: spec?.has_keyboard || false,
       };
       setFormValues(newValues);
-
-      form.setFieldsValue({
-        [specFieldName]: value,
-        cpu: spec?.cpu || "",
-        ram: spec?.ram || "",
-        storage: storageDisplay,
-        monitor_size: spec?.monitor_size || spec?.screen_size || "",
-        has_mouse: spec?.has_mouse || false,
-        has_keyboard: spec?.has_keyboard || false,
-      });
+      form.setFieldsValue(newValues);
     }
   };
 
@@ -274,7 +255,7 @@ const EditEquipmentModal = ({
 
   const handleSpecCreate = async (values) => {
     try {
-      const typeId = equipment?.type || equipment?.type_data?.id;
+      const typeId = equipment?.type_data?.id || equipment?.type;
       const typeName = equipmentTypes
         .find((t) => t.id === typeId)
         ?.name?.toLowerCase();
@@ -294,12 +275,10 @@ const EditEquipmentModal = ({
       if (action) {
         const newSpec = await dispatch(action(values)).unwrap();
         message.success("Шаблон успешно создан!");
-
         await dispatch(getAllSpecifications());
 
         const specFieldName = getSpecificationFieldName(typeId);
         if (specFieldName) {
-          // Handle disk specifications for storage display
           let storageDisplay = "";
           if (
             newSpec.disk_specifications &&
@@ -338,41 +317,80 @@ const EditEquipmentModal = ({
 
   const handleSubmit = async (values) => {
     try {
-      // Create FormData if image is included
-      let updateData;
+      const typeId = equipment?.type_data?.id || equipment?.type;
+      if (!typeId) {
+        message.error("Тип оборудования не указан");
+        return;
+      }
+      const typeName = equipmentTypes
+        .find((t) => t.id === typeId)
+        ?.name?.toLowerCase();
+      const specFieldName = getSpecificationFieldName(typeId);
+
+      const updateData = {
+        name: values.name,
+        description: values.description,
+        status: values.status,
+        contract_id: values.contract_id || null,
+        type: typeId,
+      };
+
+      if (specFieldName && values[specFieldName]) {
+        updateData[specFieldName] = values[specFieldName];
+      } else if (typeName?.includes("компьютер")) {
+        // If no specification is selected for a computer, include default computer_details
+        updateData.computer_details = {
+          cpu: values.cpu || "Unknown",
+          ram: values.ram || "Unknown",
+          storage: values.storage || "Unknown",
+          has_mouse: values.has_mouse || false,
+          has_keyboard: values.has_keyboard || false,
+        };
+      }
+
+      let finalData;
       if (formValues.image) {
-        updateData = new FormData();
-        Object.keys(values).forEach((key) => {
-          if (values[key] !== null && values[key] !== undefined) {
-            updateData.append(key, values[key]);
+        finalData = new FormData();
+        Object.entries(updateData).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            if (key === "computer_details") {
+              finalData.append(key, JSON.stringify(value));
+            } else {
+              finalData.append(key, value);
+            }
           }
         });
-        updateData.append("image", formValues.image);
+        finalData.append("image", formValues.image);
       } else {
-        updateData = values;
+        finalData = updateData;
       }
 
       await dispatch(
         updateEquipment({
           id: equipment.id,
-          data: updateData,
+          data: finalData,
         })
       ).unwrap();
 
-      message.success("Оборудование успешно обновлено!");
+      message.success("Equipment updated successfully!");
       onCancel();
     } catch (error) {
       console.error("Equipment update error:", error);
-      message.error("Ошибка при обновлении оборудования");
+      message.error(
+        error?.response?.data?.non_field_errors?.[0] ||
+          "Ошибка при обновлении оборудования"
+      );
     }
   };
 
   const renderSpecificationSection = () => {
-    const typeId = equipment?.type || equipment?.type_data?.id;
+    const typeId = equipment?.type_data?.id || equipment?.type;
     const availableSpecs = getSpecificationsForType(typeId);
     const specFieldName = getSpecificationFieldName(typeId);
     const selectedSpecId = formValues[specFieldName];
-    const typeName = equipmentTypes.find((t) => t.id === typeId)?.name;
+    const typeName = equipmentTypes
+      ?.find((t) => t.id === typeId)
+      ?.name?.toLowerCase();
 
     return (
       <div className="mt-4">
@@ -433,9 +451,9 @@ const EditEquipmentModal = ({
         )}
 
         {(selectedSpecId || selectedSpecification) &&
-          (typeName?.toLowerCase().includes("компьютер") ||
-            typeName?.toLowerCase().includes("ноутбук") ||
-            typeName?.toLowerCase().includes("моноблок")) && (
+          (typeName?.includes("компьютер") ||
+            typeName?.includes("ноутбук") ||
+            typeName?.includes("моноблок")) && (
             <>
               <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
                 <Col span={12}>
@@ -471,41 +489,41 @@ const EditEquipmentModal = ({
                     />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
-                  <Form.Item name="monitor_size" label="Размер монитора/экрана">
-                    <Input
-                      value={formValues.monitor_size}
-                      disabled
-                      placeholder="Размер монитора:"
-                      style={{ height: "40px" }}
-                    />
-                  </Form.Item>
-                </Col>
+                {(typeName?.includes("ноутбук") ||
+                  typeName?.includes("моноблок")) && (
+                  <Col span={12}>
+                    <Form.Item name="monitor_size" label="Размер экрана">
+                      <Input
+                        value={formValues.monitor_size}
+                        disabled
+                        placeholder="Размер экрана:"
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                )}
               </Row>
 
-              {(typeName?.toLowerCase().includes("компьютер") ||
-                typeName?.toLowerCase().includes("моноблок")) && (
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <div className="flex flex-col">
-                      <label className="text-gray-700 mb-1">Мышка</label>
-                      <Switch checked={formValues.has_mouse} disabled />
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div className="flex flex-col">
-                      <label className="text-gray-700 mb-1">Клавиатура</label>
-                      <Switch checked={formValues.has_keyboard} disabled />
-                    </div>
-                  </Col>
-                </Row>
-              )}
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <div className="flex flex-col">
+                    <label className="text-gray-700 mb-1">Мышка</label>
+                    <Switch checked={formValues.has_mouse} disabled />
+                  </div>
+                </Col>
+                <Col span={12}>
+                  <div className="flex flex-col">
+                    <label className="text-gray-700 mb-1">Клавиатура</label>
+                    <Switch checked={formValues.has_keyboard} disabled />
+                  </div>
+                </Col>
+              </Row>
             </>
           )}
 
         {(selectedSpecId || selectedSpecification) && (
           <>
-            {typeName?.toLowerCase().includes("проектор") && (
+            {typeName?.includes("проектор") && (
               <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
                 <Col span={12}>
                   <Form.Item name="model" label="Модель">
@@ -528,7 +546,7 @@ const EditEquipmentModal = ({
               </Row>
             )}
 
-            {typeName?.toLowerCase().includes("монитор") && (
+            {typeName?.includes("монитор") && (
               <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
                 <Col span={12}>
                   <Form.Item name="model" label="Модель">
@@ -551,7 +569,7 @@ const EditEquipmentModal = ({
               </Row>
             )}
 
-            {typeName?.toLowerCase().includes("телевизор") && (
+            {typeName?.includes("телевизор") && (
               <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
                 <Col span={12}>
                   <Form.Item name="model" label="Модель">
@@ -600,6 +618,10 @@ const EditEquipmentModal = ({
           </div>
 
           <Form form={form} layout="vertical" onFinish={handleSubmit}>
+            <Form.Item name="type" noStyle>
+              <Input type="hidden" />
+            </Form.Item>
+
             <Row gutter={[16, 16]}>
               <Col span={12}>
                 <Form.Item
@@ -667,6 +689,7 @@ const EditEquipmentModal = ({
                     <Option value="NEW">Новое</Option>
                     <Option value="WORKING">Работает</Option>
                     <Option value="NEEDS_REPAIR">Требуется ремонт</Option>
+                    <Option value="REPAIR">На ремонте</Option>
                     <Option value="DISPOSED">Утилизировано</Option>
                   </Select>
                 </Form.Item>
@@ -677,6 +700,7 @@ const EditEquipmentModal = ({
                     placeholder="Выберите договор"
                     allowClear
                     style={{ height: "40px" }}
+                    value={formValues.contract_id}
                     onChange={(value) =>
                       handleInputChange("contract_id", value)
                     }
@@ -691,7 +715,7 @@ const EditEquipmentModal = ({
               </Col>
             </Row>
 
-            {/* {renderSpecificationSection()} */}
+            {renderSpecificationSection()}
 
             <Row gutter={16} className="mt-6">
               <Col span={12}>
@@ -733,7 +757,7 @@ const EditEquipmentModal = ({
           form={specForm}
           equipmentType={{
             name: equipmentTypes.find(
-              (t) => t.id === (equipment?.type || equipment?.type_data?.id)
+              (t) => t.id === (equipment?.type_data?.id || equipment?.type)
             )?.name,
           }}
           onSubmit={handleSpecCreate}

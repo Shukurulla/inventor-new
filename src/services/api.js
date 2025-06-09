@@ -113,28 +113,19 @@ export const authAPI = {
   getProfile: () => api.get("/user/profile/"),
 };
 
-// University API - FIXED
+// University API
 export const universityAPI = {
-  // 1. Корпуслар
   getBuildings: () => api.get("/university/buildings/"),
-
-  // 2. Этажлар (корпус бўйича)
   getFloorsByBuilding: (buildingId) =>
     api.get(`/university/buildings/${buildingId}/floors/`),
-
-  // 3. Хоналар (корпус бўйича)
   getRoomsByBuilding: (buildingId) =>
     api.get(`/university/rooms/?building_id=${buildingId}`),
-
-  // 4. Оборудование типлари (хона бўйича)
   getEquipmentTypesByRoom: async (roomId) => {
     try {
-      // Сначала пробуем получить оборудование по комнате
       const response = await api.get(
         `/inventory/equipment/equipment-by-room/${roomId}/`
       );
 
-      // Группируем по типам
       const equipment = response.data.equipment || response.data || [];
       const groupedByType = {};
 
@@ -162,19 +153,16 @@ export const universityAPI = {
       };
     } catch (error) {
       console.error("Ошибка при получении оборудования комнаты:", error);
-      // Возвращаем пустой массив вместо ошибки
       return { data: [] };
     }
   },
-
-  // Бошқа методлар
   getRoomInfo: (roomId) => api.get(`/university/rooms/${roomId}/`),
   getUniversities: () => api.get("/university/"),
   getFloors: () => api.get("/university/floors/"),
   getRooms: () => api.get("/university/rooms/"),
 };
 
-// Equipment API
+// Equipment API - FIXED updateEquipment method
 export const equipmentAPI = {
   getEquipmentTypes: () => api.get("/inventory/equipment-types/"),
   getEquipment: (params = {}) => {
@@ -202,6 +190,8 @@ export const equipmentAPI = {
   },
   createEquipmentBulk: (data) =>
     api.post("/inventory/equipment/bulk-create/", data),
+
+  // FIXED: updateEquipment method now properly handles both file and non-file data
   updateEquipment: (id, data) => {
     // Check if data contains file
     const hasFile = Object.values(data).some((value) => value instanceof File);
@@ -220,9 +210,17 @@ export const equipmentAPI = {
         }
       });
 
-      return api.put(`/inventory/equipment/${id}/`, data);
+      return api.patch(`/inventory/equipment/${id}/`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
     }
+
+    // Return the API call for non-file data
+    return api.patch(`/inventory/equipment/${id}/`, data);
   },
+
   patchEquipment: (id, data) => {
     // Check if data contains file
     const hasFile = Object.values(data).some((value) => value instanceof File);
@@ -250,6 +248,7 @@ export const equipmentAPI = {
 
     return api.patch(`/inventory/equipment/${id}/`, data);
   },
+
   deleteEquipment: (id) => api.delete(`/inventory/equipment/${id}/`),
   deleteEquipments: (ids) =>
     api.delete("/inventory/equipment/bulk-delete/", {

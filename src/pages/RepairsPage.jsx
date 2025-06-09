@@ -1,4 +1,4 @@
-// 6. RepairsPage.jsx - Status fix with correct values
+// RepairsPage.jsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -51,8 +51,6 @@ const RepairsPage = () => {
   const [activeTab, setActiveTab] = useState("repairs");
   const [form] = Form.useForm();
   const [statusForm] = Form.useForm();
-
-  // Status o'zgartirish uchun yangi state'lar
   const [selectedStatuses, setSelectedStatuses] = useState({});
   const [savingStatuses, setSavingStatuses] = useState({});
 
@@ -64,7 +62,6 @@ const RepairsPage = () => {
     setLoading(true);
     try {
       const response = await equipmentAPI.getMyEquipments();
-      // Faqat remont va utilizatsiya kerak bo'lgan jihozlarni filter qilish
       const filteredData = response.data.filter(
         (item) =>
           item.status === "NEEDS_REPAIR" ||
@@ -72,8 +69,6 @@ const RepairsPage = () => {
           item.status === "DISPOSED"
       );
       setEquipment(filteredData);
-
-      // Har bir jihoz uchun joriy statusni selectedStatuses ga o'rnatish
       const initialStatuses = {};
       filteredData.forEach((item) => {
         initialStatuses[item.id] = item.status;
@@ -87,7 +82,6 @@ const RepairsPage = () => {
     }
   };
 
-  // Equipment ni tab bo'yicha filtrlash
   const getFilteredEquipment = () => {
     switch (activeTab) {
       case "repairs":
@@ -114,7 +108,39 @@ const RepairsPage = () => {
     return grouped;
   };
 
-  // Status o'zgartirish funksiyasi
+  const prepareEquipmentData = (equipment) => {
+    const isPrinter =
+      equipment.type_data?.name?.toLowerCase().includes("принтер") ||
+      equipment.type_data?.name?.toLowerCase().includes("printer");
+    const isComputer =
+      equipment.type_data?.name?.toLowerCase().includes("компьютер") ||
+      equipment.type_data?.name?.toLowerCase().includes("computer");
+
+    return {
+      serial_number: equipment?.serial_number || "N/A",
+      ...(isPrinter
+        ? {
+            printer_char: equipment?.printer_char || {
+              model: "Unknown",
+              type: "Unknown",
+            },
+            printer_specification_id:
+              equipment?.printer_specification_id || null,
+          }
+        : {}),
+      ...(isComputer
+        ? {
+            computer_details: equipment?.computer_details || {
+              cpu: "Unknown",
+              ram: "Unknown",
+            },
+            computer_specification_id:
+              equipment?.computer_specification_id || null,
+          }
+        : {}),
+    };
+  };
+
   const handleStatusChange = (equipmentId, newStatus) => {
     setSelectedStatuses((prev) => ({
       ...prev,
@@ -122,7 +148,6 @@ const RepairsPage = () => {
     }));
   };
 
-  // Status saqlash funksiyasi
   const handleSaveStatus = async (equipmentId) => {
     const newStatus = selectedStatuses[equipmentId];
     const currentEquipment = equipment.find((item) => item.id === equipmentId);
@@ -135,10 +160,16 @@ const RepairsPage = () => {
     setSavingStatuses((prev) => ({ ...prev, [equipmentId]: true }));
 
     try {
-      await equipmentAPI.patchEquipment(equipmentId, {
+      const equipmentData = prepareEquipmentData(currentEquipment);
+
+      const updateData = {
         status: newStatus,
         type: currentEquipment.type_data?.id || currentEquipment.type,
-      });
+        serial_number: currentEquipment?.serial_number || "N/A",
+        ...equipmentData,
+      };
+
+      await equipmentAPI.patchEquipment(equipmentId, updateData);
 
       const statusMessages = {
         WORKING: "Оборудование помечено как рабочее",
@@ -150,7 +181,6 @@ const RepairsPage = () => {
 
       message.success(statusMessages[newStatus] || "Статус обновлен");
 
-      // Update local state
       setEquipment((prev) =>
         prev.map((item) =>
           item.id === equipmentId ? { ...item, status: newStatus } : item
@@ -159,7 +189,6 @@ const RepairsPage = () => {
     } catch (error) {
       message.error("Ошибка при обновлении статуса");
       console.error("Update status error:", error);
-      // Xatolik bo'lsa, eski statusga qaytarish
       setSelectedStatuses((prev) => ({
         ...prev,
         [equipmentId]: currentEquipment.status,
@@ -169,12 +198,10 @@ const RepairsPage = () => {
     }
   };
 
-  // Status variantlari - to'g'ri qiymatlar bilan
   const getStatusOptions = () => [
     { value: "NEW", label: "Новое" },
     { value: "WORKING", label: "Работает" },
     { value: "NEEDS_REPAIR", label: "Требуется ремонт" },
-    { value: "REPAIR", label: "На ремонте" },
     { value: "DISPOSED", label: "Утилизировано" },
   ];
 
@@ -185,6 +212,25 @@ const RepairsPage = () => {
       inn: item.inn || "",
       description: item.description || "",
       status: item.status || "NEEDS_REPAIR",
+      serial_number: item.serial_number || "",
+      ...(item.type_data?.name?.toLowerCase().includes("принтер") ||
+      item.type_data?.name?.toLowerCase().includes("printer")
+        ? {
+            printer_char: item.printer_char
+              ? JSON.stringify(item.printer_char)
+              : "",
+            printer_specification_id: item.printer_specification_id || "",
+          }
+        : {}),
+      ...(item.type_data?.name?.toLowerCase().includes("компьютер") ||
+      item.type_data?.name?.toLowerCase().includes("computer")
+        ? {
+            computer_details: item.computer_details
+              ? JSON.stringify(item.computer_details)
+              : "",
+            computer_specification_id: item.computer_specification_id || "",
+          }
+        : {}),
     });
     setEditModalVisible(true);
   };
@@ -200,10 +246,40 @@ const RepairsPage = () => {
 
   const handleUpdateEquipment = async (values) => {
     try {
-      await equipmentAPI.updateEquipment(selectedEquipment.id, {
+      const equipmentData = prepareEquipmentData(selectedEquipment);
+      const isPrinter =
+        selectedEquipment.type_data?.name?.toLowerCase().includes("принтер") ||
+        selectedEquipment.type_data?.name?.toLowerCase().includes("printer");
+      const isComputer =
+        selectedEquipment.type_data?.name
+          ?.toLowerCase()
+          .includes("компьютер") ||
+        selectedEquipment.type_data?.name?.toLowerCase().includes("computer");
+
+      const updateData = {
         ...values,
         type: selectedEquipment.type_data?.id || selectedEquipment.type,
-      });
+        serial_number: values.serial_number || "N/A",
+        ...(isPrinter
+          ? {
+              printer_char: values.printer_char
+                ? JSON.parse(values.printer_char)
+                : { model: "Unknown", type: "Unknown" },
+              printer_specification_id: values.printer_specification_id || null,
+            }
+          : {}),
+        ...(isComputer
+          ? {
+              computer_details: values.computer_details
+                ? JSON.parse(values.computer_details)
+                : { cpu: "Unknown", ram: "Unknown" },
+              computer_specification_id:
+                values.computer_specification_id || null,
+            }
+          : {}),
+      };
+
+      await equipmentAPI.updateEquipment(selectedEquipment.id, updateData);
       message.success("Оборудование успешно обновлено!");
       setEditModalVisible(false);
       setSelectedEquipment(null);
@@ -217,11 +293,17 @@ const RepairsPage = () => {
 
   const handleStatusUpdate = async (values) => {
     try {
-      await equipmentAPI.patchEquipment(selectedEquipment.id, {
+      const equipmentData = prepareEquipmentData(selectedEquipment);
+
+      const updateData = {
         status: values.status,
         reason: values.reason,
         type: selectedEquipment.type_data?.id || selectedEquipment.type,
-      });
+        serial_number: selectedEquipment?.serial_number || "N/A",
+        ...equipmentData,
+      };
+
+      await equipmentAPI.patchEquipment(selectedEquipment.id, updateData);
       message.success("Статус успешно обновлен!");
       setStatusModalVisible(false);
       setSelectedEquipment(null);
@@ -244,13 +326,18 @@ const RepairsPage = () => {
     }
   };
 
-  // Tez status o'zgartirish funksiyalari
   const handleQuickStatusChange = async (equipment, newStatus) => {
     try {
-      await equipmentAPI.patchEquipment(equipment.id, {
+      const equipmentData = prepareEquipmentData(equipment);
+
+      const updateData = {
         status: newStatus,
         type: equipment.type_data?.id || equipment.type,
-      });
+        serial_number: equipment?.serial_number || "N/A",
+        ...equipmentData,
+      };
+
+      await equipmentAPI.patchEquipment(equipment.id, updateData);
 
       const statusMessages = {
         WORKING: "Оборудование помечено как рабочее",
@@ -263,6 +350,7 @@ const RepairsPage = () => {
       loadEquipment();
     } catch (error) {
       message.error("Ошибка при обновлении статуса");
+      console.error("Quick status change error:", error);
     }
   };
 
@@ -285,6 +373,16 @@ const RepairsPage = () => {
             <div className="flex-1">
               <div className="flex items-center space-x-2">
                 <h4 className="font-medium text-gray-800">{item.name}</h4>
+                {item.type_data?.name?.toLowerCase().includes("принтер") && (
+                  <Tag size="small" color="blue">
+                    Принтер
+                  </Tag>
+                )}
+                {item.type_data?.name?.toLowerCase().includes("компьютер") && (
+                  <Tag size="small" color="green">
+                    Компьютер
+                  </Tag>
+                )}
               </div>
               <p className="mt-2 flex items-center gap-2">
                 <FiMapPin />
@@ -297,7 +395,6 @@ const RepairsPage = () => {
             </div>
           </div>
 
-          {/* Status o'zgartirish bo'limi */}
           <div className="flex items-center gap-2">
             <Select
               value={currentSelectedStatus}
@@ -359,7 +456,6 @@ const RepairsPage = () => {
         className="space-y-2"
       >
         {Object.entries(groupedEquipment).map(([typeName, items]) => {
-          // Status bo'yicha sanovni hisoblash
           const statusCounts = {};
           items.forEach((item) => {
             statusCounts[item.status] = (statusCounts[item.status] || 0) + 1;
@@ -407,7 +503,6 @@ const RepairsPage = () => {
     );
   };
 
-  // Tab counts
   const repairCount = equipment.filter(
     (item) => item.status === "NEEDS_REPAIR" || item.status === "REPAIR"
   ).length;
@@ -453,7 +548,6 @@ const RepairsPage = () => {
         <Spin spinning={loading}>{renderEquipmentList()}</Spin>
       </Card>
 
-      {/* Edit Equipment Modal */}
       <Modal
         title="Редактировать оборудование"
         visible={editModalVisible}
@@ -476,6 +570,138 @@ const RepairsPage = () => {
 
           <Form.Item label="ИНН" name="inn">
             <Input placeholder="Инвентарный номер" />
+          </Form.Item>
+
+          <Form.Item
+            label="Серийный номер"
+            name="serial_number"
+            rules={[{ required: true, message: "Введите серийный номер!" }]}
+          >
+            <Input placeholder="Серийный номер" />
+          </Form.Item>
+
+          <Form.Item
+            label="Характеристика принтера"
+            name="printer_char"
+            rules={[
+              {
+                required:
+                  selectedEquipment?.type_data?.name
+                    ?.toLowerCase()
+                    .includes("принтер") ||
+                  selectedEquipment?.type_data?.name
+                    ?.toLowerCase()
+                    .includes("printer"),
+                message: "Введите характеристику принтера в формате JSON!",
+              },
+              {
+                validator: async (_, value) => {
+                  if (
+                    (selectedEquipment?.type_data?.name
+                      ?.toLowerCase()
+                      .includes("принтер") ||
+                      selectedEquipment?.type_data?.name
+                        ?.toLowerCase()
+                        .includes("printer")) &&
+                    value
+                  ) {
+                    try {
+                      JSON.parse(value);
+                    } catch (e) {
+                      throw new Error(
+                        "Характеристика принтера должна быть в формате JSON!"
+                      );
+                    }
+                  }
+                },
+              },
+            ]}
+          >
+            <Input.TextArea
+              rows={3}
+              placeholder='Характеристика принтера в формате JSON (например, {"model": "HP LaserJet", "type": "color"})'
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="ID спецификации принтера"
+            name="printer_specification_id"
+            rules={[
+              {
+                required:
+                  selectedEquipment?.type_data?.name
+                    ?.toLowerCase()
+                    .includes("принтер") ||
+                  selectedEquipment?.type_data?.name
+                    ?.toLowerCase()
+                    .includes("printer"),
+                message: "Введите ID спецификации принтера!",
+              },
+            ]}
+          >
+            <Input placeholder="ID спецификации принтера" />
+          </Form.Item>
+
+          <Form.Item
+            label="Характеристика компьютера"
+            name="computer_details"
+            rules={[
+              {
+                required:
+                  selectedEquipment?.type_data?.name
+                    ?.toLowerCase()
+                    .includes("компьютер") ||
+                  selectedEquipment?.type_data?.name
+                    ?.toLowerCase()
+                    .includes("computer"),
+                message: "Введите характеристику компьютера в формате JSON!",
+              },
+              {
+                validator: async (_, value) => {
+                  if (
+                    (selectedEquipment?.type_data?.name
+                      ?.toLowerCase()
+                      .includes("компьютер") ||
+                      selectedEquipment?.type_data?.name
+                        ?.toLowerCase()
+                        .includes("computer")) &&
+                    value
+                  ) {
+                    try {
+                      JSON.parse(value);
+                    } catch (e) {
+                      throw new Error(
+                        "Характеристика компьютера должна быть в формате JSON!"
+                      );
+                    }
+                  }
+                },
+              },
+            ]}
+          >
+            <Input.TextArea
+              rows={3}
+              placeholder='Характеристика компьютера в формате JSON (например, {"cpu": "Intel i5", "ram": "16GB"})'
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="ID спецификации компьютера"
+            name="computer_specification_id"
+            rules={[
+              {
+                required:
+                  selectedEquipment?.type_data?.name
+                    ?.toLowerCase()
+                    .includes("компьютер") ||
+                  selectedEquipment?.type_data?.name
+                    ?.toLowerCase()
+                    .includes("computer"),
+                message: "Введите ID спецификации компьютера!",
+              },
+            ]}
+          >
+            <Input placeholder="ID спецификации компьютера" />
           </Form.Item>
 
           <Form.Item label="Описание" name="description">
@@ -517,7 +743,6 @@ const RepairsPage = () => {
         </Form>
       </Modal>
 
-      {/* Status Management Modal */}
       <Modal
         title={`${selectedEquipment?.type_data?.name} - Управление состоянием`}
         visible={statusModalVisible}
@@ -531,7 +756,6 @@ const RepairsPage = () => {
       >
         {selectedEquipment && (
           <div className="mb-6">
-            {/* Equipment Card */}
             <div className="p-4 bg-gray-50 rounded-lg border">
               <div className="flex items-center space-x-3 mb-3">
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -543,6 +767,10 @@ const RepairsPage = () => {
                   </h4>
                   <p className="text-sm text-gray-500">
                     ИНН: {selectedEquipment.inn || "Не указан"}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Серийный номер:{" "}
+                    {selectedEquipment.serial_number || "Не указан"}
                   </p>
                   <p className="text-sm text-gray-500">
                     Комната: {selectedEquipment.room_data?.number} -{" "}
@@ -588,7 +816,6 @@ const RepairsPage = () => {
               )}
             </div>
 
-            {/* Quick Actions */}
             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h5 className="font-medium text-blue-800 mb-3">
                 Быстрые действия:
@@ -657,7 +884,6 @@ const RepairsPage = () => {
               <Option value="NEW">Новое</Option>
               <Option value="WORKING">Работает</Option>
               <Option value="NEEDS_REPAIR">Требуется ремонт</Option>
-              <Option value="REPAIR">На ремонте</Option>
               <Option value="DISPOSED">Утилизировано</Option>
             </Select>
           </Form.Item>
