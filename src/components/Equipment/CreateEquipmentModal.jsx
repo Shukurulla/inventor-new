@@ -161,7 +161,7 @@ const CreateEquipmentModal = ({
       wifi_standart: "",
       touch_type: "",
       length: "",
-      gpu_model: "No GPU specified",
+      gpu_model: "",
       storageList: [],
     };
 
@@ -181,7 +181,8 @@ const CreateEquipmentModal = ({
     ) {
       if (spec.cpu) updates.cpu = spec.cpu;
       if (spec.ram) updates.ram = spec.ram;
-      if (typeof spec.has_mouse === "boolean") updates.has_mouse = spec.has_mouse;
+      if (typeof spec.has_mouse === "boolean")
+        updates.has_mouse = spec.has_mouse;
       if (typeof spec.has_keyboard === "boolean")
         updates.has_keyboard = spec.has_keyboard;
 
@@ -441,18 +442,39 @@ const CreateEquipmentModal = ({
 
   const handleDownloadQRCodes = async () => {
     try {
-      const qrData = createdEquipment.map((equipment, index) => ({
-        name: `${equipment.name}`,
-        qrCodeUrl: equipment.qr_code_url,
-        inn:
-          innValues[`inn_${equipment.id}`] ||
-          `ИНН${String(index + 1).padStart(9, "0")}`,
-      }));
+      console.log("Starting QR code download...");
+      console.log("Created equipment:", createdEquipment);
 
-      await generateQRCodesPDF(qrData);
+      // Prepare equipment data for PDF generation
+      const equipmentForPDF = createdEquipment.map((equipment, index) => {
+        const innValue =
+          innValues[`inn_${equipment.id}`] ||
+          `ИНН${String(index + 1).padStart(9, "0")}`;
+
+        console.log(`Equipment ${index + 1}:`, {
+          name: equipment.name,
+          inn: innValue,
+          uid: equipment.uid,
+          type_data: equipment.type_data,
+          room_data: equipment.room_data,
+        });
+
+        return {
+          ...equipment,
+          inn: innValue,
+        };
+      });
+
+      console.log("Prepared equipment for PDF:", equipmentForPDF);
+
+      message.loading("Создание PDF файла...", 0);
+      await generateQRCodesPDF(equipmentForPDF);
+      message.destroy();
       message.success("QR-коды успешно скачаны!");
     } catch (error) {
-      message.error("Ошибка при скачивании QR-кодов");
+      message.destroy();
+      console.error("QR code download error:", error);
+      message.error(`Ошибка при скачивании QR-кодов: ${error.message}`);
     }
   };
 
@@ -805,7 +827,9 @@ const CreateEquipmentModal = ({
                     </Col>
                     <Col span={12}>
                       <div className="flex flex-col">
-                        <label className="text-gray-600 mb-1">Клавиатура:</label>
+                        <label className="text-gray-600 mb-1">
+                          Клавиатура:
+                        </label>
                         <div
                           style={{
                             height: "40px",
@@ -823,198 +847,6 @@ const CreateEquipmentModal = ({
                   </Row>
                 </>
               )}
-
-            {typeName.includes("проектор") && selectedSpecId && (
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">Модель:</label>
-                    <Input
-                      value={formValues.model || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">
-                      Яркость (люмен):
-                    </label>
-                    <Input
-                      value={formValues.lumens || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-              </Row>
-            )}
-
-            {typeName.includes("монитор") && selectedSpecId && (
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">Модель:</label>
-                    <Input
-                      value={formValues.model || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">Размер экрана:</label>
-                    <Input
-                      value={formValues.screen_size || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-              </Row>
-            )}
-
-            {typeName.includes("телевизор") && selectedSpecId && (
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">Модель:</label>
-                    <Input
-                      value={formValues.model || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">Размер экрана:</label>
-                    <Input
-                      value={formValues.screen_size || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-              </Row>
-            )}
-
-            {typeName.includes("принтер") && selectedSpecId && (
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">Модель:</label>
-                    <Input
-                      value={formValues.model || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">
-                      Цветная печать:
-                    </label>
-                    <div
-                      style={{
-                        height: "40px",
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Switch checked={formValues.color} disabled />
-                      <span className="ml-2">
-                        {formValues.color ? "Да" : "Нет"}
-                      </span>
-                    </div>
-                  </div>
-                </Col>
-              </Row>
-            )}
-
-            {typeName.includes("роутер") && selectedSpecId && (
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">Модель:</label>
-                    <Input
-                      value={formValues.model || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">
-                      Количество портов:
-                    </label>
-                    <Input
-                      value={formValues.ports || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-              </Row>
-            )}
-
-            {typeName.includes("доска") && selectedSpecId && (
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">Модель:</label>
-                    <Input
-                      value={formValues.model || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">Размер:</label>
-                    <Input
-                      value={formValues.screen_size || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-              </Row>
-            )}
-
-            {typeName.includes("удлинитель") && selectedSpecId && (
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">
-                      Количество портов:
-                    </label>
-                    <Input
-                      value={formValues.ports || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-600 mb-1">
-                      Длина кабеля (м):
-                    </label>
-                    <Input
-                      value={formValues.length || "N/A"}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </div>
-                </Col>
-              </Row>
-            )}
           </>
         ) : (
           <div className="text-center py-8">
@@ -1027,28 +859,26 @@ const CreateEquipmentModal = ({
           </div>
         )}
 
-        <div className="">
-          <Row gutter={16} className="mt-4">
-            <Col span={12}>
-              <button
-                className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
-                style={{ width: "100%" }}
-                onClick={() => setCurrentStep(0)}
-              >
-                Назад
-              </button>
-            </Col>
-            <Col span={12}>
-              <button
-                className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
-                style={{ width: "100%" }}
-                onClick={() => handleStep2Submit()}
-              >
-                Далее
-              </button>
-            </Col>
-          </Row>
-        </div>
+        <Row gutter={16} className="mt-4">
+          <Col span={12}>
+            <button
+              className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+              style={{ width: "100%" }}
+              onClick={() => setCurrentStep(0)}
+            >
+              Назад
+            </button>
+          </Col>
+          <Col span={12}>
+            <button
+              className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+              style={{ width: "100%" }}
+              onClick={() => handleStep2Submit()}
+            >
+              Далее
+            </button>
+          </Col>
+        </Row>
       </div>
     );
   };
@@ -1110,28 +940,26 @@ const CreateEquipmentModal = ({
             </Row>
           ))}
         </div>
-        <div>
-          <Row gutter={16} className="mt-4">
-            <Col span={12}>
-              <button
-                className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
-                style={{ width: "100%" }}
-                onClick={() => setCurrentStep(1)}
-              >
-                Назад
-              </button>
-            </Col>
-            <Col span={12}>
-              <button
-                className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
-                style={{ width: "100%" }}
-                onClick={() => handleStep3Submit()}
-              >
-                Далее
-              </button>
-            </Col>
-          </Row>
-        </div>
+        <Row gutter={16} className="mt-4">
+          <Col span={12}>
+            <button
+              className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+              style={{ width: "100%" }}
+              onClick={() => setCurrentStep(1)}
+            >
+              Назад
+            </button>
+          </Col>
+          <Col span={12}>
+            <button
+              className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+              style={{ width: "100%" }}
+              onClick={() => handleStep3Submit()}
+            >
+              Далее
+            </button>
+          </Col>
+        </Row>
       </div>
     );
   };

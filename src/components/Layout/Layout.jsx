@@ -617,12 +617,12 @@ const Layout = ({ children }) => {
             {/* ... rest of the technical characteristics code ... */}
 
             {/* QR Code */}
-            {selectedEquipment.qr_code_url && (
+            {selectedEquipment.inn && (
               <div className="bg-purple-50 p-4 rounded-lg text-center">
                 <h4 className="font-medium mb-3">QR Код</h4>
                 <div className="inline-block p-3 bg-white rounded-lg shadow-sm">
                   <img
-                    src={selectedEquipment.qr_code_url}
+                    src={`http://api.qrserver.com/v1/create-qr-code/?data=${selectedEquipment.inn}&size=200x200&bgcolor=FFFFFF&color=000000&format=png`}
                     alt="QR Code"
                     className="w-32 h-32 mx-auto"
                   />

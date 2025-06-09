@@ -1,4 +1,4 @@
-// RepairsPage.jsx
+// RepairsPage.jsx - Fixed version with proper equipment type handling
 "use client";
 
 import { useEffect, useState } from "react";
@@ -108,37 +108,149 @@ const RepairsPage = () => {
     return grouped;
   };
 
+  // Enhanced function to prepare equipment data for all types
   const prepareEquipmentData = (equipment) => {
-    const isPrinter =
-      equipment.type_data?.name?.toLowerCase().includes("принтер") ||
-      equipment.type_data?.name?.toLowerCase().includes("printer");
-    const isComputer =
-      equipment.type_data?.name?.toLowerCase().includes("компьютер") ||
-      equipment.type_data?.name?.toLowerCase().includes("computer");
-
-    return {
-      serial_number: equipment?.serial_number || "N/A",
-      ...(isPrinter
-        ? {
-            printer_char: equipment?.printer_char || {
-              model: "Unknown",
-              type: "Unknown",
-            },
-            printer_specification_id:
-              equipment?.printer_specification_id || null,
-          }
-        : {}),
-      ...(isComputer
-        ? {
-            computer_details: equipment?.computer_details || {
-              cpu: "Unknown",
-              ram: "Unknown",
-            },
-            computer_specification_id:
-              equipment?.computer_specification_id || null,
-          }
-        : {}),
+    const typeName = equipment.type_data?.name?.toLowerCase() || "";
+    let equipmentData = {
+      name: equipment.name || "",
+      description: equipment.description || "",
+      inn: equipment.inn || 0,
+      serial_number: equipment.serial_number || "N/A",
+      type: equipment.type_data?.id || equipment.type,
     };
+
+    // Handle specific equipment types based on their names
+    if (typeName.includes("принтер") || typeName.includes("printer")) {
+      equipmentData = {
+        ...equipmentData,
+        printer_char: equipment.printer_char || {
+          model: equipment.model || "Unknown",
+          serial_number: equipment.serial_number || "N/A",
+          type: "Laser",
+        },
+        printer_specification_id: equipment.printer_specification_id || null,
+      };
+    } else if (
+      typeName.includes("компьютер") ||
+      typeName.includes("computer")
+    ) {
+      equipmentData = {
+        ...equipmentData,
+        computer_details: equipment.computer_details || {
+          cpu: equipment.cpu || "Unknown CPU",
+          ram: equipment.ram || "Unknown RAM",
+          storage: equipment.storage || "Unknown Storage",
+          has_mouse: equipment.has_mouse || false,
+          has_keyboard: equipment.has_keyboard || false,
+        },
+        computer_specification_id: equipment.computer_specification_id || null,
+      };
+    } else if (typeName.includes("ноутбук") || typeName.includes("notebook")) {
+      equipmentData = {
+        ...equipmentData,
+        notebook_char: equipment.notebook_char || {
+          model: equipment.model || "Unknown",
+          serial_number: equipment.serial_number || "N/A",
+          cpu: equipment.cpu || "Unknown CPU",
+          ram: equipment.ram || "Unknown RAM",
+          storage: equipment.storage || "Unknown Storage",
+          screen_size:
+            equipment.screen_size || equipment.monitor_size || "Unknown",
+        },
+        notebook_specification_id: equipment.notebook_specification_id || null,
+      };
+    } else if (typeName.includes("моноблок") || typeName.includes("monoblok")) {
+      equipmentData = {
+        ...equipmentData,
+        monoblok_char: equipment.monoblok_char || {
+          model: equipment.model || "Unknown",
+          serial_number: equipment.serial_number || "N/A",
+          cpu: equipment.cpu || "Unknown CPU",
+          ram: equipment.ram || "Unknown RAM",
+          storage: equipment.storage || "Unknown Storage",
+          screen_size:
+            equipment.screen_size || equipment.monitor_size || "Unknown",
+        },
+        monoblok_specification_id: equipment.monoblok_specification_id || null,
+      };
+    } else if (
+      typeName.includes("проектор") ||
+      typeName.includes("projector")
+    ) {
+      equipmentData = {
+        ...equipmentData,
+        projector_char: equipment.projector_char || {
+          model: equipment.model || "Unknown",
+          serial_number: equipment.serial_number || "N/A",
+          lumens: equipment.lumens || "Unknown",
+          resolution: equipment.resolution || "Unknown",
+        },
+        projector_specification_id:
+          equipment.projector_specification_id || null,
+      };
+    } else if (typeName.includes("телевизор") || typeName.includes("tv")) {
+      equipmentData = {
+        ...equipmentData,
+        tv_char: equipment.tv_char || {
+          model: equipment.model || "Unknown",
+          serial_number: equipment.serial_number || "N/A",
+          screen_size: equipment.screen_size || "Unknown",
+          resolution: equipment.resolution || "Unknown",
+        },
+        tv_specification_id: equipment.tv_specification_id || null,
+      };
+    } else if (typeName.includes("роутер") || typeName.includes("router")) {
+      equipmentData = {
+        ...equipmentData,
+        router_char: equipment.router_char || {
+          model: equipment.model || "Unknown",
+          serial_number: equipment.serial_number || "N/A",
+          ports: equipment.ports || "Unknown",
+          wifi_standart: equipment.wifi_standart || "Unknown",
+        },
+        router_specification_id: equipment.router_specification_id || null,
+      };
+    } else if (typeName.includes("монитор") || typeName.includes("monitor")) {
+      equipmentData = {
+        ...equipmentData,
+        monitor_char: equipment.monitor_char || {
+          model: equipment.model || "Unknown",
+          serial_number: equipment.serial_number || "N/A",
+          screen_size: equipment.screen_size || "Unknown",
+          resolution: equipment.resolution || "Unknown",
+          panel_type: equipment.panel_type || "Unknown",
+        },
+        monitor_specification_id: equipment.monitor_specification_id || null,
+      };
+    } else if (typeName.includes("доска") || typeName.includes("whiteboard")) {
+      equipmentData = {
+        ...equipmentData,
+        whiteboard_char: equipment.whiteboard_char || {
+          model: equipment.model || "Unknown",
+          serial_number: equipment.serial_number || "N/A",
+          screen_size: equipment.screen_size || "Unknown",
+          touch_type: equipment.touch_type || "Unknown",
+        },
+        whiteboard_specification_id:
+          equipment.whiteboard_specification_id || null,
+      };
+    } else if (
+      typeName.includes("удлинитель") ||
+      typeName.includes("extender")
+    ) {
+      equipmentData = {
+        ...equipmentData,
+        extender_char: equipment.extender_char || {
+          model: equipment.model || "Unknown",
+          serial_number: equipment.serial_number || "N/A",
+          ports: equipment.ports || "Unknown",
+          length: equipment.length || "Unknown",
+        },
+        extender_specification_id: equipment.extender_specification_id || null,
+      };
+    }
+
+    return equipmentData;
   };
 
   const handleStatusChange = (equipmentId, newStatus) => {
@@ -161,12 +273,9 @@ const RepairsPage = () => {
 
     try {
       const equipmentData = prepareEquipmentData(currentEquipment);
-
       const updateData = {
-        status: newStatus,
-        type: currentEquipment.type_data?.id || currentEquipment.type,
-        serial_number: currentEquipment?.serial_number || "N/A",
         ...equipmentData,
+        status: newStatus,
       };
 
       await equipmentAPI.patchEquipment(equipmentId, updateData);
@@ -213,24 +322,6 @@ const RepairsPage = () => {
       description: item.description || "",
       status: item.status || "NEEDS_REPAIR",
       serial_number: item.serial_number || "",
-      ...(item.type_data?.name?.toLowerCase().includes("принтер") ||
-      item.type_data?.name?.toLowerCase().includes("printer")
-        ? {
-            printer_char: item.printer_char
-              ? JSON.stringify(item.printer_char)
-              : "",
-            printer_specification_id: item.printer_specification_id || "",
-          }
-        : {}),
-      ...(item.type_data?.name?.toLowerCase().includes("компьютер") ||
-      item.type_data?.name?.toLowerCase().includes("computer")
-        ? {
-            computer_details: item.computer_details
-              ? JSON.stringify(item.computer_details)
-              : "",
-            computer_specification_id: item.computer_specification_id || "",
-          }
-        : {}),
     });
     setEditModalVisible(true);
   };
@@ -247,36 +338,10 @@ const RepairsPage = () => {
   const handleUpdateEquipment = async (values) => {
     try {
       const equipmentData = prepareEquipmentData(selectedEquipment);
-      const isPrinter =
-        selectedEquipment.type_data?.name?.toLowerCase().includes("принтер") ||
-        selectedEquipment.type_data?.name?.toLowerCase().includes("printer");
-      const isComputer =
-        selectedEquipment.type_data?.name
-          ?.toLowerCase()
-          .includes("компьютер") ||
-        selectedEquipment.type_data?.name?.toLowerCase().includes("computer");
 
       const updateData = {
+        ...equipmentData,
         ...values,
-        type: selectedEquipment.type_data?.id || selectedEquipment.type,
-        serial_number: values.serial_number || "N/A",
-        ...(isPrinter
-          ? {
-              printer_char: values.printer_char
-                ? JSON.parse(values.printer_char)
-                : { model: "Unknown", type: "Unknown" },
-              printer_specification_id: values.printer_specification_id || null,
-            }
-          : {}),
-        ...(isComputer
-          ? {
-              computer_details: values.computer_details
-                ? JSON.parse(values.computer_details)
-                : { cpu: "Unknown", ram: "Unknown" },
-              computer_specification_id:
-                values.computer_specification_id || null,
-            }
-          : {}),
       };
 
       await equipmentAPI.updateEquipment(selectedEquipment.id, updateData);
@@ -296,11 +361,9 @@ const RepairsPage = () => {
       const equipmentData = prepareEquipmentData(selectedEquipment);
 
       const updateData = {
+        ...equipmentData,
         status: values.status,
         reason: values.reason,
-        type: selectedEquipment.type_data?.id || selectedEquipment.type,
-        serial_number: selectedEquipment?.serial_number || "N/A",
-        ...equipmentData,
       };
 
       await equipmentAPI.patchEquipment(selectedEquipment.id, updateData);
@@ -331,10 +394,8 @@ const RepairsPage = () => {
       const equipmentData = prepareEquipmentData(equipment);
 
       const updateData = {
-        status: newStatus,
-        type: equipment.type_data?.id || equipment.type,
-        serial_number: equipment?.serial_number || "N/A",
         ...equipmentData,
+        status: newStatus,
       };
 
       await equipmentAPI.patchEquipment(equipment.id, updateData);
@@ -373,16 +434,9 @@ const RepairsPage = () => {
             <div className="flex-1">
               <div className="flex items-center space-x-2">
                 <h4 className="font-medium text-gray-800">{item.name}</h4>
-                {item.type_data?.name?.toLowerCase().includes("принтер") && (
-                  <Tag size="small" color="blue">
-                    Принтер
-                  </Tag>
-                )}
-                {item.type_data?.name?.toLowerCase().includes("компьютер") && (
-                  <Tag size="small" color="green">
-                    Компьютер
-                  </Tag>
-                )}
+                <Tag size="small" color="blue">
+                  {item.type_data?.name}
+                </Tag>
               </div>
               <p className="mt-2 flex items-center gap-2">
                 <FiMapPin />
@@ -548,6 +602,7 @@ const RepairsPage = () => {
         <Spin spinning={loading}>{renderEquipmentList()}</Spin>
       </Card>
 
+      {/* Edit Modal */}
       <Modal
         title="Редактировать оборудование"
         visible={editModalVisible}
@@ -580,130 +635,6 @@ const RepairsPage = () => {
             <Input placeholder="Серийный номер" />
           </Form.Item>
 
-          <Form.Item
-            label="Характеристика принтера"
-            name="printer_char"
-            rules={[
-              {
-                required:
-                  selectedEquipment?.type_data?.name
-                    ?.toLowerCase()
-                    .includes("принтер") ||
-                  selectedEquipment?.type_data?.name
-                    ?.toLowerCase()
-                    .includes("printer"),
-                message: "Введите характеристику принтера в формате JSON!",
-              },
-              {
-                validator: async (_, value) => {
-                  if (
-                    (selectedEquipment?.type_data?.name
-                      ?.toLowerCase()
-                      .includes("принтер") ||
-                      selectedEquipment?.type_data?.name
-                        ?.toLowerCase()
-                        .includes("printer")) &&
-                    value
-                  ) {
-                    try {
-                      JSON.parse(value);
-                    } catch (e) {
-                      throw new Error(
-                        "Характеристика принтера должна быть в формате JSON!"
-                      );
-                    }
-                  }
-                },
-              },
-            ]}
-          >
-            <Input.TextArea
-              rows={3}
-              placeholder='Характеристика принтера в формате JSON (например, {"model": "HP LaserJet", "type": "color"})'
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="ID спецификации принтера"
-            name="printer_specification_id"
-            rules={[
-              {
-                required:
-                  selectedEquipment?.type_data?.name
-                    ?.toLowerCase()
-                    .includes("принтер") ||
-                  selectedEquipment?.type_data?.name
-                    ?.toLowerCase()
-                    .includes("printer"),
-                message: "Введите ID спецификации принтера!",
-              },
-            ]}
-          >
-            <Input placeholder="ID спецификации принтера" />
-          </Form.Item>
-
-          <Form.Item
-            label="Характеристика компьютера"
-            name="computer_details"
-            rules={[
-              {
-                required:
-                  selectedEquipment?.type_data?.name
-                    ?.toLowerCase()
-                    .includes("компьютер") ||
-                  selectedEquipment?.type_data?.name
-                    ?.toLowerCase()
-                    .includes("computer"),
-                message: "Введите характеристику компьютера в формате JSON!",
-              },
-              {
-                validator: async (_, value) => {
-                  if (
-                    (selectedEquipment?.type_data?.name
-                      ?.toLowerCase()
-                      .includes("компьютер") ||
-                      selectedEquipment?.type_data?.name
-                        ?.toLowerCase()
-                        .includes("computer")) &&
-                    value
-                  ) {
-                    try {
-                      JSON.parse(value);
-                    } catch (e) {
-                      throw new Error(
-                        "Характеристика компьютера должна быть в формате JSON!"
-                      );
-                    }
-                  }
-                },
-              },
-            ]}
-          >
-            <Input.TextArea
-              rows={3}
-              placeholder='Характеристика компьютера в формате JSON (например, {"cpu": "Intel i5", "ram": "16GB"})'
-            />
-          </Form.Item>
-
-          <Form.Item
-            label="ID спецификации компьютера"
-            name="computer_specification_id"
-            rules={[
-              {
-                required:
-                  selectedEquipment?.type_data?.name
-                    ?.toLowerCase()
-                    .includes("компьютер") ||
-                  selectedEquipment?.type_data?.name
-                    ?.toLowerCase()
-                    .includes("computer"),
-                message: "Введите ID спецификации компьютера!",
-              },
-            ]}
-          >
-            <Input placeholder="ID спецификации компьютера" />
-          </Form.Item>
-
           <Form.Item label="Описание" name="description">
             <Input.TextArea rows={3} placeholder="Описание оборудования" />
           </Form.Item>
@@ -728,179 +659,6 @@ const RepairsPage = () => {
                 setEditModalVisible(false);
                 setSelectedEquipment(null);
                 form.resetFields();
-              }}
-            >
-              Отмена
-            </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              className="bg-[#4E38F2] border-[#4E38F2]"
-            >
-              Сохранить
-            </Button>
-          </div>
-        </Form>
-      </Modal>
-
-      <Modal
-        title={`${selectedEquipment?.type_data?.name} - Управление состоянием`}
-        visible={statusModalVisible}
-        onCancel={() => {
-          setStatusModalVisible(false);
-          setSelectedEquipment(null);
-          statusForm.resetFields();
-        }}
-        footer={null}
-        width={700}
-      >
-        {selectedEquipment && (
-          <div className="mb-6">
-            <div className="p-4 bg-gray-50 rounded-lg border">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <EquipmentIcon type={selectedEquipment.type_data?.name} />
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-800 text-lg">
-                    {selectedEquipment.name}
-                  </h4>
-                  <p className="text-sm text-gray-500">
-                    ИНН: {selectedEquipment.inn || "Не указан"}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Серийный номер:{" "}
-                    {selectedEquipment.serial_number || "Не указан"}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Комната: {selectedEquipment.room_data?.number} -{" "}
-                    {selectedEquipment.room_data?.name}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Текущий статус:</span>
-                  <div className="mt-1">
-                    <Tag
-                      style={{
-                        backgroundColor: getStatusConfig(
-                          selectedEquipment.status
-                        ).bgColor,
-                        color: getStatusConfig(selectedEquipment.status).color,
-                        border: `1px solid ${
-                          getStatusConfig(selectedEquipment.status).borderColor
-                        }`,
-                      }}
-                    >
-                      {getStatusConfig(selectedEquipment.status).text}
-                    </Tag>
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Тип оборудования:</span>
-                  <div className="mt-1 font-medium">
-                    {selectedEquipment.type_data?.name}
-                  </div>
-                </div>
-              </div>
-
-              {selectedEquipment.description && (
-                <div className="mt-3">
-                  <span className="text-gray-600">Описание:</span>
-                  <p className="mt-1 text-gray-800">
-                    {selectedEquipment.description}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h5 className="font-medium text-blue-800 mb-3">
-                Быстрые действия:
-              </h5>
-              <div className="flex flex-wrap gap-2">
-                {selectedEquipment.status === "NEEDS_REPAIR" && (
-                  <>
-                    <Button
-                      icon={<FiTool />}
-                      onClick={() => {
-                        handleQuickStatusChange(selectedEquipment, "REPAIR");
-                        setStatusModalVisible(false);
-                      }}
-                      className="border-orange-500 text-orange-600 hover:bg-orange-50"
-                    >
-                      Отправить на ремонт
-                    </Button>
-                    <Button
-                      icon={<FiArchive />}
-                      onClick={() => {
-                        handleQuickStatusChange(selectedEquipment, "DISPOSED");
-                        setStatusModalVisible(false);
-                      }}
-                      className="border-gray-500 text-gray-600 hover:bg-gray-50"
-                    >
-                      Утилизировать
-                    </Button>
-                  </>
-                )}
-                {selectedEquipment.status === "REPAIR" && (
-                  <>
-                    <Button
-                      icon={<FiCheckCircle />}
-                      onClick={() => {
-                        handleQuickStatusChange(selectedEquipment, "WORKING");
-                        setStatusModalVisible(false);
-                      }}
-                      className="border-green-500 text-green-600 hover:bg-green-50"
-                    >
-                      Ремонт завершен
-                    </Button>
-                    <Button
-                      icon={<FiXCircle />}
-                      onClick={() => {
-                        handleQuickStatusChange(selectedEquipment, "DISPOSED");
-                        setStatusModalVisible(false);
-                      }}
-                      className="border-red-500 text-red-600 hover:bg-red-50"
-                    >
-                      Не подлежит ремонту
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <Form form={statusForm} layout="vertical" onFinish={handleStatusUpdate}>
-          <Form.Item
-            label="Новый статус"
-            name="status"
-            rules={[{ required: true, message: "Выберите новый статус!" }]}
-          >
-            <Select placeholder="Выберите новый статус" size="large">
-              <Option value="NEW">Новое</Option>
-              <Option value="WORKING">Работает</Option>
-              <Option value="NEEDS_REPAIR">Требуется ремонт</Option>
-              <Option value="DISPOSED">Утилизировано</Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item label="Причина изменения" name="reason">
-            <Input.TextArea
-              rows={3}
-              placeholder="Укажите причину изменения статуса"
-            />
-          </Form.Item>
-
-          <div className="flex justify-end space-x-2">
-            <Button
-              onClick={() => {
-                setStatusModalVisible(false);
-                setSelectedEquipment(null);
-                statusForm.resetFields();
               }}
             >
               Отмена
