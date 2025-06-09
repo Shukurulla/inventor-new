@@ -139,14 +139,6 @@ const SettingsPage = () => {
           onFinish={handleProfileUpdate}
         >
           <div className="flex items-start space-x-6 mb-6">
-            <div className="flex flex-col items-center space-y-3">
-              <Avatar size={80} icon={<FiUser />} className="bg-indigo-600">
-                {profileData?.first_name?.charAt(0) ||
-                  profileData?.username?.charAt(0) ||
-                  "U"}
-              </Avatar>
-            </div>
-
             <div className="flex-1 grid grid-cols-2 gap-4">
               <Form.Item
                 label="Имя пользователя"

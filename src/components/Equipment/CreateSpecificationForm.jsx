@@ -24,7 +24,6 @@ const CreateSpecificationForm = ({
 }) => {
   const typeName = equipmentType?.name?.toLowerCase() || "";
   const [storageList, setStorageList] = useState([{ id: Date.now() }]);
-  console.log(form.getFieldValue());
 
   // Initialize storage list from existing data when editing
   useEffect(() => {
@@ -46,9 +45,17 @@ const CreateSpecificationForm = ({
         formValues[`storage_${storageId}_type`] = disk.disk_type;
       });
 
+      // Set GPU specifications if exists
+      if (
+        initialData.gpu_specifications &&
+        initialData.gpu_specifications.length > 0
+      ) {
+        formValues.gpu_model = initialData.gpu_specifications[0].model;
+      }
+
       // Set other form values
       Object.keys(initialData).forEach((key) => {
-        if (key !== "disk_specifications") {
+        if (key !== "disk_specifications" && key !== "gpu_specifications") {
           formValues[key] = initialData[key];
         }
       });
@@ -157,7 +164,7 @@ const CreateSpecificationForm = ({
         <Col span={12}>
           <Form.Item
             label="Видеокарта"
-            name="gpu_scpectifications"
+            name="gpu_model"
             rules={[{ required: true, message: "Введите видеокарту!" }]}
           >
             <Input placeholder="NVIDIA GTX 1050 Ti" />
@@ -277,6 +284,15 @@ const CreateSpecificationForm = ({
 
       <Row gutter={16}>
         <Col span={12}>
+          <Form.Item
+            label="Видеокарта"
+            name="gpu_model"
+            rules={[{ required: true, message: "Введите видеокарту!" }]}
+          >
+            <Input placeholder="NVIDIA GTX 1650" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
           <Form.Item label="Размер экрана (дюймы)" name="monitor_size">
             <InputNumber
               min={10}
@@ -381,6 +397,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Видеокарта"
+            name="gpu_model"
+            rules={[{ required: true, message: "Введите видеокарту!" }]}
+          >
+            <Input placeholder="NVIDIA GTX 1650" />
+          </Form.Item>
+        </Col>
+        <Col span={6}>
+          <Form.Item
             label="Размер экрана (дюймы)"
             name="screen_size"
             rules={[{ required: true, message: "Введите размер экрана!" }]}
@@ -393,6 +418,8 @@ const CreateSpecificationForm = ({
             />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={6}>
           <Form.Item
             label="Есть клавиатура"
@@ -783,6 +810,20 @@ const CreateSpecificationForm = ({
         delete values[`storage_${storage.id}_type`];
       });
       values.disk_specifications = diskSpecifications;
+
+      // Process GPU specifications
+      if (values.gpu_model) {
+        values.gpu_specifications = [
+          {
+            id: 1,
+            author: null,
+            created_at: new Date(),
+            model: values.gpu_model,
+          },
+        ];
+        // Remove the individual gpu_model field
+        delete values.gpu_model;
+      }
 
       // Remove old storage field if exists
       delete values.storage;

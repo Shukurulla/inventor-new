@@ -1,4 +1,14 @@
-import { Modal, Input, Select, Button, Row, Col, Switch, message } from "antd";
+import {
+  Modal,
+  Input,
+  Select,
+  Button,
+  Row,
+  Col,
+  Switch,
+  message,
+  Upload,
+} from "antd";
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { FiUpload, FiDownload } from "react-icons/fi";
@@ -30,19 +40,29 @@ const CreateEquipmentModal = ({
     description: "",
     contract_id: null,
     computer_specification_id: null,
+    projector_specification_id: null,
+    printer_specification_id: null,
+    tv_specification_id: null,
+    router_specification_id: null,
+    notebook_specification_id: null,
+    monoblok_specification_id: null,
+    whiteboard_specification_id: null,
+    extender_specification_id: null,
+    monitor_specification_id: null,
     cpu: "",
     ram: "",
     storage: "",
     monitor_size: "",
     has_mouse: false,
     has_keyboard: false,
-    // Add other specification fields as needed
+    image: null,
   });
   const [createdEquipment, setCreatedEquipment] = useState([]);
   const [selectedSpecification, setSelectedSpecification] = useState(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [innValues, setInnValues] = useState({}); // For step 3 INN inputs
   const [errors, setErrors] = useState({}); // For validation errors
+  const [fileList, setFileList] = useState([]);
 
   const dispatch = useDispatch();
   const { loading } = useSelector((state) => state.equipment);
@@ -58,14 +78,14 @@ const CreateEquipmentModal = ({
 
   useEffect(() => {
     if (visible && equipmentType && room) {
-      setFormValues({
-        ...formValues,
+      setFormValues((prev) => ({
+        ...prev,
         type_id: equipmentType.id,
         room_id: room.id,
         status: "NEW",
         count: 1,
         name_prefix: "",
-      });
+      }));
     }
   }, [visible, equipmentType, room]);
 
@@ -83,6 +103,7 @@ const CreateEquipmentModal = ({
     if (typeName.includes("моноблок")) return "monoblok_specification_id";
     if (typeName.includes("доска")) return "whiteboard_specification_id";
     if (typeName.includes("удлинитель")) return "extender_specification_id";
+    if (typeName.includes("монитор")) return "monitor_specification_id";
     return null;
   };
 
@@ -100,6 +121,7 @@ const CreateEquipmentModal = ({
     if (typeName.includes("моноблок")) return specifications.monoblok || [];
     if (typeName.includes("доска")) return specifications.whiteboard || [];
     if (typeName.includes("удлинитель")) return specifications.extender || [];
+    if (typeName.includes("монитор")) return specifications.monitor || [];
     return [];
   };
 
@@ -124,7 +146,19 @@ const CreateEquipmentModal = ({
         setSelectedSpecification(spec);
       }
     }
-  }, [formValues.type_id, formValues.computer_specification_id]); // Adjust dependency based on spec field
+  }, [
+    formValues.type_id,
+    formValues.computer_specification_id,
+    formValues.projector_specification_id,
+    formValues.printer_specification_id,
+    formValues.tv_specification_id,
+    formValues.router_specification_id,
+    formValues.notebook_specification_id,
+    formValues.monoblok_specification_id,
+    formValues.whiteboard_specification_id,
+    formValues.extender_specification_id,
+    formValues.monitor_specification_id,
+  ]);
 
   const handleInputChange = (name, value) => {
     setFormValues((prev) => ({ ...prev, [name]: value }));
@@ -139,6 +173,32 @@ const CreateEquipmentModal = ({
     // Clear error when user types
     if (errors[`inn_${equipmentId}`]) {
       setErrors((prev) => ({ ...prev, [`inn_${equipmentId}`]: null }));
+    }
+  };
+
+  const beforeUpload = (file) => {
+    const isJpgOrPng = file.type === "image/jpeg" || file.type === "image/png";
+    if (!isJpgOrPng) {
+      message.error("Можно загружать только JPG/PNG файлы!");
+      return false;
+    }
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+      message.error("Изображение должно быть меньше 2MB!");
+      return false;
+    }
+    return false; // Prevent auto upload
+  };
+
+  const handleImageChange = ({ fileList: newFileList }) => {
+    setFileList(newFileList);
+    if (newFileList.length > 0) {
+      setFormValues((prev) => ({
+        ...prev,
+        image: newFileList[0].originFileObj,
+      }));
+    } else {
+      setFormValues((prev) => ({ ...prev, image: null }));
     }
   };
 
@@ -158,7 +218,11 @@ const CreateEquipmentModal = ({
     const newErrors = {};
     const specFieldName = getSpecificationFieldName(formValues.type_id);
     const availableSpecs = getSpecificationsForType(formValues.type_id);
-    if (!formValues[specFieldName] && availableSpecs.length > 0) {
+    if (
+      specFieldName &&
+      !formValues[specFieldName] &&
+      availableSpecs.length > 0
+    ) {
       newErrors[specFieldName] = "Выберите шаблон!";
     }
     setErrors(newErrors);
@@ -202,8 +266,13 @@ const CreateEquipmentModal = ({
         count: formValues.count || 1,
       };
 
-      if (specFieldName) {
+      if (specFieldName && formValues[specFieldName]) {
         equipmentData[specFieldName] = formValues[specFieldName];
+      }
+
+      // Add image if uploaded
+      if (formValues.image) {
+        equipmentData.image = formValues.image;
       }
 
       const result = await dispatch(
@@ -268,18 +337,29 @@ const CreateEquipmentModal = ({
       description: "",
       contract_id: null,
       computer_specification_id: null,
+      projector_specification_id: null,
+      printer_specification_id: null,
+      tv_specification_id: null,
+      router_specification_id: null,
+      notebook_specification_id: null,
+      monoblok_specification_id: null,
+      whiteboard_specification_id: null,
+      extender_specification_id: null,
+      monitor_specification_id: null,
       cpu: "",
       ram: "",
       storage: "",
       monitor_size: "",
       has_mouse: false,
       has_keyboard: false,
+      image: null,
     });
     setCreatedEquipment([]);
     setSelectedSpecification(null);
     setIsCompleted(false);
     setInnValues({});
     setErrors({});
+    setFileList([]);
   };
 
   const handleSpecificationChange = (value) => {
@@ -324,12 +404,24 @@ const CreateEquipmentModal = ({
             <span className="text-gray-700 text-lg font-semibold">
               Фото техники:
             </span>
-            <Button
-              icon={<FiUpload />}
-              className="flex items-center gap-2 bg-[#4E38F2] text-white border-none hover:bg-[#4A63D7]"
+            <Upload
+              listType="picture-card"
+              fileList={fileList}
+              onChange={handleImageChange}
+              beforeUpload={beforeUpload}
+              maxCount={1}
+              showUploadList={{
+                showPreviewIcon: false,
+                showRemoveIcon: true,
+              }}
             >
-              Загрузить
-            </Button>
+              {fileList.length === 0 && (
+                <div className="flex flex-col items-center">
+                  <FiUpload />
+                  <div style={{ marginTop: 8 }}>Загрузить</div>
+                </div>
+              )}
+            </Upload>
           </div>
         </Col>
       </Row>
@@ -420,7 +512,7 @@ const CreateEquipmentModal = ({
                   <Select
                     value={selectedSpecId}
                     onChange={handleSpecificationChange}
-                    placeholder="LG short 100"
+                    placeholder="Выберите шаблон"
                     style={{ height: "40px" }}
                   >
                     {availableSpecs.map((spec) => (
@@ -448,7 +540,9 @@ const CreateEquipmentModal = ({
               </Col>
             </Row>
 
-            {equipmentType?.name?.toLowerCase().includes("компьютер") && (
+            {(equipmentType?.name?.toLowerCase().includes("компьютер") ||
+              equipmentType?.name?.toLowerCase().includes("ноутбук") ||
+              equipmentType?.name?.toLowerCase().includes("моноблок")) && (
               <>
                 <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
                   <Col span={12}>
@@ -473,7 +567,7 @@ const CreateEquipmentModal = ({
                   </Col>
                 </Row>
 
-                <Row gutter={[16, 16]} style={{ marginTop: ",16px" }}>
+                <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
                   <Col span={12}>
                     <div className="flex flex-col">
                       <Input
@@ -496,20 +590,23 @@ const CreateEquipmentModal = ({
                   </Col>
                 </Row>
 
-                <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                  <Col span={12}>
-                    <div className="flex flex-col">
-                      <label className="text-gray-700 mb-1">Мышка</label>
-                      <Switch checked={formValues.has_mouse} disabled />
-                    </div>
-                  </Col>
-                  <Col span={12}>
-                    <div className="flex flex-col">
-                      <label className="text-gray-700 mb-1">Клавиатура</label>
-                      <Switch checked={formValues.has_keyboard} disabled />
-                    </div>
-                  </Col>
-                </Row>
+                {(equipmentType?.name?.toLowerCase().includes("компьютер") ||
+                  equipmentType?.name?.toLowerCase().includes("моноблок")) && (
+                  <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
+                    <Col span={12}>
+                      <div className="flex flex-col">
+                        <label className="text-gray-700 mb-1">Мышка</label>
+                        <Switch checked={formValues.has_mouse} disabled />
+                      </div>
+                    </Col>
+                    <Col span={12}>
+                      <div className="flex flex-col">
+                        <label className="text-gray-700 mb-1">Клавиатура</label>
+                        <Switch checked={formValues.has_keyboard} disabled />
+                      </div>
+                    </Col>
+                  </Row>
+                )}
               </>
             )}
           </>

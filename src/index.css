@@ -35,6 +35,7 @@ body {
 }
 .dark .ant-input-number-input {
   background: #222222 !important;
+  color: #ffff !important;
 }
 .dark .ant-input-number-input::placeholder {
   color: #eef2ff59 !important;

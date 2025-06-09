@@ -8,6 +8,7 @@ import {
   Switch,
   message,
   Form,
+  Upload,
 } from "antd";
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -44,6 +45,7 @@ const EditEquipmentModal = ({
   const [selectedSpecification, setSelectedSpecification] = useState(null);
   const [createSpecModalVisible, setCreateSpecModalVisible] = useState(false);
   const [errors, setErrors] = useState({});
+  const [fileList, setFileList] = useState([]);
 
   const dispatch = useDispatch();
   const { loading } = useSelector((state) => state.equipment);
@@ -120,12 +122,34 @@ const EditEquipmentModal = ({
       if (spec) {
         initialValues.cpu = spec.cpu || "";
         initialValues.ram = spec.ram || "";
-        initialValues.storage = spec.storage || "";
+
+        // Handle disk specifications for storage display
+        if (spec.disk_specifications && spec.disk_specifications.length > 0) {
+          const storageInfo = spec.disk_specifications
+            .map((disk) => `${disk.capacity_gb}GB ${disk.disk_type}`)
+            .join(", ");
+          initialValues.storage = storageInfo;
+        } else {
+          initialValues.storage = spec.storage || "";
+        }
+
         initialValues.monitor_size =
           spec.monitor_size || spec.screen_size || "";
         initialValues.has_mouse = spec.has_mouse || false;
         initialValues.has_keyboard = spec.has_keyboard || false;
         setSelectedSpecification(spec);
+      }
+
+      // Handle existing image
+      if (equipment.image) {
+        setFileList([
+          {
+            uid: "-1",
+            name: "image.png",
+            status: "done",
+            url: equipment.image,
+          },
+        ]);
       }
 
       console.log("Initial values:", initialValues);
@@ -178,6 +202,30 @@ const EditEquipmentModal = ({
     }
   };
 
+  const beforeUpload = (file) => {
+    const isJpgOrPng = file.type === "image/jpeg" || file.type === "image/png";
+    if (!isJpgOrPng) {
+      message.error("Можно загружать только JPG/PNG файлы!");
+      return false;
+    }
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+      message.error("Изображение должно быть меньше 2MB!");
+      return false;
+    }
+    return false; // Prevent auto upload
+  };
+
+  const handleImageChange = ({ fileList: newFileList }) => {
+    setFileList(newFileList);
+    if (newFileList.length > 0 && newFileList[0].originFileObj) {
+      setFormValues((prev) => ({
+        ...prev,
+        image: newFileList[0].originFileObj,
+      }));
+    }
+  };
+
   const handleSpecificationChange = (value) => {
     const typeId = equipment?.type || equipment?.type_data?.id;
     const availableSpecs = getSpecificationsForType(typeId);
@@ -186,12 +234,22 @@ const EditEquipmentModal = ({
 
     const specFieldName = getSpecificationFieldName(typeId);
     if (specFieldName) {
+      // Handle disk specifications for storage display
+      let storageDisplay = "";
+      if (spec?.disk_specifications && spec.disk_specifications.length > 0) {
+        storageDisplay = spec.disk_specifications
+          .map((disk) => `${disk.capacity_gb}GB ${disk.disk_type}`)
+          .join(", ");
+      } else {
+        storageDisplay = spec?.storage || "";
+      }
+
       const newValues = {
         ...formValues,
         [specFieldName]: value,
         cpu: spec?.cpu || "",
         ram: spec?.ram || "",
-        storage: spec?.storage || "",
+        storage: storageDisplay,
         monitor_size: spec?.monitor_size || spec?.screen_size || "",
         has_mouse: spec?.has_mouse || false,
         has_keyboard: spec?.has_keyboard || false,
@@ -202,7 +260,7 @@ const EditEquipmentModal = ({
         [specFieldName]: value,
         cpu: spec?.cpu || "",
         ram: spec?.ram || "",
-        storage: spec?.storage || "",
+        storage: storageDisplay,
         monitor_size: spec?.monitor_size || spec?.screen_size || "",
         has_mouse: spec?.has_mouse || false,
         has_keyboard: spec?.has_keyboard || false,
@@ -241,12 +299,25 @@ const EditEquipmentModal = ({
 
         const specFieldName = getSpecificationFieldName(typeId);
         if (specFieldName) {
+          // Handle disk specifications for storage display
+          let storageDisplay = "";
+          if (
+            newSpec.disk_specifications &&
+            newSpec.disk_specifications.length > 0
+          ) {
+            storageDisplay = newSpec.disk_specifications
+              .map((disk) => `${disk.capacity_gb}GB ${disk.disk_type}`)
+              .join(", ");
+          } else {
+            storageDisplay = newSpec.storage || "";
+          }
+
           const newValues = {
             ...formValues,
             [specFieldName]: newSpec.id,
             cpu: newSpec.cpu || "",
             ram: newSpec.ram || "",
-            storage: newSpec.storage || "",
+            storage: storageDisplay,
             monitor_size: newSpec.monitor_size || newSpec.screen_size || "",
             has_mouse: newSpec.has_mouse || false,
             has_keyboard: newSpec.has_keyboard || false,
@@ -267,10 +338,24 @@ const EditEquipmentModal = ({
 
   const handleSubmit = async (values) => {
     try {
+      // Create FormData if image is included
+      let updateData;
+      if (formValues.image) {
+        updateData = new FormData();
+        Object.keys(values).forEach((key) => {
+          if (values[key] !== null && values[key] !== undefined) {
+            updateData.append(key, values[key]);
+          }
+        });
+        updateData.append("image", formValues.image);
+      } else {
+        updateData = values;
+      }
+
       await dispatch(
         updateEquipment({
           id: equipment.id,
-          data: values,
+          data: updateData,
         })
       ).unwrap();
 
@@ -348,7 +433,9 @@ const EditEquipmentModal = ({
         )}
 
         {(selectedSpecId || selectedSpecification) &&
-          typeName?.toLowerCase().includes("компьютер") && (
+          (typeName?.toLowerCase().includes("компьютер") ||
+            typeName?.toLowerCase().includes("ноутбук") ||
+            typeName?.toLowerCase().includes("моноблок")) && (
             <>
               <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
                 <Col span={12}>
@@ -385,7 +472,7 @@ const EditEquipmentModal = ({
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="monitor_size" label="Размер монитора">
+                  <Form.Item name="monitor_size" label="Размер монитора/экрана">
                     <Input
                       value={formValues.monitor_size}
                       disabled
@@ -396,70 +483,28 @@ const EditEquipmentModal = ({
                 </Col>
               </Row>
 
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-700 mb-1">Мышка</label>
-                    <Switch checked={formValues.has_mouse} disabled />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-700 mb-1">Клавиатура</label>
-                    <Switch checked={formValues.has_keyboard} disabled />
-                  </div>
-                </Col>
-              </Row>
+              {(typeName?.toLowerCase().includes("компьютер") ||
+                typeName?.toLowerCase().includes("моноблок")) && (
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <div className="flex flex-col">
+                      <label className="text-gray-700 mb-1">Мышка</label>
+                      <Switch checked={formValues.has_mouse} disabled />
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div className="flex flex-col">
+                      <label className="text-gray-700 mb-1">Клавиатура</label>
+                      <Switch checked={formValues.has_keyboard} disabled />
+                    </div>
+                  </Col>
+                </Row>
+              )}
             </>
           )}
 
         {(selectedSpecId || selectedSpecification) && (
           <>
-            {typeName?.toLowerCase().includes("ноутбук") && (
-              <>
-                <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                  <Col span={12}>
-                    <Form.Item name="cpu" label="Процессор">
-                      <Input
-                        value={formValues.cpu}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item name="ram" label="ОЗУ">
-                      <Input
-                        value={formValues.ram}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item name="storage" label="Накопитель">
-                      <Input
-                        value={formValues.storage}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item name="monitor_size" label="Размер экрана">
-                      <Input
-                        value={formValues.monitor_size}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </>
-            )}
-
             {typeName?.toLowerCase().includes("проектор") && (
               <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
                 <Col span={12}>
@@ -539,7 +584,6 @@ const EditEquipmentModal = ({
   return (
     <>
       <Modal
-        title="Редактировать оборудование"
         visible={visible}
         onCancel={onCancel}
         footer={null}
@@ -571,16 +615,29 @@ const EditEquipmentModal = ({
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <div className="flex items-center justify-between h-[40px]">
-                  <span className="text-gray-700 text-lg font-semibold">
+                <div className="flex items-center mt-5 justify-between h-[40px]">
+                  <span className="text-gray-500 text-lg font-semibold">
                     Фото техники:
                   </span>
-                  <Button
-                    icon={<FiUpload />}
-                    className="flex items-center gap-2 bg-[#4E38F2] text-white border-none hover:bg-[#4A63D7]"
+                  <Upload
+                    listType="picture-card"
+                    fileList={fileList}
+                    onChange={handleImageChange}
+                    beforeUpload={beforeUpload}
+                    maxCount={1}
+                    accept="image/*"
+                    showUploadList={{
+                      showPreviewIcon: false,
+                      showRemoveIcon: true,
+                    }}
                   >
-                    Загрузить
-                  </Button>
+                    {fileList.length === 0 && (
+                      <div className="flex flex-col text-gray-600 items-center">
+                        <FiUpload />
+                        <div style={{ marginTop: 8 }}>Загрузить</div>
+                      </div>
+                    )}
+                  </Upload>
                 </div>
               </Col>
             </Row>
@@ -634,7 +691,7 @@ const EditEquipmentModal = ({
               </Col>
             </Row>
 
-            {renderSpecificationSection()}
+            {/* {renderSpecificationSection()} */}
 
             <Row gutter={16} className="mt-6">
               <Col span={12}>
