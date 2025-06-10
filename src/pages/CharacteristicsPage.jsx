@@ -1,3 +1,5 @@
+// src/pages/CharacteristicsPage.jsx - FIXED loading issue
+
 "use client";
 
 import { useState } from "react";
@@ -51,7 +53,10 @@ const CharacteristicsPage = () => {
   const [selectedType, setSelectedType] = useState(null);
   const [selectedSpec, setSelectedSpec] = useState(null);
   const [dependentEquipment, setDependentEquipment] = useState([]);
-  const [checkingDependencies, setCheckingDependencies] = useState(false);
+
+  // FIXED: Individual loading states for each specification
+  const [deletingSpecs, setDeletingSpecs] = useState(new Set());
+
   const [specForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
@@ -115,9 +120,12 @@ const CharacteristicsPage = () => {
     },
   ];
 
-  // Check dependencies before deletion
+  // FIXED: Check dependencies before deletion
   const checkSpecificationDependencies = async (spec, typeName) => {
-    setCheckingDependencies(true);
+    // Create unique spec key for loading state
+    const specKey = `${typeName}-${spec.id}`;
+    setDeletingSpecs((prev) => new Set(prev).add(specKey));
+
     try {
       const response = await equipmentAPI.getMyEquipments();
       const allEquipment = response.data || [];
@@ -193,7 +201,12 @@ const CharacteristicsPage = () => {
       console.error("Error checking dependencies:", error);
       message.error("Ошибка при проверке зависимостей");
     } finally {
-      setCheckingDependencies(false);
+      // Remove spec from deleting set
+      setDeletingSpecs((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(specKey);
+        return newSet;
+      });
     }
   };
 
@@ -342,6 +355,18 @@ const CharacteristicsPage = () => {
     }
   };
 
+  // FIXED: Navigate to AddedPage with equipment edit
+  const handleEquipmentEdit = (equipment) => {
+    // Close dependency modal first
+    setDependencyModalVisible(false);
+    setDependentEquipment([]);
+    setSelectedSpec(null);
+    setSelectedType(null);
+
+    // Navigate to AddedPage with equipment data
+    window.location.href = `/added?editEquipmentId=${equipment.id}`;
+  };
+
   const renderTemplatesTab = () => (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -378,55 +403,60 @@ const CharacteristicsPage = () => {
     </div>
   );
 
-  const renderSpecificationItem = (spec, type) => (
-    <div className="flex items-center justify-between p-3 bg-white rounded-lg border mb-2">
-      <div className="flex-1">
-        <div className="font-medium text-gray-800">
-          {spec.model || spec.cpu || `${type} - ID: ${spec.id}`}
+  const renderSpecificationItem = (spec, type) => {
+    // Create unique spec key for loading state
+    const specKey = `${type}-${spec.id}`;
+
+    return (
+      <div className="flex items-center justify-between p-3 bg-white rounded-lg border mb-2">
+        <div className="flex-1">
+          <div className="font-medium text-gray-800">
+            {spec.model || spec.cpu || `${type} - ID: ${spec.id}`}
+          </div>
+          <div className="text-sm text-gray-500 mt-1">
+            {type === "Принтер" && `Принтер - ID: ${spec.id}`}
+            {type === "Компьютер" &&
+              spec.cpu &&
+              `CPU: ${spec.cpu}, RAM: ${spec.ram}`}
+            {type === "Проектор" &&
+              spec.lumens &&
+              `Яркость: ${spec.lumens} люмен`}
+            {type === "Телевизор" &&
+              spec.screen_size &&
+              `Размер: ${spec.screen_size}"`}
+            {type === "Роутер" && spec.ports && `Порты: ${spec.ports}`}
+            {type === "Ноутбук" && spec.cpu && `CPU: ${spec.cpu}`}
+            {type === "Моноблок" &&
+              spec.screen_size &&
+              `Размер: ${spec.screen_size}"`}
+            {type === "Электронная доска" &&
+              spec.screen_size &&
+              `Размер: ${spec.screen_size}"`}
+            {type === "Удлинитель" && spec.ports && `Порты: ${spec.ports}`}
+            {type === "Монитор" &&
+              spec.screen_size &&
+              `Размер: ${spec.screen_size}" ${spec.panel_type}`}
+          </div>
         </div>
-        <div className="text-sm text-gray-500 mt-1">
-          {type === "Принтер" && `Принтер - ID: ${spec.id}`}
-          {type === "Компьютер" &&
-            spec.cpu &&
-            `CPU: ${spec.cpu}, RAM: ${spec.ram}`}
-          {type === "Проектор" &&
-            spec.lumens &&
-            `Яркость: ${spec.lumens} люмен`}
-          {type === "Телевизор" &&
-            spec.screen_size &&
-            `Размер: ${spec.screen_size}"`}
-          {type === "Роутер" && spec.ports && `Порты: ${spec.ports}`}
-          {type === "Ноутбук" && spec.cpu && `CPU: ${spec.cpu}`}
-          {type === "Моноблок" &&
-            spec.screen_size &&
-            `Размер: ${spec.screen_size}"`}
-          {type === "Электронная доска" &&
-            spec.screen_size &&
-            `Размер: ${spec.screen_size}"`}
-          {type === "Удлинитель" && spec.ports && `Порты: ${spec.ports}`}
-          {type === "Монитор" &&
-            spec.screen_size &&
-            `Размер: ${spec.screen_size}" ${spec.panel_type}`}
+        <div className="flex items-center space-x-2">
+          <Button
+            type="text"
+            icon={<FiEdit />}
+            size="small"
+            onClick={() => handleEditSpec(spec, type)}
+          />
+          <Button
+            type="text"
+            danger
+            icon={<FiTrash2 />}
+            size="small"
+            loading={deletingSpecs.has(specKey)}
+            onClick={() => checkSpecificationDependencies(spec, type)}
+          />
         </div>
       </div>
-      <div className="flex items-center space-x-2">
-        <Button
-          type="text"
-          icon={<FiEdit />}
-          size="small"
-          onClick={() => handleEditSpec(spec, type)}
-        />
-        <Button
-          type="text"
-          danger
-          icon={<FiTrash2 />}
-          size="small"
-          loading={checkingDependencies}
-          onClick={() => checkSpecificationDependencies(spec, type)}
-        />
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderAddedTab = () => {
     const specTypes = [
@@ -715,10 +745,7 @@ const CharacteristicsPage = () => {
                     </div>
                     <Button
                       type="link"
-                      onClick={() => {
-                        // Navigate to equipment edit
-                        message.info("Переход к редактированию оборудования");
-                      }}
+                      onClick={() => handleEquipmentEdit(equipment)}
                       className="text-indigo-600"
                     >
                       Редактировать →

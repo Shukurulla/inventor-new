@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   Collapse,
@@ -15,7 +15,6 @@ import {
   Select,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { useLocation } from "react-router-dom";
 import {
   FiChevronRight,
   FiTrash2,
@@ -48,7 +47,6 @@ const AddedPage = () => {
   const [form] = Form.useForm();
 
   const dispatch = useDispatch();
-  const location = useLocation();
 
   // Get data from Redux store (already loaded in App.js)
   const {
@@ -58,28 +56,7 @@ const AddedPage = () => {
   } = useSelector((state) => state.equipment);
   const { buildings = [] } = useSelector((state) => state.university);
   const { rooms = [] } = useSelector((state) => state.university);
-
-  // Handle navigation from other pages
-  useEffect(() => {
-    if (location.state?.editEquipmentId && location.state?.equipmentData) {
-      const equipment = location.state.equipmentData;
-
-      // Clear the navigation state
-      window.history.replaceState({}, document.title);
-
-      // Find equipment in current list or use provided data
-      const foundEquipment =
-        myEquipments.find((eq) => eq.id === equipment.id) || equipment;
-
-      // Auto-open edit modal
-      setSelectedEquipment(foundEquipment);
-      setEditModalVisible(true);
-
-      message.info(
-        "Редактирование оборудования, связанного с удаляемым элементом"
-      );
-    }
-  }, [location.state, myEquipments]);
+  console.log(myEquipments);
 
   // Получение данных оборудования в правильном формате
   const getValidEquipment = () => {
@@ -368,17 +345,6 @@ const AddedPage = () => {
   return (
     <div>
       <Card className="shadow-sm">
-        {/* Navigation Info Alert */}
-        {location.state?.editEquipmentId && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-blue-800 text-sm">
-              <strong>Информация:</strong> Вы перешли сюда для редактирования
-              оборудования, связанного с удаляемым элементом. После внесения
-              изменений можно будет безопасно удалить элемент.
-            </p>
-          </div>
-        )}
-
         {/* Filters */}
         <div className="flex space-x-4 mb-6 p-4 bg-gray-50 rounded-lg">
           <Select

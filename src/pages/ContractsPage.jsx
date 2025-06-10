@@ -1,3 +1,5 @@
+// src/pages/ContractsPage.jsx - FIXED loading issue
+
 "use client";
 
 import { useState } from "react";
@@ -43,7 +45,10 @@ const ContractsPage = () => {
   const [dependentEquipment, setDependentEquipment] = useState([]);
   const [isFormValid, setIsFormValid] = useState(false);
   const [isEditFormValid, setIsEditFormValid] = useState(false);
-  const [checkingDependencies, setCheckingDependencies] = useState(false);
+
+  // FIXED: Individual loading states for each contract
+  const [deletingContracts, setDeletingContracts] = useState(new Set());
+
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
@@ -70,9 +75,11 @@ const ContractsPage = () => {
     setIsEditFormValid(isValid);
   };
 
-  // Check dependencies before deletion
+  // FIXED: Check dependencies before deletion
   const checkContractDependencies = async (contract) => {
-    setCheckingDependencies(true);
+    // Add contract to deleting set to show loading for this specific contract
+    setDeletingContracts((prev) => new Set(prev).add(contract.id));
+
     try {
       // Check if contract is used in any equipment
       const response = await equipmentAPI.getFilteredEquipments({
@@ -93,7 +100,12 @@ const ContractsPage = () => {
       console.error("Error checking dependencies:", error);
       message.error("Ошибка при проверке зависимостей");
     } finally {
-      setCheckingDependencies(false);
+      // Remove contract from deleting set
+      setDeletingContracts((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(contract.id);
+        return newSet;
+      });
     }
   };
 
@@ -201,6 +213,26 @@ const ContractsPage = () => {
     setIsFormValid(false);
   };
 
+  // FIXED: Navigate to AddedPage with equipment edit
+  const handleEquipmentEdit = (equipment) => {
+    // Close dependency modal first
+    setDependencyModalVisible(false);
+    setDependentEquipment([]);
+    setSelectedContract(null);
+
+    // Navigate to AddedPage with equipment data
+    window.location.href = `/added?editEquipmentId=${equipment.id}`;
+
+    // Alternative navigation method using history API
+    // const state = {
+    //   editEquipmentId: equipment.id,
+    //   equipmentData: equipment,
+    //   fromContractDependency: true
+    // };
+    // window.history.pushState(state, '', '/added');
+    // window.location.reload(); // Force page reload to trigger useEffect
+  };
+
   const columns = [
     {
       title: "Номер договора",
@@ -247,7 +279,7 @@ const ContractsPage = () => {
             danger
             icon={<FiTrash2 />}
             onClick={() => checkContractDependencies(record)}
-            loading={checkingDependencies}
+            loading={deletingContracts.has(record.id)}
             className="text-red-500 hover:text-red-600"
           />
           <Button
@@ -523,10 +555,7 @@ const ContractsPage = () => {
                     </div>
                     <Button
                       type="link"
-                      onClick={() => {
-                        // Navigate to equipment edit or details
-                        message.info("Переход к редактированию оборудования");
-                      }}
+                      onClick={() => handleEquipmentEdit(equipment)}
                       className="text-indigo-600"
                     >
                       Редактировать →

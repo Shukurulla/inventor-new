@@ -149,7 +149,6 @@ const Layout = ({ children }) => {
       okText: "Да, выйти",
       cancelText: "Отмена",
       okType: "danger",
-      icon: <FiLogOut className="text-red-500" />,
       onOk() {
         dispatch(logout());
       },
