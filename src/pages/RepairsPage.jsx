@@ -1,4 +1,4 @@
-// RepairsPage.jsx - Fixed version with proper equipment type handling
+// RepairsPage.jsx - Fixed version with consistent equipment data handling
 "use client";
 
 import { useEffect, useState } from "react";
@@ -108,7 +108,7 @@ const RepairsPage = () => {
     return grouped;
   };
 
-  // Enhanced function to prepare equipment data for all types
+  // FIXED: Enhanced function to prepare equipment data consistently for all types
   const prepareEquipmentData = (equipment) => {
     const typeName = equipment.type_data?.name?.toLowerCase() || "";
     let equipmentData = {
@@ -119,58 +119,84 @@ const RepairsPage = () => {
       type: equipment.type_data?.id || equipment.type,
     };
 
-    // Handle specific equipment types based on their names
+    // Handle specific equipment types based on their names - PRESERVE EXISTING DATA
     if (typeName.includes("принтер") || typeName.includes("printer")) {
       equipmentData = {
         ...equipmentData,
-        printer_char: equipment.printer_char || {
-          model: equipment.model || "Unknown",
-          serial_number: equipment.serial_number || "N/A",
-          type: "Laser",
-        },
+        printer_char: equipment.printer_char ||
+          equipment.printer_specification_data || {
+            model: equipment.model || "Unknown",
+            serial_number: equipment.serial_number || "N/A",
+            type: "Laser",
+            color: equipment.color || false,
+            duplex: equipment.duplex || false,
+          },
         printer_specification_id: equipment.printer_specification_id || null,
       };
     } else if (
       typeName.includes("компьютер") ||
       typeName.includes("computer")
     ) {
+      // FIXED: Use existing computer_details if available, otherwise create from equipment data
       equipmentData = {
         ...equipmentData,
-        computer_details: equipment.computer_details || {
-          cpu: equipment.cpu || "Unknown CPU",
-          ram: equipment.ram || "Unknown RAM",
-          storage: equipment.storage || "Unknown Storage",
-          has_mouse: equipment.has_mouse || false,
-          has_keyboard: equipment.has_keyboard || false,
-        },
+        computer_details: equipment.computer_details ||
+          equipment.computer_specification_data || {
+            cpu: equipment.cpu || "Unknown CPU",
+            ram: equipment.ram || "Unknown RAM",
+            storage: equipment.storage || "Unknown Storage",
+            has_mouse:
+              equipment.has_mouse !== undefined ? equipment.has_mouse : false,
+            has_keyboard:
+              equipment.has_keyboard !== undefined
+                ? equipment.has_keyboard
+                : false,
+            monitor_size: equipment.monitor_size || "Unknown",
+          },
         computer_specification_id: equipment.computer_specification_id || null,
       };
     } else if (typeName.includes("ноутбук") || typeName.includes("notebook")) {
+      // FIXED: Use existing notebook_char if available
       equipmentData = {
         ...equipmentData,
-        notebook_char: equipment.notebook_char || {
-          model: equipment.model || "Unknown",
-          serial_number: equipment.serial_number || "N/A",
-          cpu: equipment.cpu || "Unknown CPU",
-          ram: equipment.ram || "Unknown RAM",
-          storage: equipment.storage || "Unknown Storage",
-          screen_size:
-            equipment.screen_size || equipment.monitor_size || "Unknown",
-        },
+        notebook_char: equipment.notebook_char ||
+          equipment.notebook_specification_data || {
+            model: equipment.model || "Unknown",
+            serial_number: equipment.serial_number || "N/A",
+            cpu: equipment.cpu || "Unknown CPU",
+            ram: equipment.ram || "Unknown RAM",
+            storage: equipment.storage || "Unknown Storage",
+            screen_size:
+              equipment.screen_size || equipment.monitor_size || "Unknown",
+            has_mouse:
+              equipment.has_mouse !== undefined ? equipment.has_mouse : false,
+            has_keyboard:
+              equipment.has_keyboard !== undefined
+                ? equipment.has_keyboard
+                : false,
+          },
         notebook_specification_id: equipment.notebook_specification_id || null,
       };
     } else if (typeName.includes("моноблок") || typeName.includes("monoblok")) {
+      // FIXED: Use existing monoblok_char if available
       equipmentData = {
         ...equipmentData,
-        monoblok_char: equipment.monoblok_char || {
-          model: equipment.model || "Unknown",
-          serial_number: equipment.serial_number || "N/A",
-          cpu: equipment.cpu || "Unknown CPU",
-          ram: equipment.ram || "Unknown RAM",
-          storage: equipment.storage || "Unknown Storage",
-          screen_size:
-            equipment.screen_size || equipment.monitor_size || "Unknown",
-        },
+        monoblok_char: equipment.monoblok_char ||
+          equipment.monoblok_specification_data || {
+            model: equipment.model || "Unknown",
+            serial_number: equipment.serial_number || "N/A",
+            cpu: equipment.cpu || "Unknown CPU",
+            ram: equipment.ram || "Unknown RAM",
+            storage: equipment.storage || "Unknown Storage",
+            screen_size:
+              equipment.screen_size || equipment.monitor_size || "Unknown",
+            has_mouse:
+              equipment.has_mouse !== undefined ? equipment.has_mouse : false,
+            has_keyboard:
+              equipment.has_keyboard !== undefined
+                ? equipment.has_keyboard
+                : false,
+          },
         monoblok_specification_id: equipment.monoblok_specification_id || null,
       };
     } else if (
@@ -179,58 +205,66 @@ const RepairsPage = () => {
     ) {
       equipmentData = {
         ...equipmentData,
-        projector_char: equipment.projector_char || {
-          model: equipment.model || "Unknown",
-          serial_number: equipment.serial_number || "N/A",
-          lumens: equipment.lumens || "Unknown",
-          resolution: equipment.resolution || "Unknown",
-        },
+        projector_char: equipment.projector_char ||
+          equipment.projector_specification_data || {
+            model: equipment.model || "Unknown",
+            serial_number: equipment.serial_number || "N/A",
+            lumens: equipment.lumens || "Unknown",
+            resolution: equipment.resolution || "Unknown",
+            throw_type: equipment.throw_type || "standard",
+          },
         projector_specification_id:
           equipment.projector_specification_id || null,
       };
     } else if (typeName.includes("телевизор") || typeName.includes("tv")) {
       equipmentData = {
         ...equipmentData,
-        tv_char: equipment.tv_char || {
-          model: equipment.model || "Unknown",
-          serial_number: equipment.serial_number || "N/A",
-          screen_size: equipment.screen_size || "Unknown",
-          resolution: equipment.resolution || "Unknown",
-        },
+        tv_char: equipment.tv_char ||
+          equipment.tv_specification_data || {
+            model: equipment.model || "Unknown",
+            serial_number: equipment.serial_number || "N/A",
+            screen_size: equipment.screen_size || "Unknown",
+            resolution: equipment.resolution || "Unknown",
+            panel_type: equipment.panel_type || "Unknown",
+          },
         tv_specification_id: equipment.tv_specification_id || null,
       };
     } else if (typeName.includes("роутер") || typeName.includes("router")) {
       equipmentData = {
         ...equipmentData,
-        router_char: equipment.router_char || {
-          model: equipment.model || "Unknown",
-          serial_number: equipment.serial_number || "N/A",
-          ports: equipment.ports || "Unknown",
-          wifi_standart: equipment.wifi_standart || "Unknown",
-        },
+        router_char: equipment.router_char ||
+          equipment.router_specification_data || {
+            model: equipment.model || "Unknown",
+            serial_number: equipment.serial_number || "N/A",
+            ports: equipment.ports || "Unknown",
+            wifi_standart: equipment.wifi_standart || "Unknown",
+          },
         router_specification_id: equipment.router_specification_id || null,
       };
     } else if (typeName.includes("монитор") || typeName.includes("monitor")) {
       equipmentData = {
         ...equipmentData,
-        monitor_char: equipment.monitor_char || {
-          model: equipment.model || "Unknown",
-          serial_number: equipment.serial_number || "N/A",
-          screen_size: equipment.screen_size || "Unknown",
-          resolution: equipment.resolution || "Unknown",
-          panel_type: equipment.panel_type || "Unknown",
-        },
+        monitor_char: equipment.monitor_char ||
+          equipment.monitor_specification_data || {
+            model: equipment.model || "Unknown",
+            serial_number: equipment.serial_number || "N/A",
+            screen_size: equipment.screen_size || "Unknown",
+            resolution: equipment.resolution || "Unknown",
+            panel_type: equipment.panel_type || "Unknown",
+            refresh_rate: equipment.refresh_rate || "60",
+          },
         monitor_specification_id: equipment.monitor_specification_id || null,
       };
     } else if (typeName.includes("доска") || typeName.includes("whiteboard")) {
       equipmentData = {
         ...equipmentData,
-        whiteboard_char: equipment.whiteboard_char || {
-          model: equipment.model || "Unknown",
-          serial_number: equipment.serial_number || "N/A",
-          screen_size: equipment.screen_size || "Unknown",
-          touch_type: equipment.touch_type || "Unknown",
-        },
+        whiteboard_char: equipment.whiteboard_char ||
+          equipment.whiteboard_specification_data || {
+            model: equipment.model || "Unknown",
+            serial_number: equipment.serial_number || "N/A",
+            screen_size: equipment.screen_size || "Unknown",
+            touch_type: equipment.touch_type || "Unknown",
+          },
         whiteboard_specification_id:
           equipment.whiteboard_specification_id || null,
       };
@@ -240,12 +274,13 @@ const RepairsPage = () => {
     ) {
       equipmentData = {
         ...equipmentData,
-        extender_char: equipment.extender_char || {
-          model: equipment.model || "Unknown",
-          serial_number: equipment.serial_number || "N/A",
-          ports: equipment.ports || "Unknown",
-          length: equipment.length || "Unknown",
-        },
+        extender_char: equipment.extender_char ||
+          equipment.extender_specification_data || {
+            model: equipment.model || "Unknown",
+            serial_number: equipment.serial_number || "N/A",
+            ports: equipment.ports || "Unknown",
+            length: equipment.length || "Unknown",
+          },
         extender_specification_id: equipment.extender_specification_id || null,
       };
     }

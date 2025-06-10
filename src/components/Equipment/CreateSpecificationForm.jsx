@@ -121,8 +121,8 @@ const CreateSpecificationForm = ({
               >
                 <Select placeholder="Выберите тип">
                   <Option value="HDD">HDD</Option>
-                  <Option value="SSD">SSD</Option>
-                  <Option value="NVMe">NVMe</Option>
+                  <Option value="SATASSD">SATA SSD</Option>
+                  <Option value="NVMEM2SSD">NVME M2 SSD</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -243,8 +243,8 @@ const CreateSpecificationForm = ({
               >
                 <Select placeholder="Выберите тип">
                   <Option value="HDD">HDD</Option>
-                  <Option value="SSD">SSD</Option>
-                  <Option value="NVMe">NVMe</Option>
+                  <Option value="SATASSD">SATA SSD</Option>
+                  <Option value="NVMEM2SSD">NVME M2 SSD</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -355,8 +355,8 @@ const CreateSpecificationForm = ({
               >
                 <Select placeholder="Выберите тип">
                   <Option value="HDD">HDD</Option>
-                  <Option value="SSD">SSD</Option>
-                  <Option value="NVMe">NVMe</Option>
+                  <Option value="NVMEM2SSD">NVMe M2 SSD</Option>
+                  <Option value="SATASSD">SATA SSD</Option>
                 </Select>
               </Form.Item>
             </Col>

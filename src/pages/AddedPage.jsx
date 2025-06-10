@@ -1,7 +1,6 @@
-// AddedPage.jsx - With loading and detailed view like HomePage
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Card,
   Collapse,
@@ -14,7 +13,6 @@ import {
   Form,
   Input,
   Select,
-  Spin,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -26,14 +24,11 @@ import {
   FiMapPin,
 } from "react-icons/fi";
 import {
-  getMyEquipments,
   updateEquipment,
   deleteEquipment,
-  getEquipmentTypes,
+  getMyEquipments,
 } from "../store/slices/equipmentSlice";
-import { getBuildings } from "../store/slices/universitySlice";
 import EditEquipmentModal from "../components/Equipment/EditEquipmentModal";
-import api from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import { getStatusText, getStatusConfig } from "../utils/statusUtils";
 
@@ -49,38 +44,19 @@ const AddedPage = () => {
     room_id: null,
     type_id: null,
   });
-  const [rooms, setRooms] = useState([]);
   const [form] = Form.useForm();
-  const [pageLoading, setPageLoading] = useState(false);
 
   const dispatch = useDispatch();
+
+  // Get data from Redux store (already loaded in App.js)
   const {
     myEquipments = [],
     equipmentTypes = [],
     loading,
   } = useSelector((state) => state.equipment);
   const { buildings = [] } = useSelector((state) => state.university);
-
-  useEffect(() => {
-    const loadData = async () => {
-      setPageLoading(true);
-      try {
-        await dispatch(getMyEquipments()).unwrap();
-        await dispatch(getEquipmentTypes()).unwrap();
-        await dispatch(getBuildings()).unwrap();
-        // Load all rooms
-        const roomsResponse = await api.get("/university/rooms/");
-        setRooms(roomsResponse.data);
-      } catch (error) {
-        console.error("Ошибка при загрузке данных:", error);
-        message.error("Ошибка при загрузке данных");
-      } finally {
-        setPageLoading(false);
-      }
-    };
-
-    loadData();
-  }, [dispatch]);
+  const { rooms = [] } = useSelector((state) => state.university);
+  console.log(myEquipments);
 
   // Получение данных оборудования в правильном формате
   const getValidEquipment = () => {
@@ -294,15 +270,6 @@ const AddedPage = () => {
   };
 
   const renderEquipmentList = () => {
-    if (pageLoading || loading) {
-      return (
-        <div className="flex justify-center items-center py-16">
-          <Spin size="large" />
-          <span className="ml-3 text-gray-500">Загрузка оборудования...</span>
-        </div>
-      );
-    }
-
     const groupedEquipment = groupEquipmentByType();
 
     if (Object.keys(groupedEquipment).length === 0) {
@@ -386,7 +353,6 @@ const AddedPage = () => {
             value={filters.building_id}
             onChange={(value) => handleFilterChange("building_id", value)}
             allowClear
-            loading={pageLoading}
           >
             {buildings.map((building) => (
               <Option key={building.id} value={building.id}>
@@ -402,7 +368,6 @@ const AddedPage = () => {
             onChange={(value) => handleFilterChange("room_id", value)}
             allowClear
             disabled={!filters.building_id}
-            loading={pageLoading}
           >
             {getFilteredRooms().map((room) => (
               <Option key={room.id} value={room.id}>
@@ -417,7 +382,6 @@ const AddedPage = () => {
             value={filters.type_id}
             onChange={(value) => handleFilterChange("type_id", value)}
             allowClear
-            loading={pageLoading}
           >
             {equipmentTypes.map((type) => (
               <Option key={type.id} value={type.id}>
@@ -609,81 +573,6 @@ const AddedPage = () => {
                       <div className="font-medium">
                         {selectedEquipment.computer_specification_data.has_mouse
                           ? "Есть"
-                          : "Нет"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {selectedEquipment.projector_specification_data && (
-              <div>
-                <h4 className="font-medium mb-3">Характеристики проектора</h4>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Модель:</span>
-                      <div className="font-medium">
-                        {selectedEquipment.projector_specification_data.model}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Яркость:</span>
-                      <div className="font-medium">
-                        {selectedEquipment.projector_specification_data.lumens}{" "}
-                        люмен
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Разрешение:</span>
-                      <div className="font-medium">
-                        {
-                          selectedEquipment.projector_specification_data
-                            .resolution
-                        }
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Тип проекции:</span>
-                      <div className="font-medium">
-                        {
-                          selectedEquipment.projector_specification_data
-                            .throw_type
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {selectedEquipment.printer_specification_data && (
-              <div>
-                <h4 className="font-medium mb-3">Характеристики принтера</h4>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Модель:</span>
-                      <div className="font-medium">
-                        {selectedEquipment.printer_specification_data.model}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Цветная печать:</span>
-                      <div className="font-medium">
-                        {selectedEquipment.printer_specification_data.color
-                          ? "Да"
-                          : "Нет"}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">
-                        Двусторонняя печать:
-                      </span>
-                      <div className="font-medium">
-                        {selectedEquipment.printer_specification_data.duplex
-                          ? "Да"
                           : "Нет"}
                       </div>
                     </div>

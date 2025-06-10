@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Card,
   Table,
@@ -40,22 +40,13 @@ const ContractsPage = () => {
   const [editForm] = Form.useForm();
 
   const dispatch = useDispatch();
+
+  // Get data from Redux store (already loaded in App.js)
   const { contracts, loading, pagination } = useSelector(
     (state) => state.contracts
   );
 
-  useEffect(() => {
-    const loadContracts = async () => {
-      try {
-        await dispatch(getContracts()).unwrap();
-      } catch (error) {
-        console.error("Shartnomalarni yuklashda xato:", error);
-        message.error("Ma'lumotlarni yuklashda xato yuz berdi");
-      }
-    };
-
-    loadContracts();
-  }, [dispatch]);
+  // No initial data loading needed - data is already loaded in App.js
 
   const handleCreate = async (values) => {
     try {
@@ -115,7 +106,7 @@ const ContractsPage = () => {
     if (contract.file) {
       window.open(contract.file, "_blank");
     } else {
-      message.info("Фа��л договора не найден");
+      message.info("Файл договора не найден");
     }
   };
 

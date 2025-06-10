@@ -46,6 +46,7 @@ const EditEquipmentModal = ({
   const [createSpecModalVisible, setCreateSpecModalVisible] = useState(false);
   const [errors, setErrors] = useState({});
   const [fileList, setFileList] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const dispatch = useDispatch();
   const { loading } = useSelector((state) => state.equipment);
@@ -112,22 +113,23 @@ const EditEquipmentModal = ({
         } else {
           initialValues.storage = spec.storage || "";
         }
-        if (
-          (typeId &&
-            equipmentTypes
-              .find((t) => t.id === typeId)
-              ?.name?.toLowerCase()
-              .includes("ноутбук")) ||
-          equipmentTypes
-            .find((t) => t.id === typeId)
-            ?.name?.toLowerCase()
-            .includes("моноблок")
-        ) {
-          initialValues.monitor_size =
-            spec.monitor_size || spec.screen_size || "";
-        }
+        initialValues.monitor_size =
+          spec.monitor_size || spec.screen_size || "";
         initialValues.has_mouse = spec.has_mouse || false;
         initialValues.has_keyboard = spec.has_keyboard || false;
+        initialValues.model = spec.model || "";
+        initialValues.lumens = spec.lumens || "";
+        initialValues.resolution = spec.resolution || "";
+        initialValues.throw_type = spec.throw_type || "";
+        initialValues.screen_size = spec.screen_size || "";
+        initialValues.panel_type = spec.panel_type || "";
+        initialValues.refresh_rate = spec.refresh_rate || "";
+        initialValues.color = spec.color || false;
+        initialValues.duplex = spec.duplex || false;
+        initialValues.ports = spec.ports || "";
+        initialValues.wifi_standart = spec.wifi_standart || "";
+        initialValues.touch_type = spec.touch_type || "";
+        initialValues.length = spec.length || "";
         setSelectedSpecification(spec);
       }
 
@@ -221,14 +223,16 @@ const EditEquipmentModal = ({
     const typeId = equipment?.type_data?.id || equipment?.type;
     const availableSpecs = getSpecificationsForType(typeId);
     const spec = availableSpecs.find((s) => s.id === value);
-    setSelectedSpecification(spec);
+    setSelectedSpecification(specification(spec));
 
     const specFieldName = getSpecificationFieldName(typeId);
     if (specFieldName) {
       let storageDisplay = "";
       if (spec?.disk_specifications && spec.disk_specifications.length > 0) {
         storageDisplay = spec.disk_specifications
-          .map((disk) => `${disk.capacity_gb}GB ${disk.disk_type}`)
+          .map(
+            (disk) => `disk.capacity${disk.capacity_gb}}GB ${disk.disk_type}`
+          )
           .join(", ");
       } else {
         storageDisplay = spec?.storage || "";
@@ -243,6 +247,19 @@ const EditEquipmentModal = ({
         monitor_size: spec?.monitor_size || spec?.screen_size || "",
         has_mouse: spec?.has_mouse || false,
         has_keyboard: spec?.has_keyboard || false,
+        model: spec?.model || "",
+        lumens: spec?.lumens || "",
+        resolution: spec?.resolution || "",
+        throw_type: spec?.throw_type || "",
+        screen_size: spec?.screen_size || "",
+        panel_type: spec?.panel_type || "",
+        refresh_rate: spec?.refresh_rate || "",
+        color: spec?.color || false,
+        duplex: spec?.duplex || false,
+        ports: spec?.ports || "",
+        wifi_standart: spec?.wifi_standart || "",
+        touch_type: spec?.touch_type || "",
+        length: spec?.length || "",
       };
       setFormValues(newValues);
       form.setFieldsValue(newValues);
@@ -254,6 +271,7 @@ const EditEquipmentModal = ({
   };
 
   const handleSpecCreate = async (values) => {
+    setIsSubmitting(true);
     try {
       const typeId = equipment?.type_data?.id || equipment?.type;
       const typeName = equipmentTypes
@@ -271,60 +289,40 @@ const EditEquipmentModal = ({
       else if (typeName?.includes("доска")) action = createWhiteboardSpec;
       else if (typeName?.includes("удлинитель")) action = createExtenderSpec;
       else if (typeName?.includes("монитор")) action = createMonitorSpec;
-
-      if (action) {
-        const newSpec = await dispatch(action(values)).unwrap();
-        message.success("Шаблон успешно создан!");
-        await dispatch(getAllSpecifications());
-
-        const specFieldName = getSpecificationFieldName(typeId);
-        if (specFieldName) {
-          let storageDisplay = "";
-          if (
-            newSpec.disk_specifications &&
-            newSpec.disk_specifications.length > 0
-          ) {
-            storageDisplay = newSpec.disk_specifications
-              .map((disk) => `${disk.capacity_gb}GB ${disk.disk_type}`)
-              .join(", ");
-          } else {
-            storageDisplay = newSpec.storage || "";
-          }
-
-          const newValues = {
-            ...formValues,
-            [specFieldName]: newSpec.id,
-            cpu: newSpec.cpu || "",
-            ram: newSpec.ram || "",
-            storage: storageDisplay,
-            monitor_size: newSpec.monitor_size || newSpec.screen_size || "",
-            has_mouse: newSpec.has_mouse || false,
-            has_keyboard: newSpec.has_keyboard || false,
-          };
-          setFormValues(newValues);
-          form.setFieldsValue(newValues);
-          setSelectedSpecification(newSpec);
-        }
-
-        setCreateSpecModalVisible(false);
-        specForm.resetFields();
+      else {
+        message.error("Неизвестный тип оборудования");
+        return;
       }
+
+      const response = await dispatch(action(values)).unwrap();
+      const specFieldName = getSpecificationFieldName(typeId);
+      if (specFieldName) {
+        setFormValues((prev) => ({
+          ...prev,
+          [specFieldName]: response.id,
+        }));
+        form.setFieldsValue({ [specFieldName]: response.id });
+        setSelectedSpecification(response);
+      }
+      setCreateSpecModalVisible(false);
+      message.success("Характеристика успешно создана!");
+      await dispatch(getAllSpecifications());
     } catch (error) {
-      console.error("Spec creation error:", error);
-      message.error("Ошибка при создании шаблона");
+      console.error("Specification creation error:", error);
+      message.error("Ошибка при создании характеристики");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSubmit = async (values) => {
+    setIsSubmitting(true);
     try {
       const typeId = equipment?.type_data?.id || equipment?.type;
       if (!typeId) {
         message.error("Тип оборудования не указан");
         return;
       }
-      const typeName = equipmentTypes
-        .find((t) => t.id === typeId)
-        ?.name?.toLowerCase();
       const specFieldName = getSpecificationFieldName(typeId);
 
       const updateData = {
@@ -337,15 +335,6 @@ const EditEquipmentModal = ({
 
       if (specFieldName && values[specFieldName]) {
         updateData[specFieldName] = values[specFieldName];
-      } else if (typeName?.includes("компьютер")) {
-        // If no specification is selected for a computer, include default computer_details
-        updateData.computer_details = {
-          cpu: values.cpu || "Unknown",
-          ram: values.ram || "Unknown",
-          storage: values.storage || "Unknown",
-          has_mouse: values.has_mouse || false,
-          has_keyboard: values.has_keyboard || false,
-        };
       }
 
       let finalData;
@@ -353,11 +342,7 @@ const EditEquipmentModal = ({
         finalData = new FormData();
         Object.entries(updateData).forEach(([key, value]) => {
           if (value !== null && value !== undefined) {
-            if (key === "computer_details") {
-              finalData.append(key, JSON.stringify(value));
-            } else {
-              finalData.append(key, value);
-            }
+            finalData.append(key, value);
           }
         });
         finalData.append("image", formValues.image);
@@ -372,7 +357,7 @@ const EditEquipmentModal = ({
         })
       ).unwrap();
 
-      message.success("Equipment updated successfully!");
+      message.success("Оборудование успешно обновлено!");
       onCancel();
     } catch (error) {
       console.error("Equipment update error:", error);
@@ -380,220 +365,354 @@ const EditEquipmentModal = ({
         error?.response?.data?.non_field_errors?.[0] ||
           "Ошибка при обновлении оборудования"
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const renderSpecificationSection = () => {
     const typeId = equipment?.type_data?.id || equipment?.type;
-    const availableSpecs = getSpecificationsForType(typeId);
-    const specFieldName = getSpecificationFieldName(typeId);
-    const selectedSpecId = formValues[specFieldName];
     const typeName = equipmentTypes
       ?.find((t) => t.id === typeId)
       ?.name?.toLowerCase();
+    const availableSpecs = getSpecificationsForType(typeId);
+    const specFieldName = getSpecificationFieldName(typeId);
 
     return (
-      <div className="mt-4">
-        <div className="flex items-center justify-between mb-3">
-          <label className="text-gray-700 font-medium">
-            Шаблон характеристик:
-          </label>
-          <Button
-            type="dashed"
-            icon={<FiPlus />}
-            onClick={handleCreateNewSpec}
-            size="small"
-            className="text-indigo-500 border-indigo-500"
-          >
-            Создать новый
-          </Button>
-        </div>
-
-        <Form.Item name={specFieldName}>
-          <Select
-            value={selectedSpecId}
-            onChange={handleSpecificationChange}
-            placeholder={
-              availableSpecs.length > 0
-                ? "Выберите шаблон"
-                : "Нет доступных шаблонов"
-            }
-            style={{ height: "40px" }}
-            allowClear
-          >
-            {availableSpecs.length > 0 ? (
-              availableSpecs.map((spec) => (
-                <Option key={spec.id} value={spec.id}>
-                  {spec.model || spec.cpu || `Шаблон ${spec.id}`}
-                </Option>
-              ))
-            ) : (
-              <Option value={null} disabled>
-                Нет доступных шаблонов
-              </Option>
-            )}
-          </Select>
-        </Form.Item>
-
-        {!selectedSpecId && availableSpecs.length === 0 && (
-          <div className="text-center py-4 border rounded-lg bg-gray-50">
-            <p className="text-gray-500 mb-2">Нет шаблона характеристик</p>
+      <>
+        <Row gutter={[16, 16]}>
+          <Col span={12}>
+            <Form.Item label="Характеристики" name={specFieldName}>
+              <Select
+                placeholder={
+                  availableSpecs.length > 0
+                    ? "Выберите шаблон"
+                    : "Нет доступных шаблонов"
+                }
+                onChange={handleSpecificationChange}
+                style={{ height: "40px" }}
+                allowClear
+              >
+                {availableSpecs.length > 0 ? (
+                  availableSpecs.map((spec) => (
+                    <Option key={spec.id} value={spec.id}>
+                      {spec.model || spec.cpu || `Шаблон ${spec.id}`}
+                    </Option>
+                  ))
+                ) : (
+                  <Option value={null} disabled>
+                    Нет доступных шаблонов
+                  </Option>
+                )}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={12} className="flex items-end">
             <Button
-              type="primary"
+              type="link"
               icon={<FiPlus />}
               onClick={handleCreateNewSpec}
-              className="bg-[#4E38F2] border-[#4E38F2]"
-              size="small"
+              className="text-[#4E38F2] hover:text-[#4A63D7]"
             >
-              Создать шаблон
+              Создать новый шаблон
             </Button>
-          </div>
-        )}
+          </Col>
+        </Row>
 
-        {(selectedSpecId || selectedSpecification) &&
-          (typeName?.includes("компьютер") ||
-            typeName?.includes("ноутбук") ||
-            typeName?.includes("моноблок")) && (
-            <>
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <Form.Item name="cpu" label="Процессор">
-                    <Input
-                      value={formValues.cpu}
-                      disabled
-                      placeholder="Процессор:"
-                      style={{ height: "40px" }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="ram" label="ОЗУ">
-                    <Input
-                      value={formValues.ram}
-                      disabled
-                      placeholder="Оперативная память:"
-                      style={{ height: "40px" }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <Form.Item name="storage" label="Накопитель">
-                    <Input
-                      value={formValues.storage}
-                      disabled
-                      placeholder="Накопитель:"
-                      style={{ height: "40px" }}
-                    />
-                  </Form.Item>
-                </Col>
-                {(typeName?.includes("ноутбук") ||
-                  typeName?.includes("моноблок")) && (
+        {selectedSpecification && (
+          <>
+            {(typeName?.includes("компьютер") ||
+              typeName?.includes("ноутбук") ||
+              typeName?.includes("моноблок")) && (
+              <>
+                <Row gutter={[16, 16]}>
                   <Col span={12}>
-                    <Form.Item name="monitor_size" label="Размер экрана">
+                    <Form.Item label="Процессор">
                       <Input
-                        value={formValues.monitor_size}
+                        value={formValues.cpu || "N/A"}
                         disabled
-                        placeholder="Размер экрана:"
                         style={{ height: "40px" }}
                       />
                     </Form.Item>
                   </Col>
-                )}
-              </Row>
+                  <Col span={12}>
+                    <Form.Item label="ОЗУ">
+                      <Input
+                        value={formValues.ram || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Накопитель">
+                      <Input
+                        value={formValues.storage || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  {(typeName?.includes("ноутбук") ||
+                    typeName?.includes("моноблок")) && (
+                    <Col span={12}>
+                      <Form.Item label="Размер экрана">
+                        <Input
+                          value={formValues.monitor_size || "N/A"}
+                          disabled
+                          style={{ height: "40px" }}
+                        />
+                      </Form.Item>
+                    </Col>
+                  )}
+                </Row>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Мышка">
+                      <Switch checked={formValues.has_mouse} disabled />
+                      <span className="ml-2">
+                        {formValues.has_mouse ? "Есть" : "Нет"}
+                      </span>
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Клавиатура">
+                      <Switch checked={formValues.has_keyboard} disabled />
+                      <span className="ml-2">
+                        {formValues.has_keyboard ? "Есть" : "Нет"}
+                      </span>
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </>
+            )}
 
-              <Row gutter={[16, 16]}>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-700 mb-1">Мышка</label>
-                    <Switch checked={formValues.has_mouse} disabled />
-                  </div>
-                </Col>
-                <Col span={12}>
-                  <div className="flex flex-col">
-                    <label className="text-gray-700 mb-1">Клавиатура</label>
-                    <Switch checked={formValues.has_keyboard} disabled />
-                  </div>
-                </Col>
-              </Row>
-            </>
-          )}
-
-        {(selectedSpecId || selectedSpecification) && (
-          <>
             {typeName?.includes("проектор") && (
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <Form.Item name="model" label="Модель">
-                    <Input
-                      value={selectedSpecification?.model || ""}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="lumens" label="Яркость (люмен)">
-                    <Input
-                      value={selectedSpecification?.lumens || ""}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
+              <>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Модель">
+                      <Input
+                        value={formValues.model || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Яркость (люмен)">
+                      <Input
+                        value={formValues.lumens || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Разрешение">
+                      <Input
+                        value={formValues.resolution || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Тип проекции">
+                      <Input
+                        value={formValues.throw_type || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </>
             )}
 
-            {typeName?.includes("монитор") && (
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <Form.Item name="model" label="Модель">
-                    <Input
-                      value={selectedSpecification?.model || ""}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="screen_size" label="Размер экрана">
-                    <Input
-                      value={formValues.monitor_size}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
+            {typeName?.includes("принтер") && (
+              <>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Модель">
+                      <Input
+                        value={formValues.model || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Цветная печать">
+                      <Switch checked={formValues.color} disabled />
+                      <span className="ml-2">
+                        {formValues.color ? "Есть" : "Нет"}
+                      </span>
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Двусторонняя печать">
+                      <Switch checked={formValues.duplex} disabled />
+                      <span className="ml-2">
+                        {formValues.duplex ? "Есть" : "Нет"}
+                      </span>
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </>
             )}
 
-            {typeName?.includes("телевизор") && (
-              <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                <Col span={12}>
-                  <Form.Item name="model" label="Модель">
-                    <Input
-                      value={selectedSpecification?.model || ""}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="screen_size" label="Размер экрана">
-                    <Input
-                      value={formValues.monitor_size}
-                      disabled
-                      style={{ height: "40px" }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
+            {(typeName?.includes("телевизор") ||
+              typeName?.includes("монитор")) && (
+              <>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Модель">
+                      <Input
+                        value={formValues.model || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Размер экрана (дюймы)">
+                      <Input
+                        value={formValues.screen_size || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Тип матрицы">
+                      <Input
+                        value={formValues.panel_type || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Частота обновления (Hz)">
+                      <Input
+                        value={formValues.refresh_rate || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </>
+            )}
+
+            {typeName?.includes("роутер") && (
+              <>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Модель">
+                      <Input
+                        value={formValues.model || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Количество портов">
+                      <Input
+                        value={formValues.ports || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="WiFi стандарт">
+                      <Input
+                        value={formValues.wifi_standart || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </>
+            )}
+
+            {typeName?.includes("доска") && (
+              <>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Модель">
+                      <Input
+                        value={formValues.model || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Размер (дюймы)">
+                      <Input
+                        value={formValues.screen_size || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Тип касания">
+                      <Input
+                        value={formValues.touch_type || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </>
+            )}
+
+            {typeName?.includes("удлинитель") && (
+              <>
+                <Row gutter={[16, 16]}>
+                  <Col span={12}>
+                    <Form.Item label="Количество портов">
+                      <Input
+                        value={formValues.ports || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Длина кабеля (м)">
+                      <Input
+                        value={formValues.length || "N/A"}
+                        disabled
+                        style={{ height: "40px" }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </>
             )}
           </>
         )}
-      </div>
+      </>
     );
   };
 
@@ -602,148 +721,160 @@ const EditEquipmentModal = ({
   return (
     <>
       <Modal
+        title={null}
         visible={visible}
-        onCancel={onCancel}
+        onCancel={() => {
+          form.resetFields();
+          setFormValues({});
+          setSelectedSpecification(null);
+          setFileList([]);
+          setErrors({});
+          onCancel();
+        }}
         footer={null}
         width={800}
         className="rounded-lg"
         destroyOnClose
       >
-        <div className="px-6 py-4">
-          <div className="mb-3 flex items-center justify-center relative">
+        <div className="px-6 py-4 mb-3">
+          <div className="flex items-center justify-center relative">
             <div className="line w-[100%] h-[6px] rounded-full z-10 absolute bg-[#4E38F2]"></div>
             <div className="bg-[#4E38F2] inline py-2 relative z-20 px-4 font-bold text-white rounded-[10px]">
-              Редактирование
+              Редактирование оборудования
             </div>
           </div>
-
-          <Form form={form} layout="vertical" onFinish={handleSubmit}>
-            <Form.Item name="type" noStyle>
-              <Input type="hidden" />
-            </Form.Item>
-
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Form.Item
-                  label="Название"
-                  name="name"
-                  rules={[{ required: true, message: "Введите название!" }]}
-                >
-                  <Input
-                    placeholder="Название техники"
-                    style={{ height: "40px" }}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <div className="flex items-center mt-5 justify-between h-[40px]">
-                  <span className="text-gray-500 text-lg font-semibold">
-                    Фото техники:
-                  </span>
-                  <Upload
-                    listType="picture-card"
-                    fileList={fileList}
-                    onChange={handleImageChange}
-                    beforeUpload={beforeUpload}
-                    maxCount={1}
-                    accept="image/*"
-                    showUploadList={{
-                      showPreviewIcon: false,
-                      showRemoveIcon: true,
-                    }}
-                  >
-                    {fileList.length === 0 && (
-                      <div className="flex flex-col text-gray-600 items-center">
-                        <FiUpload />
-                        <div style={{ marginTop: 8 }}>Загрузить</div>
-                      </div>
-                    )}
-                  </Upload>
-                </div>
-              </Col>
-            </Row>
-
-            <Form.Item label="Описание" name="description">
-              <TextArea
-                rows={4}
-                placeholder="Описание:"
-                onChange={(e) =>
-                  handleInputChange("description", e.target.value)
-                }
-              />
-            </Form.Item>
-
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Form.Item
-                  label="Состояние"
-                  name="status"
-                  rules={[{ required: true, message: "Выберите состояние!" }]}
-                >
-                  <Select
-                    placeholder="Выберите состояние"
-                    style={{ height: "40px" }}
-                    onChange={(value) => handleInputChange("status", value)}
-                  >
-                    <Option value="NEW">Новое</Option>
-                    <Option value="WORKING">Работает</Option>
-                    <Option value="NEEDS_REPAIR">Требуется ремонт</Option>
-                    <Option value="REPAIR">На ремонте</Option>
-                    <Option value="DISPOSED">Утилизировано</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label="Договор" name="contract_id">
-                  <Select
-                    placeholder="Выберите договор"
-                    allowClear
-                    style={{ height: "40px" }}
-                    value={formValues.contract_id}
-                    onChange={(value) =>
-                      handleInputChange("contract_id", value)
-                    }
-                  >
-                    {contracts.map((contract) => (
-                      <Option key={contract.id} value={contract.id}>
-                        {contract.number}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-
-            {renderSpecificationSection()}
-
-            <Row gutter={16} className="mt-6">
-              <Col span={12}>
-                <button
-                  type="button"
-                  className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-gray-500"
-                  style={{ width: "100%" }}
-                  onClick={onCancel}
-                >
-                  Отмена
-                </button>
-              </Col>
-              <Col span={12}>
-                <button
-                  type="submit"
-                  className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
-                  style={{ width: "100%" }}
-                  disabled={loading}
-                >
-                  {loading ? "Сохранение..." : "Сохранить"}
-                </button>
-              </Col>
-            </Row>
-          </Form>
         </div>
+
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Form.Item name="type" noStyle>
+            <Input type="hidden" />
+          </Form.Item>
+
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item
+                label="Название техники"
+                name="name"
+                rules={[{ required: true, message: "Введите название!" }]}
+              >
+                <Input
+                  placeholder="Название техники"
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  style={{ height: "40px" }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <div className="flex items-center justify-between h-[40px]">
+                <span className="text-gray-700 text-lg font-semibold">
+                  Фото техники:
+                </span>
+                <Upload
+                  listType="picture-card"
+                  fileList={fileList}
+                  onChange={handleImageChange}
+                  beforeUpload={beforeUpload}
+                  maxCount={1}
+                  showUploadList={{
+                    showPreviewIcon: false,
+                    showRemoveIcon: true,
+                  }}
+                >
+                  {fileList.length === 0 && (
+                    <div className="flex flex-col items-center">
+                      <FiUpload />
+                      <div style={{ marginTop: 8 }}>Загрузить</div>
+                    </div>
+                  )}
+                </Upload>
+              </div>
+            </Col>
+          </Row>
+
+          <Form.Item label="Описание" name="description">
+            <TextArea
+              rows={4}
+              placeholder="Описание:"
+              onChange={(e) => handleInputChange("description", e.target.value)}
+            />
+          </Form.Item>
+
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item
+                label="Состояние"
+                name="status"
+                rules={[{ required: true, message: "Выберите состояние!" }]}
+              >
+                <Select
+                  placeholder="Выберите состояние"
+                  onChange={(value) => handleInputChange("status", value)}
+                  style={{ height: "40px" }}
+                >
+                  <Option value="NEW">Новое</Option>
+                  <Option value="WORKING">Работает</Option>
+                  <Option value="NEEDS_REPAIR">Требуется ремонт</Option>
+                  <Option value="REPAIR">На ремонте</Option>
+                  <Option value="DISPOSED">Утилизировано</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Договор" name="contract_id">
+                <Select
+                  placeholder="Выберите договор"
+                  onChange={(value) => handleInputChange("contract_id", value)}
+                  allowClear
+                  style={{ height: "40px" }}
+                >
+                  {contracts.map((contract) => (
+                    <Option key={contract.id} value={contract.id}>
+                      {contract.number}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          {renderSpecificationSection()}
+
+          <Row gutter={16} className="mt-6">
+            <Col span={12}>
+              <Button
+                type="default"
+                className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-gray-500"
+                style={{ width: "100%" }}
+                onClick={() => {
+                  form.resetFields();
+                  setFormValues({});
+                  setSelectedSpecification(null);
+                  setFileList([]);
+                  setErrors({});
+                  onCancel();
+                }}
+              >
+                Отмена
+              </Button>
+            </Col>
+            <Col span={12}>
+              <Button
+                type="primary"
+                htmlType="submit"
+                className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+                style={{ width: "100%" }}
+                disabled={isSubmitting}
+                loading={isSubmitting}
+              >
+                {isSubmitting ? "Сохранение..." : "Сохранить"}
+              </Button>
+            </Col>
+          </Row>
+        </Form>
       </Modal>
 
       <Modal
+        title={null}
         visible={createSpecModalVisible}
         onCancel={() => {
           setCreateSpecModalVisible(false);
@@ -751,6 +882,7 @@ const EditEquipmentModal = ({
         }}
         footer={null}
         width={800}
+        className="rounded-lg"
         destroyOnClose
       >
         <CreateSpecificationForm

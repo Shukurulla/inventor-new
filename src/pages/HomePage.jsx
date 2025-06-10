@@ -1,7 +1,14 @@
-// 1. HomePage.jsx - Accordion loading states fix
-
 import { useEffect, useState } from "react";
-import { Card, Collapse, Button, Badge, Empty, Spin, Breadcrumb } from "antd";
+import {
+  Card,
+  Collapse,
+  Button,
+  Badge,
+  Empty,
+  Spin,
+  Breadcrumb,
+  message,
+} from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import {
   FiPlus,
@@ -9,16 +16,14 @@ import {
   FiHome,
   FiLayers,
   FiClock,
+  FiRefreshCw,
 } from "react-icons/fi";
 import {
-  getBuildings,
   getFloorsByBuilding,
   getFacultiesByBuilding,
   getRoomsByBuilding,
   getEquipmentTypesByRoom,
 } from "../store/slices/universitySlice";
-import { getEquipmentTypes } from "../store/slices/equipmentSlice";
-import { getUserActions } from "../store/slices/authSlice";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateEquipmentModal from "../components/Equipment/CreateEquipmentModal";
 import EquipmentTypeSelectionModal from "../components/Equipment/EquipmentTypeSelectionModal";
@@ -41,8 +46,8 @@ const HomePage = () => {
   const [activeFacultyPanels, setActiveFacultyPanels] = useState({});
   const [activeRoomPanels, setActiveRoomPanels] = useState({});
   const [activeTab, setActiveTab] = useState("university");
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Loading states
   const [loadingStates, setLoadingStates] = useState({
     floors: {},
     faculties: {},
@@ -62,19 +67,32 @@ const HomePage = () => {
 
   const { equipmentTypes = [] } = useSelector((state) => state.equipment);
 
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        await dispatch(getBuildings()).unwrap();
-        await dispatch(getEquipmentTypes()).unwrap();
-        dispatch(getUserActions());
-      } catch (error) {
-        console.error("Ошибка при загрузке начальных данных:", error);
-      }
-    };
+  const refreshRoomEquipment = async (roomId) => {
+    try {
+      setLoadingStates((prev) => ({
+        ...prev,
+        equipment: { ...prev.equipment, [roomId]: true },
+      }));
+      await dispatch(getEquipmentTypesByRoom(roomId)).unwrap();
+    } catch (error) {
+      message.error("Ошибка при обновлении оборудования");
+      console.error("Error refreshing equipment:", error);
+    } finally {
+      setLoadingStates((prev) => ({
+        ...prev,
+        equipment: { ...prev.equipment, [roomId]: false },
+      }));
+    }
+  };
 
-    loadInitialData();
-  }, [dispatch]);
+  const handleEquipmentCreated = (roomId) => {
+    if (roomId) {
+      refreshRoomEquipment(roomId);
+    }
+    setCreateModalVisible(false);
+    setSelectedRoom(null);
+    setSelectedEquipmentType(null);
+  };
 
   const handleBuildingExpand = async (buildingIds) => {
     if (buildingIds.length === 0) {
@@ -116,7 +134,6 @@ const HomePage = () => {
     setActiveRoomPanels(newActiveRoomPanels);
 
     for (const buildingId of newBuildingIds) {
-      // Set loading state for floors
       setLoadingStates((prev) => ({
         ...prev,
         floors: { ...prev.floors, [buildingId]: true },
@@ -138,7 +155,6 @@ const HomePage = () => {
         }
       }
 
-      // Clear loading state for floors
       setLoadingStates((prev) => ({
         ...prev,
         floors: { ...prev.floors, [buildingId]: false },
@@ -179,7 +195,6 @@ const HomePage = () => {
   const handleFacultyExpand = (buildingId, floorId) => async (facultyIds) => {
     const key = `${buildingId}-${floorId}`;
 
-    // Set loading state for rooms
     setLoadingStates((prev) => ({
       ...prev,
       rooms: { ...prev.rooms, [key]: true },
@@ -204,7 +219,6 @@ const HomePage = () => {
     }));
     setActiveRoomPanels(newActiveRoomPanels);
 
-    // Clear loading state
     setLoadingStates((prev) => ({
       ...prev,
       rooms: { ...prev.rooms, [key]: false },
@@ -220,24 +234,20 @@ const HomePage = () => {
       }));
 
       for (const roomId of roomIds) {
-        // Set loading state for equipment
         setLoadingStates((prev) => ({
           ...prev,
           equipment: { ...prev.equipment, [roomId]: true },
         }));
 
-        if (!equipmentTypesByRoom[roomId]) {
-          try {
-            await dispatch(getEquipmentTypesByRoom(roomId)).unwrap();
-          } catch (error) {
-            console.error(
-              `Ошибка загрузки типов оборудования комнаты ${roomId}:`,
-              error
-            );
-          }
+        try {
+          await dispatch(getEquipmentTypesByRoom(roomId)).unwrap();
+        } catch (error) {
+          console.error(
+            `Ошибка загрузки типов оборудования комнаты ${roomId}:`,
+            error
+          );
         }
 
-        // Clear loading state
         setLoadingStates((prev) => ({
           ...prev,
           equipment: { ...prev.equipment, [roomId]: false },
@@ -252,6 +262,7 @@ const HomePage = () => {
 
   const handleEquipmentTypeSelect = (type) => {
     setSelectedEquipmentType(type);
+    setTypeSelectionModalVisible(false);
     setCreateModalVisible(true);
   };
 
@@ -261,12 +272,38 @@ const HomePage = () => {
     setEquipmentModalVisible(true);
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Refresh all currently open rooms
+      const roomIds = Object.values(activeRoomPanels).flat();
+      await Promise.all(
+        roomIds.map((roomId) => dispatch(getEquipmentTypesByRoom(roomId)))
+      );
+      message.success("Данные обновлены");
+    } catch (error) {
+      message.error("Ошибка при обновлении данных");
+      console.error("Refresh error:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const renderEquipmentTypes = (roomId, room) => {
     const equipmentTypesData = equipmentTypesByRoom[roomId] || [];
     const isLoading = loadingStates.equipment[roomId];
 
     return (
       <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+        <div className="flex justify-end mb-2">
+          <Button
+            icon={<FiRefreshCw className={refreshing ? "animate-spin" : ""} />}
+            onClick={() => refreshRoomEquipment(roomId)}
+            size="small"
+            disabled={isLoading}
+          />
+        </div>
+
         {isLoading ? (
           <div className="text-center py-8">
             <Spin size="large" />
@@ -500,21 +537,12 @@ const HomePage = () => {
           <div className="text-red-500 mb-2">Ошибка при загрузке данных</div>
           <Button
             onClick={() => {
-              dispatch(getBuildings());
-              dispatch(getEquipmentTypes());
+              window.location.reload();
             }}
           >
             Попробовать снова
           </Button>
         </div>
-      </div>
-    );
-  }
-
-  if (universityLoading && buildings.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Spin size="large" />
       </div>
     );
   }
@@ -590,11 +618,8 @@ const HomePage = () => {
 
       <CreateEquipmentModal
         visible={createModalVisible}
-        onCancel={() => {
-          setCreateModalVisible(false);
-          setSelectedRoom(null);
-          setSelectedEquipmentType(null);
-        }}
+        onCancel={handleEquipmentCreated}
+        onSuccess={handleEquipmentCreated}
         room={selectedRoom}
         equipmentType={selectedEquipmentType}
         equipmentTypes={equipmentTypes}

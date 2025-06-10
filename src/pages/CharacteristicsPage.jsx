@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Card,
   Tabs,
@@ -29,7 +29,6 @@ import {
   createExtenderSpec,
   createMonitorSpec,
 } from "../store/slices/specificationSlice";
-import { getEquipmentTypes } from "../store/slices/equipmentSlice";
 import { specificationsAPI } from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateSpecificationForm from "../components/Equipment/CreateSpecificationForm";
@@ -47,24 +46,13 @@ const CharacteristicsPage = () => {
   const [editForm] = Form.useForm();
 
   const dispatch = useDispatch();
+
+  // Get data from Redux store (already loaded in App.js)
   const specifications = useSelector((state) => state.specifications);
   const { equipmentTypes } = useSelector((state) => state.equipment);
   const { loading, specificationCount } = specifications;
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        await dispatch(getAllSpecifications()).unwrap();
-        await dispatch(getSpecificationCount()).unwrap();
-        await dispatch(getEquipmentTypes()).unwrap();
-      } catch (error) {
-        console.error("Spetsifikatsiyalarni yuklashda xato:", error);
-        message.error("Ma'lumotlarni yuklashda xato yuz berdi");
-      }
-    };
-
-    loadData();
-  }, [dispatch]);
+  // No initial data loading needed - data is already loaded in App.js
 
   const equipmentTypeTemplates = [
     {
@@ -127,8 +115,6 @@ const CharacteristicsPage = () => {
   const handleEditSpec = (spec, typeName) => {
     setSelectedSpec(spec);
     setSelectedType(typeName);
-
-    // Don't set form values here, let CreateSpecificationForm handle it
     setEditModalVisible(true);
   };
 
@@ -153,6 +139,7 @@ const CharacteristicsPage = () => {
         message.success("Характеристика успешно создана!");
         setCreateModalVisible(false);
         specForm.resetFields();
+        // Refresh specifications data
         dispatch(getAllSpecifications());
         dispatch(getSpecificationCount());
       }

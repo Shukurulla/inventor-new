@@ -78,6 +78,10 @@ const CreateEquipmentModal = ({
   const [innValues, setInnValues] = useState({});
   const [errors, setErrors] = useState({});
   const [fileList, setFileList] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStep1Valid, setIsStep1Valid] = useState(false);
+  const [isStep2Valid, setIsStep2Valid] = useState(false);
+  const [isStep3Valid, setIsStep3Valid] = useState(false);
 
   const dispatch = useDispatch();
   const { loading } = useSelector((state) => state.equipment);
@@ -103,6 +107,37 @@ const CreateEquipmentModal = ({
       }));
     }
   }, [visible, equipmentType, room]);
+
+  useEffect(() => {
+    const validateStep1 = () => {
+      const isValid = formValues.name_prefix && formValues.status;
+      setIsStep1Valid(isValid);
+      return isValid;
+    };
+
+    const validateStep2 = () => {
+      const specFieldName = getSpecificationFieldName(formValues.type_id);
+      const availableSpecs = getSpecificationsForType(formValues.type_id);
+      const isValid =
+        !specFieldName ||
+        formValues[specFieldName] ||
+        availableSpecs.length === 0;
+      setIsStep2Valid(isValid);
+      return isValid;
+    };
+
+    const validateStep3 = () => {
+      const isValid = createdEquipment.every(
+        (equipment) => innValues[`inn_${equipment.id}`]
+      );
+      setIsStep3Valid(isValid);
+      return isValid;
+    };
+
+    if (currentStep === 0) validateStep1();
+    if (currentStep === 1) validateStep2();
+    if (currentStep === 2) validateStep3();
+  }, [formValues, createdEquipment, innValues, currentStep]);
 
   const getSpecificationFieldName = (typeId) => {
     const type = equipmentTypes.find((t) => t.id === typeId);
@@ -316,7 +351,8 @@ const CreateEquipmentModal = ({
         ...prev,
         image: newFileList[0].originFileObj,
       }));
-    } else {
+    }
+    insurance: {
       setFormValues((prev) => ({ ...prev, image: null }));
     }
   };
@@ -373,6 +409,7 @@ const CreateEquipmentModal = ({
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const specFieldName = getSpecificationFieldName(formValues.type_id);
       const typeName =
@@ -390,7 +427,6 @@ const CreateEquipmentModal = ({
         count: formValues.count || 1,
       };
 
-      // Add specification ID if available
       if (specFieldName && formValues[specFieldName]) {
         equipmentData[specFieldName] = formValues[specFieldName];
       }
@@ -415,6 +451,8 @@ const CreateEquipmentModal = ({
     } catch (error) {
       console.error("Equipment creation error:", error);
       message.error("Ошибка при создании оборудования");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -424,6 +462,7 @@ const CreateEquipmentModal = ({
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const equipments = createdEquipment.map((equipment, index) => ({
         id: equipment.id,
@@ -437,15 +476,17 @@ const CreateEquipmentModal = ({
       setIsCompleted(true);
     } catch (error) {
       message.error("Ошибка при присвоении ИНН");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDownloadQRCodes = async () => {
+    setIsSubmitting(true);
     try {
       console.log("Starting QR code download...");
       console.log("Created equipment:", createdEquipment);
 
-      // Prepare equipment data for PDF generation
       const equipmentForPDF = createdEquipment.map((equipment, index) => {
         const innValue =
           innValues[`inn_${equipment.id}`] ||
@@ -475,6 +516,8 @@ const CreateEquipmentModal = ({
       message.destroy();
       console.error("QR code download error:", error);
       message.error(`Ошибка при скачивании QR-кодов: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -527,6 +570,10 @@ const CreateEquipmentModal = ({
     setInnValues({});
     setErrors({});
     setFileList([]);
+    setIsSubmitting(false);
+    setIsStep1Valid(false);
+    setIsStep2Valid(false);
+    setIsStep3Valid(false);
   };
 
   const handleSpecificationChange = (value) => {
@@ -643,22 +690,25 @@ const CreateEquipmentModal = ({
 
       <Row gutter={16} className="mt-4">
         <Col span={12}>
-          <button
+          <Button
             className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
             style={{ width: "100%" }}
             onClick={onCancel}
           >
             Отмена
-          </button>
+          </Button>
         </Col>
         <Col span={12}>
-          <button
+          <Button
+            type="primary"
             className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
             style={{ width: "100%" }}
-            onClick={() => handleStep1Submit()}
+            onClick={handleStep1Submit}
+            disabled={!isStep1Valid || isSubmitting}
+            loading={isSubmitting && currentStep === 0}
           >
             Далее
-          </button>
+          </Button>
         </Col>
       </Row>
     </div>
@@ -861,22 +911,25 @@ const CreateEquipmentModal = ({
 
         <Row gutter={16} className="mt-4">
           <Col span={12}>
-            <button
+            <Button
               className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
               style={{ width: "100%" }}
               onClick={() => setCurrentStep(0)}
             >
               Назад
-            </button>
+            </Button>
           </Col>
           <Col span={12}>
-            <button
+            <Button
+              type="primary"
               className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
               style={{ width: "100%" }}
-              onClick={() => handleStep2Submit()}
+              onClick={handleStep2Submit}
+              disabled={!isStep2Valid || isSubmitting}
+              loading={isSubmitting && currentStep === 1}
             >
               Далее
-            </button>
+            </Button>
           </Col>
         </Row>
       </div>
@@ -900,6 +953,8 @@ const CreateEquipmentModal = ({
                 icon={<FiDownload />}
                 onClick={handleDownloadQRCodes}
                 className="bg-[#4E38F2] border-none hover:bg-[#4A63D7]"
+                disabled={isSubmitting}
+                loading={isSubmitting}
               >
                 Скачать QR-коды
               </Button>
@@ -942,22 +997,25 @@ const CreateEquipmentModal = ({
         </div>
         <Row gutter={16} className="mt-4">
           <Col span={12}>
-            <button
+            <Button
               className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
               style={{ width: "100%" }}
               onClick={() => setCurrentStep(1)}
             >
               Назад
-            </button>
+            </Button>
           </Col>
           <Col span={12}>
-            <button
+            <Button
+              type="primary"
               className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
               style={{ width: "100%" }}
-              onClick={() => handleStep3Submit()}
+              onClick={handleStep3Submit}
+              disabled={!isStep3Valid || isSubmitting}
+              loading={isSubmitting && currentStep === 2}
             >
               Далее
-            </button>
+            </Button>
           </Col>
         </Row>
       </div>

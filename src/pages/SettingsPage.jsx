@@ -10,40 +10,28 @@ import api from "../services/api";
 const SettingsPage = () => {
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [profileLoading, setProfileLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
   const [profileForm] = Form.useForm();
 
   const dispatch = useDispatch();
+
+  // Get data from Redux store
   const { user } = useSelector((state) => state.auth);
   const { theme, fontSize } = useSelector((state) => state.settings);
 
-  // Fetch profile data on component mount
+  // Use user data from Redux instead of separate API call
   useEffect(() => {
-    fetchProfileData();
-  }, []);
-
-  const fetchProfileData = async () => {
-    try {
-      setProfileLoading(true);
-      const response = await api.get("/user/users/me/");
-      setProfileData(response.data);
-
-      // Set form values with fetched data
+    if (user) {
+      setProfileData(user);
       profileForm.setFieldsValue({
-        username: response.data.username || "",
-        first_name: response.data.first_name || "",
-        last_name: response.data.last_name || "",
-        email: response.data.email || "",
-        phone_number: response.data.phone_number || "",
+        username: user.username || "",
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
+        email: user.email || "",
+        phone_number: user.phone_number || "",
       });
-    } catch (error) {
-      console.error("Error fetching profile:", error);
-      message.error("Ошибка при загрузке профиля");
-    } finally {
-      setProfileLoading(false);
     }
-  };
+  }, [user, profileForm]);
 
   const handleThemeChange = (value) => {
     dispatch(setTheme(value));
@@ -113,7 +101,8 @@ const SettingsPage = () => {
     { label: "Roboto", value: "roboto" },
   ];
 
-  if (profileLoading) {
+  // No loading screen needed since data comes from Redux
+  if (!profileData) {
     return (
       <div className="flex justify-center items-center h-64">
         <Spin size="large" />

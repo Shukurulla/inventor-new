@@ -90,7 +90,19 @@ body {
   border-bottom: 1px solid #404040 !important;
   color: #ffffff !important;
 }
-
+.dark
+  .min-h-screen.bg-gradient-to-br.from-indigo-50.to-indigo-50.flex.items-center.justify-center.p-4 {
+  background: #000 !important;
+}
+.dark .anticon.anticon-eye-invisible.ant-input-password-icon {
+  color: #fff;
+}
+.dark .ant-pagination.ant-table-pagination {
+  color: #fff;
+}
+.dark .ant-pagination-next.ant-pagination-prev button span svg {
+  color: #fff !important;
+}
 .dark .ant-layout-content {
   background: #000 !important;
 }
