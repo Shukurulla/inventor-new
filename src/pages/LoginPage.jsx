@@ -3,10 +3,12 @@ import { Form, Input, Button, Card, message } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { FiUser, FiLock } from "react-icons/fi";
 import { login, clearError } from "../store/slices/authSlice";
+import { LogoDark, LogoLight } from "../../public";
 
 const LoginPage = () => {
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
+  const { theme } = useSelector((state) => state.settings);
   const [form] = Form.useForm();
 
   const handleSubmit = async (values) => {
@@ -28,10 +30,9 @@ const LoginPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-indigo-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-600 rounded-2xl mb-4">
-            <span className="text-white font-bold text-2xl">iM</span>
+          <div className="flex items-center justify-center">
+            <img src={theme == "dark" ? LogoDark : LogoLight} alt="" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">iMaster</h1>
           <p className="text-gray-600">Система управления инвентарем</p>
         </div>
 
