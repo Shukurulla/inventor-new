@@ -61,6 +61,7 @@ const Layout = ({ children }) => {
   const { user, userActions } = useSelector((state) => state.auth);
   const { theme } = useSelector((state) => state.settings);
   const [count, setCount] = useState(0);
+
   useEffect(() => {
     loadEquipment();
   }, []);
@@ -140,8 +141,22 @@ const Layout = ({ children }) => {
     setMobileMenuVisible(false);
   };
 
+  // Updated logout handler with confirmation modal
   const handleLogout = () => {
-    dispatch(logout());
+    Modal.confirm({
+      title: "Подтвердите выход",
+      content: "Вы уверены, что хотите выйти из системы?",
+      okText: "Да, выйти",
+      cancelText: "Отмена",
+      okType: "danger",
+      icon: <FiLogOut className="text-red-500" />,
+      onOk() {
+        dispatch(logout());
+      },
+      onCancel() {
+        console.log("Logout cancelled");
+      },
+    });
   };
 
   const handleSearch = async () => {
@@ -612,9 +627,6 @@ const Layout = ({ children }) => {
                 </div>
               </div>
             )}
-
-            {/* Technical Characteristics - same as before */}
-            {/* ... rest of the technical characteristics code ... */}
 
             {/* QR Code */}
             {selectedEquipment.inn && (

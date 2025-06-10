@@ -12,9 +12,16 @@ import {
   message,
   Popconfirm,
   Form,
+  List,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import { FiPlus, FiEdit, FiTrash2, FiChevronRight } from "react-icons/fi";
+import {
+  FiPlus,
+  FiEdit,
+  FiTrash2,
+  FiChevronRight,
+  FiAlertTriangle,
+} from "react-icons/fi";
 import {
   getAllSpecifications,
   getSpecificationCount,
@@ -29,7 +36,7 @@ import {
   createExtenderSpec,
   createMonitorSpec,
 } from "../store/slices/specificationSlice";
-import { specificationsAPI } from "../services/api";
+import { specificationsAPI, equipmentAPI } from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateSpecificationForm from "../components/Equipment/CreateSpecificationForm";
 
@@ -40,8 +47,11 @@ const CharacteristicsPage = () => {
   const [activeTab, setActiveTab] = useState("templates");
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [dependencyModalVisible, setDependencyModalVisible] = useState(false);
   const [selectedType, setSelectedType] = useState(null);
   const [selectedSpec, setSelectedSpec] = useState(null);
+  const [dependentEquipment, setDependentEquipment] = useState([]);
+  const [checkingDependencies, setCheckingDependencies] = useState(false);
   const [specForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
@@ -51,8 +61,6 @@ const CharacteristicsPage = () => {
   const specifications = useSelector((state) => state.specifications);
   const { equipmentTypes } = useSelector((state) => state.equipment);
   const { loading, specificationCount } = specifications;
-
-  // No initial data loading needed - data is already loaded in App.js
 
   const equipmentTypeTemplates = [
     {
@@ -106,6 +114,100 @@ const CharacteristicsPage = () => {
       color: "bg-cyan-100 text-cyan-600",
     },
   ];
+
+  // Check dependencies before deletion
+  const checkSpecificationDependencies = async (spec, typeName) => {
+    setCheckingDependencies(true);
+    try {
+      const response = await equipmentAPI.getMyEquipments();
+      const allEquipment = response.data || [];
+
+      // Find equipment that uses this specification
+      const dependentEquipment = allEquipment.filter((equipment) => {
+        const typeNameLower = typeName.toLowerCase();
+
+        if (typeNameLower.includes("компьютер")) {
+          return (
+            equipment.computer_specification_id === spec.id ||
+            equipment.computer_specification?.id === spec.id
+          );
+        } else if (typeNameLower.includes("проектор")) {
+          return (
+            equipment.projector_specification_id === spec.id ||
+            equipment.projector_specification?.id === spec.id
+          );
+        } else if (typeNameLower.includes("принтер")) {
+          return (
+            equipment.printer_specification_id === spec.id ||
+            equipment.printer_specification?.id === spec.id
+          );
+        } else if (typeNameLower.includes("телевизор")) {
+          return (
+            equipment.tv_specification_id === spec.id ||
+            equipment.tv_specification?.id === spec.id
+          );
+        } else if (typeNameLower.includes("роутер")) {
+          return (
+            equipment.router_specification_id === spec.id ||
+            equipment.router_specification?.id === spec.id
+          );
+        } else if (typeNameLower.includes("ноутбук")) {
+          return (
+            equipment.notebook_specification_id === spec.id ||
+            equipment.notebook_specification?.id === spec.id
+          );
+        } else if (typeNameLower.includes("моноблок")) {
+          return (
+            equipment.monoblok_specification_id === spec.id ||
+            equipment.monoblok_specification?.id === spec.id
+          );
+        } else if (typeNameLower.includes("доска")) {
+          return (
+            equipment.whiteboard_specification_id === spec.id ||
+            equipment.whiteboard_specification?.id === spec.id
+          );
+        } else if (typeNameLower.includes("удлинитель")) {
+          return (
+            equipment.extender_specification_id === spec.id ||
+            equipment.extender_specification?.id === spec.id
+          );
+        } else if (typeNameLower.includes("монитор")) {
+          return (
+            equipment.monitor_specification_id === spec.id ||
+            equipment.monitor_specification?.id === spec.id
+          );
+        }
+        return false;
+      });
+
+      if (dependentEquipment.length > 0) {
+        setDependentEquipment(dependentEquipment);
+        setSelectedSpec(spec);
+        setSelectedType(typeName);
+        setDependencyModalVisible(true);
+      } else {
+        // No dependencies, safe to delete
+        confirmDirectDelete(spec, typeName);
+      }
+    } catch (error) {
+      console.error("Error checking dependencies:", error);
+      message.error("Ошибка при проверке зависимостей");
+    } finally {
+      setCheckingDependencies(false);
+    }
+  };
+
+  const confirmDirectDelete = (spec, typeName) => {
+    const specName = spec.model || spec.cpu || `Характеристика ${spec.id}`;
+    Modal.confirm({
+      title: "Удалить характеристику?",
+      content: `Вы уверены, что хотите удалить характеристику "${specName}"?`,
+      okText: "Да, удалить",
+      cancelText: "Отмена",
+      okType: "danger",
+      onOk: () => handleDeleteSpec(spec, typeName),
+    });
+  };
 
   const handleCreateSpec = (equipmentTypeName) => {
     setSelectedType(equipmentTypeName);
@@ -314,15 +416,14 @@ const CharacteristicsPage = () => {
           size="small"
           onClick={() => handleEditSpec(spec, type)}
         />
-        <Popconfirm
-          title="Удалить характеристику?"
-          description="Это действие нельзя отменить"
-          okText="Да"
-          cancelText="Нет"
-          onConfirm={() => handleDeleteSpec(spec, type)}
-        >
-          <Button type="text" danger icon={<FiTrash2 />} size="small" />
-        </Popconfirm>
+        <Button
+          type="text"
+          danger
+          icon={<FiTrash2 />}
+          size="small"
+          loading={checkingDependencies}
+          onClick={() => checkSpecificationDependencies(spec, type)}
+        />
       </div>
     </div>
   );
@@ -551,6 +652,91 @@ const CharacteristicsPage = () => {
           isEdit={true}
           initialData={selectedSpec}
         />
+      </Modal>
+
+      {/* Dependency Check Modal */}
+      <Modal
+        title={
+          <div className="flex items-center space-x-2">
+            <FiAlertTriangle className="text-orange-500" />
+            <span>Невозможно удалить характеристику</span>
+          </div>
+        }
+        visible={dependencyModalVisible}
+        onCancel={() => {
+          setDependencyModalVisible(false);
+          setDependentEquipment([]);
+          setSelectedSpec(null);
+          setSelectedType(null);
+        }}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => {
+              setDependencyModalVisible(false);
+              setDependentEquipment([]);
+              setSelectedSpec(null);
+              setSelectedType(null);
+            }}
+          >
+            Закрыть
+          </Button>,
+        ]}
+        width={800}
+      >
+        <div className="space-y-4">
+          <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+            <p className="text-orange-800">
+              <strong>
+                Данная характеристика используется в следующем оборудовании:
+              </strong>
+            </p>
+            <p className="text-sm text-orange-700 mt-2">
+              Для удаления характеристики необходимо сначала отвязать её от
+              всего оборудования или изменить характеристику у оборудования на
+              другую.
+            </p>
+          </div>
+
+          <div className="max-h-60 overflow-y-auto">
+            <List
+              dataSource={dependentEquipment}
+              renderItem={(equipment) => (
+                <List.Item className="border-b hover:bg-gray-50 transition-colors">
+                  <div className="w-full flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-800">
+                        {equipment.name || `ID: ${equipment.id}`}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Тип: {equipment.type_data?.name || "Неизвестно"} • ИНН:{" "}
+                        {equipment.inn || "Не указан"}
+                      </div>
+                    </div>
+                    <Button
+                      type="link"
+                      onClick={() => {
+                        // Navigate to equipment edit
+                        message.info("Переход к редактированию оборудования");
+                      }}
+                      className="text-indigo-600"
+                    >
+                      Редактировать →
+                    </Button>
+                  </div>
+                </List.Item>
+              )}
+            />
+          </div>
+
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <p className="text-blue-800 text-sm">
+              💡 <strong>Рекомендация:</strong> Перейдите к каждому оборудованию
+              и измените или удалите привязку к данной характеристике, после
+              чего вы сможете безопасно удалить характеристику.
+            </p>
+          </div>
+        </div>
       </Modal>
     </div>
   );

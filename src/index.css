@@ -30,6 +30,13 @@ body {
 .font-roboto {
   font-family: "Roboto", sans-serif !important;
 }
+
+.dark .bg-orange-50.p-4.rounded-lg.border.border-orange-200 {
+  background: #000 !important;
+}
+.dark .bg-blue-50.p-4.rounded-lg.border.border-blue-200 {
+  background: #000 !important;
+}
 .overflow-y-scroll {
   overflow-y: scroll !important;
 }

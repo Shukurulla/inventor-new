@@ -79,6 +79,8 @@ const CreateEquipmentModal = ({
   const [errors, setErrors] = useState({});
   const [fileList, setFileList] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Validation states for each step
   const [isStep1Valid, setIsStep1Valid] = useState(false);
   const [isStep2Valid, setIsStep2Valid] = useState(false);
   const [isStep3Valid, setIsStep3Valid] = useState(false);
@@ -108,9 +110,13 @@ const CreateEquipmentModal = ({
     }
   }, [visible, equipmentType, room]);
 
+  // Validation logic for each step
   useEffect(() => {
     const validateStep1 = () => {
-      const isValid = formValues.name_prefix && formValues.status;
+      const isValid =
+        formValues.name_prefix &&
+        formValues.name_prefix.trim() !== "" &&
+        formValues.status;
       setIsStep1Valid(isValid);
       return isValid;
     };
@@ -118,6 +124,8 @@ const CreateEquipmentModal = ({
     const validateStep2 = () => {
       const specFieldName = getSpecificationFieldName(formValues.type_id);
       const availableSpecs = getSpecificationsForType(formValues.type_id);
+
+      // Agar specification kerak bo'lsa va mavjud bo'lsa, tanlangan bo'lishi kerak
       const isValid =
         !specFieldName ||
         formValues[specFieldName] ||
@@ -128,7 +136,9 @@ const CreateEquipmentModal = ({
 
     const validateStep3 = () => {
       const isValid = createdEquipment.every(
-        (equipment) => innValues[`inn_${equipment.id}`]
+        (equipment) =>
+          innValues[`inn_${equipment.id}`] &&
+          innValues[`inn_${equipment.id}`].trim() !== ""
       );
       setIsStep3Valid(isValid);
       return isValid;
@@ -351,15 +361,14 @@ const CreateEquipmentModal = ({
         ...prev,
         image: newFileList[0].originFileObj,
       }));
-    }
-    insurance: {
+    } else {
       setFormValues((prev) => ({ ...prev, image: null }));
     }
   };
 
   const validateStep1 = () => {
     const newErrors = {};
-    if (!formValues.name_prefix) {
+    if (!formValues.name_prefix || formValues.name_prefix.trim() === "") {
       newErrors.name_prefix = "Введите название!";
     }
     if (!formValues.status) {
@@ -387,7 +396,10 @@ const CreateEquipmentModal = ({
   const validateStep3 = () => {
     const newErrors = {};
     createdEquipment.forEach((equipment, index) => {
-      if (!innValues[`inn_${equipment.id}`]) {
+      if (
+        !innValues[`inn_${equipment.id}`] ||
+        innValues[`inn_${equipment.id}`].trim() === ""
+      ) {
         newErrors[`inn_${equipment.id}`] = "Введите ИНН!";
       }
     });
@@ -704,10 +716,10 @@ const CreateEquipmentModal = ({
             className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
             style={{ width: "100%" }}
             onClick={handleStep1Submit}
-            disabled={!isStep1Valid || isSubmitting}
+            disabled={!isStep1Valid}
             loading={isSubmitting && currentStep === 0}
           >
-            Далее
+            {isSubmitting && currentStep === 0 ? "Загрузка..." : "Далее"}
           </Button>
         </Col>
       </Row>
@@ -771,70 +783,6 @@ const CreateEquipmentModal = ({
                         <label className="text-gray-600 mb-1">Процессор:</label>
                         <Input
                           value={formValues.cpu || "N/A"}
-                          disabled
-                          style={{ height: "40px" }}
-                        />
-                      </div>
-                    </Col>
-                    <Col span={12}>
-                      <div className="flex flex-col">
-                        <label className="text-gray-600 mb-1">ОЗУ:</label>
-                        <Input
-                          value={formValues.ram || "N/A"}
-                          disabled
-                          style={{ height: "40px" }}
-                        />
-                      </div>
-                    </Col>
-                  </Row>
-
-                  {formValues.storageList &&
-                    formValues.storageList.length > 0 && (
-                      <div style={{ marginTop: "16px" }}>
-                        <label className="text-gray-600 mb-2 block">
-                          Накопители:
-                        </label>
-                        <div className="border rounded-lg p-3 bg-gray-50">
-                          {formValues.storageList.map((storage, index) => (
-                            <Row key={index} gutter={16} className="mb-2">
-                              <Col span={12}>
-                                <div className="flex flex-col">
-                                  <label className="text-gray-500 text-xs">
-                                    Объем (GB):
-                                  </label>
-                                  <Input
-                                    value={storage.capacity_gb || "N/A"}
-                                    disabled
-                                    style={{ height: "32px" }}
-                                  />
-                                </div>
-                              </Col>
-                              <Col span={12}>
-                                <div className="flex flex-col">
-                                  <label className="text-gray-500 text-xs">
-                                    Тип:
-                                  </label>
-                                  <Input
-                                    value={storage.disk_type || "N/A"}
-                                    disabled
-                                    style={{ height: "32px" }}
-                                  />
-                                </div>
-                              </Col>
-                            </Row>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                  <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                    <Col span={12}>
-                      <div className="flex flex-col">
-                        <label className="text-gray-600 mb-1">
-                          Видеокарта:
-                        </label>
-                        <Input
-                          value={formValues.gpu_model || "No GPU specified"}
                           disabled
                           style={{ height: "40px" }}
                         />
@@ -925,10 +873,10 @@ const CreateEquipmentModal = ({
               className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
               style={{ width: "100%" }}
               onClick={handleStep2Submit}
-              disabled={!isStep2Valid || isSubmitting}
+              disabled={!isStep2Valid}
               loading={isSubmitting && currentStep === 1}
             >
-              Далее
+              {isSubmitting && currentStep === 1 ? "Создание..." : "Далее"}
             </Button>
           </Col>
         </Row>
@@ -956,7 +904,7 @@ const CreateEquipmentModal = ({
                 disabled={isSubmitting}
                 loading={isSubmitting}
               >
-                Скачать QR-коды
+                {isSubmitting ? "Создание PDF..." : "Скачать QR-коды"}
               </Button>
             </div>
           </div>
@@ -1011,10 +959,10 @@ const CreateEquipmentModal = ({
               className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
               style={{ width: "100%" }}
               onClick={handleStep3Submit}
-              disabled={!isStep3Valid || isSubmitting}
+              disabled={!isStep3Valid}
               loading={isSubmitting && currentStep === 2}
             >
-              Далее
+              {isSubmitting && currentStep === 2 ? "Сохранение..." : "Далее"}
             </Button>
           </Col>
         </Row>

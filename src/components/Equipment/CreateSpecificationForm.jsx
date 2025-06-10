@@ -24,6 +24,8 @@ const CreateSpecificationForm = ({
 }) => {
   const typeName = equipmentType?.name?.toLowerCase() || "";
   const [storageList, setStorageList] = useState([{ id: Date.now() }]);
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize storage list from existing data when editing
   useEffect(() => {
@@ -63,6 +65,44 @@ const CreateSpecificationForm = ({
       form.setFieldsValue(formValues);
     }
   }, [isEdit, initialData, form]);
+
+  // Validation function
+  const validateForm = () => {
+    const fieldsValue = form.getFieldsValue();
+    let isValid = false;
+
+    if (typeName.includes("компьютер") || typeName.includes("ноутбук") || typeName.includes("моноблок")) {
+      isValid = fieldsValue.cpu && fieldsValue.ram && fieldsValue.gpu_model &&
+        storageList.every(storage => 
+          fieldsValue[`storage_${storage.id}_size`] && 
+          fieldsValue[`storage_${storage.id}_type`]
+        );
+    } else if (typeName.includes("проектор")) {
+      isValid = fieldsValue.model && fieldsValue.lumens && fieldsValue.resolution && fieldsValue.throw_type;
+    } else if (typeName.includes("принтер")) {
+      isValid = fieldsValue.model;
+    } else if (typeName.includes("телевизор")) {
+      isValid = fieldsValue.model && fieldsValue.screen_size;
+    } else if (typeName.includes("роутер")) {
+      isValid = fieldsValue.model && fieldsValue.ports && fieldsValue.wifi_standart;
+    } else if (typeName.includes("доска")) {
+      isValid = fieldsValue.model && fieldsValue.screen_size && fieldsValue.touch_type;
+    } else if (typeName.includes("удлинитель")) {
+      isValid = fieldsValue.ports && fieldsValue.length;
+    } else if (typeName.includes("монитор")) {
+      isValid = fieldsValue.model && fieldsValue.screen_size && fieldsValue.resolution && 
+               fieldsValue.panel_type && fieldsValue.refresh_rate;
+    } else {
+      isValid = fieldsValue.description && fieldsValue.description.trim() !== '';
+    }
+
+    setIsFormValid(isValid);
+  };
+
+  // Watch for form changes
+  useEffect(() => {
+    validateForm();
+  }, [storageList]);
 
   const addStorage = () => {
     setStorageList([...storageList, { id: Date.now() }]);
@@ -133,128 +173,6 @@ const CreateSpecificationForm = ({
                   icon={<FiPlus />}
                   onClick={addStorage}
                   className="ml-4"
-                >
-                  Добавить
-                </Button>
-              ) : (
-                <Button
-                  type="text"
-                  danger
-                  icon={<FiTrash2 />}
-                  onClick={() => removeStorage(storage.id)}
-                  className="mt"
-                />
-              )}
-              {index === storageList.length - 1 && storageList.length > 1 && (
-                <Button
-                  type="dashed"
-                  icon={<FiPlus />}
-                  onClick={addStorage}
-                  className="ml-4"
-                >
-                  Добавить
-                </Button>
-              )}
-            </Col>
-          </Row>
-        ))}
-      </Card>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            label="Видеокарта"
-            name="gpu_model"
-            rules={[{ required: true, message: "Введите видеокарту!" }]}
-          >
-            <Input placeholder="NVIDIA GTX 1050 Ti" />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item
-            label="Есть клавиатура"
-            name="has_keyboard"
-            valuePropName="checked"
-            initialValue={true}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item
-            label="Есть мышь"
-            name="has_mouse"
-            valuePropName="checked"
-            initialValue={true}
-          >
-            <Switch />
-          </Form.Item>
-        </Col>
-      </Row>
-    </>
-  );
-
-  const renderNotebookFields = () => (
-    <>
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item
-            label="Процессор"
-            name="cpu"
-            rules={[{ required: true, message: "Введите процессор!" }]}
-          >
-            <Input placeholder="Intel Core i7-1165G7" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item
-            label="ОЗУ"
-            name="ram"
-            rules={[{ required: true, message: "Введите объем ОЗУ!" }]}
-          >
-            <Input placeholder="16 GB" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      {/* Storage Fields */}
-      <Card title="Накопители" size="small" className="mb-4">
-        {storageList.map((storage, index) => (
-          <Row key={storage.id} gutter={16} className="mb-2">
-            <Col span={10}>
-              <Form.Item
-                label={index === 0 ? "Объем накопителя (GB)" : ""}
-                name={`storage_${storage.id}_size`}
-                rules={[{ required: true, message: "Введите объем!" }]}
-              >
-                <InputNumber
-                  placeholder="512"
-                  min={1}
-                  max={10000}
-                  className="w-full"
-                />
-              </Form.Item>
-            </Col>
-            <Col span={10}>
-              <Form.Item
-                label={index === 0 ? "Тип накопителя" : ""}
-                name={`storage_${storage.id}_type`}
-                rules={[{ required: true, message: "Выберите тип!" }]}
-              >
-                <Select placeholder="Выберите тип">
-                  <Option value="HDD">HDD</Option>
-                  <Option value="SATASSD">SATA SSD</Option>
-                  <Option value="NVMEM2SSD">NVME M2 SSD</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={4} className="flex items-center">
-              {index === 0 && storageList.length === 1 ? (
-                <Button
-                  type="dashed"
-                  icon={<FiPlus />}
-                  onClick={addStorage}
-                  className="mt-6"
                 >
                   Добавить
                 </Button>
@@ -785,55 +703,67 @@ const CreateSpecificationForm = ({
   };
 
   const handleSubmit = async (values) => {
-    // Process storage data for computer, notebook, and monoblok
-    if (
-      typeName.includes("компьютер") ||
-      typeName.includes("ноутбук") ||
-      typeName.includes("моноблок")
-    ) {
-      const diskSpecifications = [];
-      storageList.forEach((storage) => {
-        const size = values[`storage_${storage.id}_size`];
-        const type = values[`storage_${storage.id}_type`];
-        if (size && type) {
-          // Since size is now a number from InputNumber, we can use it directly
-          const capacity_gb =
-            typeof size === "number" ? size : parseInt(size) || 0;
+    setIsSubmitting(true);
+    try {
+      // Process storage data for computer, notebook, and monoblok
+      if (
+        typeName.includes("компьютер") ||
+        typeName.includes("ноутбук") ||
+        typeName.includes("моноблок")
+      ) {
+        const diskSpecifications = [];
+        storageList.forEach((storage) => {
+          const size = values[`storage_${storage.id}_size`];
+          const type = values[`storage_${storage.id}_type`];
+          if (size && type) {
+            // Since size is now a number from InputNumber, we can use it directly
+            const capacity_gb =
+              typeof size === "number" ? size : parseInt(size) || 0;
 
-          diskSpecifications.push({
-            disk_type: type,
-            capacity_gb: capacity_gb,
-          });
+            diskSpecifications.push({
+              disk_type: type,
+              capacity_gb: capacity_gb,
+            });
+          }
+          // Remove individual storage fields from values
+          delete values[`storage_${storage.id}_size`];
+          delete values[`storage_${storage.id}_type`];
+        });
+        values.disk_specifications = diskSpecifications;
+
+        // Process GPU specifications
+        if (values.gpu_model) {
+          values.gpu_specifications = [
+            {
+              id: 1,
+              author: null,
+              created_at: new Date(),
+              model: values.gpu_model,
+            },
+          ];
+          // Remove the individual gpu_model field
+          delete values.gpu_model;
         }
-        // Remove individual storage fields from values
-        delete values[`storage_${storage.id}_size`];
-        delete values[`storage_${storage.id}_type`];
-      });
-      values.disk_specifications = diskSpecifications;
 
-      // Process GPU specifications
-      if (values.gpu_model) {
-        values.gpu_specifications = [
-          {
-            id: 1,
-            author: null,
-            created_at: new Date(),
-            model: values.gpu_model,
-          },
-        ];
-        // Remove the individual gpu_model field
-        delete values.gpu_model;
+        // Remove old storage field if exists
+        delete values.storage;
       }
 
-      // Remove old storage field if exists
-      delete values.storage;
+      await onSubmit(values);
+    } catch (error) {
+      console.error("Form submission error:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onSubmit(values);
   };
 
   return (
-    <Form form={form} layout="vertical" onFinish={handleSubmit}>
+    <Form 
+      form={form} 
+      layout="vertical" 
+      onFinish={handleSubmit}
+      onFieldsChange={validateForm}
+    >
       <div className="mb-3 flex items-center justify-center relative">
         <div className="line w-[100%] h-[6px] rounded-full z-10 absolute bg-[#4E38F2]"></div>
         <div className="bg-[#4E38F2] inline py-2 relative z-20 px-4 font-bold text-white rounded-[10px]">
@@ -844,23 +774,26 @@ const CreateSpecificationForm = ({
 
       <Row gutter={16}>
         <Col span={12}>
-          <button
+          <Button
             type="button"
             className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
             style={{ width: "100%" }}
             onClick={onCancel}
           >
             Отмена
-          </button>
+          </Button>
         </Col>
         <Col span={12}>
-          <button
-            type="submit"
+          <Button
+            type="primary"
+            htmlType="submit"
             className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
             style={{ width: "100%" }}
+            disabled={!isFormValid}
+            loading={isSubmitting}
           >
-            Создать шаблон
-          </button>
+            {isSubmitting ? (isEdit ? "Сохранение..." : "Создание...") : (isEdit ? "Сохранить шаблон" : "Создать шаблон")}
+          </Button>
         </Col>
       </Row>
     </Form>

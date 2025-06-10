@@ -13,6 +13,7 @@ import {
   message,
   Popconfirm,
   Space,
+  List,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -23,6 +24,7 @@ import {
   FiDownload,
   FiUpload,
   FiFileText,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import {
   getContracts,
@@ -30,12 +32,18 @@ import {
   updateContract,
   deleteContract,
 } from "../store/slices/contractSlice";
+import { equipmentAPI } from "../services/api";
 import dayjs from "dayjs";
 
 const ContractsPage = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [dependencyModalVisible, setDependencyModalVisible] = useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
+  const [dependentEquipment, setDependentEquipment] = useState([]);
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [isEditFormValid, setIsEditFormValid] = useState(false);
+  const [checkingDependencies, setCheckingDependencies] = useState(false);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
@@ -46,12 +54,64 @@ const ContractsPage = () => {
     (state) => state.contracts
   );
 
-  // No initial data loading needed - data is already loaded in App.js
+  // Validation for create form
+  const validateCreateForm = () => {
+    const values = form.getFieldsValue();
+    const isValid =
+      values.number && values.number.trim() !== "" && values.valid_until;
+    setIsFormValid(isValid);
+  };
+
+  // Validation for edit form
+  const validateEditForm = () => {
+    const values = editForm.getFieldsValue();
+    const isValid =
+      values.number && values.number.trim() !== "" && values.valid_until;
+    setIsEditFormValid(isValid);
+  };
+
+  // Check dependencies before deletion
+  const checkContractDependencies = async (contract) => {
+    setCheckingDependencies(true);
+    try {
+      // Check if contract is used in any equipment
+      const response = await equipmentAPI.getFilteredEquipments({
+        contract_id: contract.id,
+      });
+
+      const equipmentList = response.data.results || response.data || [];
+
+      if (equipmentList.length > 0) {
+        setDependentEquipment(equipmentList);
+        setSelectedContract(contract);
+        setDependencyModalVisible(true);
+      } else {
+        // No dependencies, safe to delete
+        confirmDirectDelete(contract);
+      }
+    } catch (error) {
+      console.error("Error checking dependencies:", error);
+      message.error("Ошибка при проверке зависимостей");
+    } finally {
+      setCheckingDependencies(false);
+    }
+  };
+
+  const confirmDirectDelete = (contract) => {
+    Modal.confirm({
+      title: "Удалить договор?",
+      content: `Вы уверены, что хотите удалить договор "${contract.number}"?`,
+      okText: "Да, удалить",
+      cancelText: "Отмена",
+      okType: "danger",
+      onOk: () => handleDelete(contract.id),
+    });
+  };
 
   const handleCreate = async (values) => {
     try {
       const formData = new FormData();
-      formData.append("number", values.number);
+      formData.append("number", values.number.trim());
       formData.append("valid_until", values.valid_until.format("YYYY-MM-DD"));
 
       if (values.file && values.file.fileList && values.file.fileList[0]) {
@@ -62,6 +122,7 @@ const ContractsPage = () => {
       message.success("Договор успешно создан!");
       setCreateModalVisible(false);
       form.resetFields();
+      setIsFormValid(false);
     } catch (error) {
       message.error("Ошибка при создании договора");
     }
@@ -70,7 +131,7 @@ const ContractsPage = () => {
   const handleEdit = async (values) => {
     try {
       const formData = new FormData();
-      formData.append("number", values.number);
+      formData.append("number", values.number.trim());
       formData.append("valid_until", values.valid_until.format("YYYY-MM-DD"));
 
       if (values.file && values.file.fileList && values.file.fileList[0]) {
@@ -88,6 +149,7 @@ const ContractsPage = () => {
       setEditModalVisible(false);
       setSelectedContract(null);
       editForm.resetFields();
+      setIsEditFormValid(false);
     } catch (error) {
       message.error("Ошибка при обновлении договора");
     }
@@ -130,6 +192,13 @@ const ContractsPage = () => {
       valid_until: dayjs(contract.valid_until),
     });
     setEditModalVisible(true);
+    // Validate initial form state
+    setTimeout(validateEditForm, 0);
+  };
+
+  const openCreateModal = () => {
+    setCreateModalVisible(true);
+    setIsFormValid(false);
   };
 
   const columns = [
@@ -173,20 +242,14 @@ const ContractsPage = () => {
             onClick={() => openEditModal(record)}
             className="text-orange-500 hover:text-orange-600"
           />
-          <Popconfirm
-            title="Удалить договор?"
-            description="Это действие нельзя отменить"
-            onConfirm={() => handleDelete(record.id)}
-            okText="Да"
-            cancelText="Нет"
-          >
-            <Button
-              type="text"
-              danger
-              icon={<FiTrash2 />}
-              className="text-red-500 hover:text-red-600"
-            />
-          </Popconfirm>
+          <Button
+            type="text"
+            danger
+            icon={<FiTrash2 />}
+            onClick={() => checkContractDependencies(record)}
+            loading={checkingDependencies}
+            className="text-red-500 hover:text-red-600"
+          />
           <Button
             type="text"
             icon={<FiDownload />}
@@ -209,7 +272,7 @@ const ContractsPage = () => {
       <Card className="shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => setCreateModalVisible(true)}
+            onClick={openCreateModal}
             className="bg-[#EEF2FF] create-contract p-7 border-[3px] rounded-xl border-[#6366F1] border-dashed text-lg font-semibold text-[#6366F1] items-center justify-center"
             style={{ display: "flex", width: "100%" }}
           >
@@ -246,15 +309,33 @@ const ContractsPage = () => {
         onCancel={() => {
           setCreateModalVisible(false);
           form.resetFields();
+          setIsFormValid(false);
         }}
         footer={null}
         width={600}
       >
-        <Form form={form} layout="vertical" onFinish={handleCreate}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleCreate}
+          onFieldsChange={validateCreateForm}
+        >
           <Form.Item
             label="Номер договора"
             name="number"
-            rules={[{ required: true, message: "Введите номер договора!" }]}
+            rules={[
+              { required: true, message: "Введите номер договора!" },
+              {
+                validator: (_, value) => {
+                  if (value && value.trim() === "") {
+                    return Promise.reject(
+                      new Error("Номер договора не может быть пустым!")
+                    );
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
           >
             <Input placeholder="Введите номер договора" />
           </Form.Item>
@@ -282,12 +363,18 @@ const ContractsPage = () => {
               onClick={() => {
                 setCreateModalVisible(false);
                 form.resetFields();
+                setIsFormValid(false);
               }}
             >
               Отмена
             </Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Создать договор
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              disabled={!isFormValid}
+            >
+              {loading ? "Создание..." : "Создать договор"}
             </Button>
           </div>
         </Form>
@@ -301,15 +388,33 @@ const ContractsPage = () => {
           setEditModalVisible(false);
           setSelectedContract(null);
           editForm.resetFields();
+          setIsEditFormValid(false);
         }}
         footer={null}
         width={600}
       >
-        <Form form={editForm} layout="vertical" onFinish={handleEdit}>
+        <Form
+          form={editForm}
+          layout="vertical"
+          onFinish={handleEdit}
+          onFieldsChange={validateEditForm}
+        >
           <Form.Item
             label="Номер договора"
             name="number"
-            rules={[{ required: true, message: "Введите номер договора!" }]}
+            rules={[
+              { required: true, message: "Введите номер договора!" },
+              {
+                validator: (_, value) => {
+                  if (value && value.trim() === "") {
+                    return Promise.reject(
+                      new Error("Номер договора не может быть пустым!")
+                    );
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
           >
             <Input placeholder="Введите номер договора" />
           </Form.Item>
@@ -343,15 +448,103 @@ const ContractsPage = () => {
                 setEditModalVisible(false);
                 setSelectedContract(null);
                 editForm.resetFields();
+                setIsEditFormValid(false);
               }}
             >
               Отмена
             </Button>
-            <Button type="primary" htmlType="submit" loading={loading}>
-              Сохранить изменения
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              disabled={!isEditFormValid}
+            >
+              {loading ? "Сохранение..." : "Сохранить изменения"}
             </Button>
           </div>
         </Form>
+      </Modal>
+
+      {/* Dependency Check Modal */}
+      <Modal
+        title={
+          <div className="flex items-center space-x-2">
+            <FiAlertTriangle className="text-orange-500" />
+            <span>Невозможно удалить договор</span>
+          </div>
+        }
+        visible={dependencyModalVisible}
+        onCancel={() => {
+          setDependencyModalVisible(false);
+          setDependentEquipment([]);
+          setSelectedContract(null);
+        }}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => {
+              setDependencyModalVisible(false);
+              setDependentEquipment([]);
+              setSelectedContract(null);
+            }}
+          >
+            Закрыть
+          </Button>,
+        ]}
+        width={800}
+      >
+        <div className="space-y-4">
+          <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+            <p className="text-orange-800">
+              <strong>
+                Данный договор используется в следующем оборудовании:
+              </strong>
+            </p>
+            <p className="text-sm text-orange-700 mt-2">
+              Для удаления договора необходимо сначала отвязать его от всего
+              оборудования или изменить договор у оборудования на другой.
+            </p>
+          </div>
+
+          <div className="max-h-60 overflow-y-auto">
+            <List
+              dataSource={dependentEquipment}
+              renderItem={(equipment) => (
+                <List.Item className="border-b hover:bg-gray-50 transition-colors">
+                  <div className="w-full flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-800">
+                        {equipment.name || `ID: ${equipment.id}`}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Тип: {equipment.type_data?.name || "Неизвестно"} • ИНН:{" "}
+                        {equipment.inn || "Не указан"}
+                      </div>
+                    </div>
+                    <Button
+                      type="link"
+                      onClick={() => {
+                        // Navigate to equipment edit or details
+                        message.info("Переход к редактированию оборудования");
+                      }}
+                      className="text-indigo-600"
+                    >
+                      Редактировать →
+                    </Button>
+                  </div>
+                </List.Item>
+              )}
+            />
+          </div>
+
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <p className="text-blue-800 text-sm">
+              💡 <strong>Рекомендация:</strong> Перейдите к каждому оборудованию
+              и измените или удалите привязку к данному договору, после чего вы
+              сможете безопасно удалить договор.
+            </p>
+          </div>
+        </div>
       </Modal>
     </div>
   );
