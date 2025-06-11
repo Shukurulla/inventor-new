@@ -1,4 +1,4 @@
-// src/pages/CharacteristicsPage.jsx - FIXED loading issue
+// src/pages/CharacteristicsPage.jsx - FIXED dependency check
 
 "use client";
 
@@ -41,6 +41,7 @@ import {
 import { specificationsAPI, equipmentAPI } from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateSpecificationForm from "../components/Equipment/CreateSpecificationForm";
+import EditEquipmentModal from "../components/Equipment/EditEquipmentModal";
 
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
@@ -50,11 +51,14 @@ const CharacteristicsPage = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [dependencyModalVisible, setDependencyModalVisible] = useState(false);
+  const [equipmentEditModalVisible, setEquipmentEditModalVisible] =
+    useState(false);
   const [selectedType, setSelectedType] = useState(null);
   const [selectedSpec, setSelectedSpec] = useState(null);
   const [dependentEquipment, setDependentEquipment] = useState([]);
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
 
-  // FIXED: Individual loading states for each specification
+  // Individual loading states for each specification
   const [deletingSpecs, setDeletingSpecs] = useState(new Set());
 
   const [specForm] = Form.useForm();
@@ -62,7 +66,7 @@ const CharacteristicsPage = () => {
 
   const dispatch = useDispatch();
 
-  // Get data from Redux store (already loaded in App.js)
+  // Get data from Redux store
   const specifications = useSelector((state) => state.specifications);
   const { equipmentTypes } = useSelector((state) => state.equipment);
   const { loading, specificationCount } = specifications;
@@ -120,73 +124,105 @@ const CharacteristicsPage = () => {
     },
   ];
 
-  // FIXED: Check dependencies before deletion
+  // FIXED: Enhanced check dependencies with better logic
   const checkSpecificationDependencies = async (spec, typeName) => {
-    // Create unique spec key for loading state
     const specKey = `${typeName}-${spec.id}`;
     setDeletingSpecs((prev) => new Set(prev).add(specKey));
 
     try {
+      // Get all equipment from API
       const response = await equipmentAPI.getMyEquipments();
       const allEquipment = response.data || [];
 
-      // Find equipment that uses this specification
+      console.log(
+        "Checking dependencies for spec:",
+        spec.id,
+        "type:",
+        typeName
+      );
+      console.log("All equipment:", allEquipment);
+
+      // FIXED: More comprehensive dependency check
       const dependentEquipment = allEquipment.filter((equipment) => {
         const typeNameLower = typeName.toLowerCase();
 
+        // Check various ways the specification could be referenced
+        let isDependent = false;
+
         if (typeNameLower.includes("компьютер")) {
-          return (
+          isDependent =
             equipment.computer_specification_id === spec.id ||
-            equipment.computer_specification?.id === spec.id
-          );
+            equipment.computer_specification?.id === spec.id ||
+            (equipment.computer_specification_data &&
+              equipment.computer_specification_data.id === spec.id);
         } else if (typeNameLower.includes("проектор")) {
-          return (
+          isDependent =
             equipment.projector_specification_id === spec.id ||
-            equipment.projector_specification?.id === spec.id
-          );
+            equipment.projector_specification?.id === spec.id ||
+            (equipment.projector_specification_data &&
+              equipment.projector_specification_data.id === spec.id);
         } else if (typeNameLower.includes("принтер")) {
-          return (
+          isDependent =
             equipment.printer_specification_id === spec.id ||
-            equipment.printer_specification?.id === spec.id
-          );
+            equipment.printer_specification?.id === spec.id ||
+            (equipment.printer_specification_data &&
+              equipment.printer_specification_data.id === spec.id);
         } else if (typeNameLower.includes("телевизор")) {
-          return (
+          isDependent =
             equipment.tv_specification_id === spec.id ||
-            equipment.tv_specification?.id === spec.id
-          );
+            equipment.tv_specification?.id === spec.id ||
+            (equipment.tv_specification_data &&
+              equipment.tv_specification_data.id === spec.id);
         } else if (typeNameLower.includes("роутер")) {
-          return (
+          isDependent =
             equipment.router_specification_id === spec.id ||
-            equipment.router_specification?.id === spec.id
-          );
+            equipment.router_specification?.id === spec.id ||
+            (equipment.router_specification_data &&
+              equipment.router_specification_data.id === spec.id);
         } else if (typeNameLower.includes("ноутбук")) {
-          return (
+          isDependent =
             equipment.notebook_specification_id === spec.id ||
-            equipment.notebook_specification?.id === spec.id
-          );
+            equipment.notebook_specification?.id === spec.id ||
+            (equipment.notebook_specification_data &&
+              equipment.notebook_specification_data.id === spec.id);
         } else if (typeNameLower.includes("моноблок")) {
-          return (
+          isDependent =
             equipment.monoblok_specification_id === spec.id ||
-            equipment.monoblok_specification?.id === spec.id
-          );
+            equipment.monoblok_specification?.id === spec.id ||
+            (equipment.monoblok_specification_data &&
+              equipment.monoblok_specification_data.id === spec.id);
         } else if (typeNameLower.includes("доска")) {
-          return (
+          isDependent =
             equipment.whiteboard_specification_id === spec.id ||
-            equipment.whiteboard_specification?.id === spec.id
-          );
+            equipment.whiteboard_specification?.id === spec.id ||
+            (equipment.whiteboard_specification_data &&
+              equipment.whiteboard_specification_data.id === spec.id);
         } else if (typeNameLower.includes("удлинитель")) {
-          return (
+          isDependent =
             equipment.extender_specification_id === spec.id ||
-            equipment.extender_specification?.id === spec.id
-          );
+            equipment.extender_specification?.id === spec.id ||
+            (equipment.extender_specification_data &&
+              equipment.extender_specification_data.id === spec.id);
         } else if (typeNameLower.includes("монитор")) {
-          return (
+          isDependent =
             equipment.monitor_specification_id === spec.id ||
-            equipment.monitor_specification?.id === spec.id
+            equipment.monitor_specification?.id === spec.id ||
+            (equipment.monitor_specification_data &&
+              equipment.monitor_specification_data.id === spec.id);
+        }
+
+        if (isDependent) {
+          console.log(
+            "Found dependent equipment:",
+            equipment.name,
+            equipment.id
           );
         }
-        return false;
+
+        return isDependent;
       });
+
+      console.log("Dependent equipment found:", dependentEquipment.length);
 
       if (dependentEquipment.length > 0) {
         setDependentEquipment(dependentEquipment);
@@ -201,7 +237,6 @@ const CharacteristicsPage = () => {
       console.error("Error checking dependencies:", error);
       message.error("Ошибка при проверке зависимостей");
     } finally {
-      // Remove spec from deleting set
       setDeletingSpecs((prev) => {
         const newSet = new Set(prev);
         newSet.delete(specKey);
@@ -233,6 +268,23 @@ const CharacteristicsPage = () => {
     setEditModalVisible(true);
   };
 
+  // FIXED: Equipment edit handler - opens modal instead of navigation
+  const handleEquipmentEdit = (equipment) => {
+    setSelectedEquipment(equipment);
+    setEquipmentEditModalVisible(true);
+  };
+
+  // Handle equipment edit modal close with refresh
+  const handleEquipmentEditModalClose = () => {
+    setEquipmentEditModalVisible(false);
+    setSelectedEquipment(null);
+
+    // Refresh dependencies after edit
+    if (selectedSpec && selectedType) {
+      checkSpecificationDependencies(selectedSpec, selectedType);
+    }
+  };
+
   const handleSubmitSpec = async (values) => {
     try {
       const typeName = selectedType.toLowerCase();
@@ -254,7 +306,6 @@ const CharacteristicsPage = () => {
         message.success("Характеристика успешно создана!");
         setCreateModalVisible(false);
         specForm.resetFields();
-        // Refresh specifications data
         dispatch(getAllSpecifications());
         dispatch(getSpecificationCount());
       }
@@ -269,7 +320,6 @@ const CharacteristicsPage = () => {
       const typeName = selectedType.toLowerCase();
       let apiCall;
 
-      // Определяем какой API использовать для обновления
       if (typeName.includes("компьютер")) {
         apiCall = () =>
           specificationsAPI.updateComputerSpec(selectedSpec.id, values);
@@ -320,7 +370,6 @@ const CharacteristicsPage = () => {
       const typeNameLower = typeName.toLowerCase();
       let apiCall;
 
-      // Определяем какой API использовать для удаления
       if (typeNameLower.includes("компьютер")) {
         apiCall = () => specificationsAPI.deleteComputerSpec(spec.id);
       } else if (typeNameLower.includes("проектор")) {
@@ -353,18 +402,6 @@ const CharacteristicsPage = () => {
       console.error("Spec delete error:", error);
       message.error("Ошибка при удалении характеристики");
     }
-  };
-
-  // FIXED: Navigate to AddedPage with equipment edit
-  const handleEquipmentEdit = (equipment) => {
-    // Close dependency modal first
-    setDependencyModalVisible(false);
-    setDependentEquipment([]);
-    setSelectedSpec(null);
-    setSelectedType(null);
-
-    // Navigate to AddedPage with equipment data
-    window.location.href = `/added?editEquipmentId=${equipment.id}`;
   };
 
   const renderTemplatesTab = () => (
@@ -404,7 +441,6 @@ const CharacteristicsPage = () => {
   );
 
   const renderSpecificationItem = (spec, type) => {
-    // Create unique spec key for loading state
     const specKey = `${type}-${spec.id}`;
 
     return (
@@ -542,7 +578,6 @@ const CharacteristicsPage = () => {
       },
     ];
 
-    // Фильтруем только те типы, у которых есть данные
     const typesWithData = specTypes.filter((specType) => specType.count > 0);
 
     if (typesWithData.length === 0) {
@@ -765,6 +800,14 @@ const CharacteristicsPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Equipment Edit Modal - FIXED: Opens modal instead of navigation */}
+      <EditEquipmentModal
+        visible={equipmentEditModalVisible}
+        onCancel={handleEquipmentEditModalClose}
+        equipment={selectedEquipment}
+        equipmentTypes={equipmentTypes}
+      />
     </div>
   );
 };

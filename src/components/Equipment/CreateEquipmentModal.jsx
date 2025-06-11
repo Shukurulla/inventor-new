@@ -627,7 +627,7 @@ const CreateEquipmentModal = ({
           </div>
         </Col>
         <Col span={12}>
-          <div className="flex items-center justify-between h-[40px]">
+          <div className="flex mb-5 items-center justify-between h-[40px]">
             <span className="text-gray-700 text-lg font-semibold">
               Фото техники:
             </span>
@@ -703,7 +703,7 @@ const CreateEquipmentModal = ({
       <Row gutter={16} className="mt-4">
         <Col span={12}>
           <Button
-            className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+            className="w-100  rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
             style={{ width: "100%" }}
             onClick={onCancel}
           >
@@ -713,7 +713,7 @@ const CreateEquipmentModal = ({
         <Col span={12}>
           <Button
             type="primary"
-            className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+            className="w-100  rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
             style={{ width: "100%" }}
             onClick={handleStep1Submit}
             disabled={!isStep1Valid}
@@ -733,6 +733,7 @@ const CreateEquipmentModal = ({
     const selectedSpecId = formValues[specFieldName];
     const typeName =
       equipmentTypes.find((t) => t.id === typeId)?.name?.toLowerCase() || "";
+    console.log(formValues);
 
     return (
       <div className="px-6 py-4">
@@ -788,6 +789,100 @@ const CreateEquipmentModal = ({
                         />
                       </div>
                     </Col>
+                    <Col span={12}>
+                      <div className="flex flex-col">
+                        <label className="text-gray-600 mb-1">RAM:</label>
+                        <Input
+                          value={formValues.ram}
+                          disabled
+                          style={{ height: "40px" }}
+                        />
+                      </div>
+                    </Col>
+                  </Row>
+
+                  {formValues.storageList.map((item) => (
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <div className="flex flex-col">
+                          <label className="text-gray-600 mb-1">Памят:</label>
+                          <Input
+                            value={item.capacity_gb + "GB"}
+                            disabled
+                            style={{ height: "40px" }}
+                          />
+                        </div>
+                      </Col>
+                      <Col span={12}>
+                        <div className="flex flex-col">
+                          <label className="text-gray-600 mb-1">
+                            Тип диска:
+                          </label>
+                          <Input
+                            value={item.disk_type}
+                            disabled
+                            style={{ height: "40px" }}
+                          />
+                        </div>
+                      </Col>
+                    </Row>
+                  ))}
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <div className="flex flex-col">
+                        <label className="text-gray-600 mb-1">
+                          Видеокарта:
+                        </label>
+                        <Input
+                          value={formValues.gpu_model || "N/A"}
+                          disabled
+                          style={{ height: "40px" }}
+                        />
+                      </div>
+                    </Col>
+                    <Col span={12}>
+                      <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
+                        <Col span={12}>
+                          <div className="flex flex-col">
+                            <label className="text-gray-600 mb-1">Мышка:</label>
+                            <div
+                              style={{
+                                height: "40px",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Switch checked={formValues.has_mouse} disabled />
+                              <span className="ml-2">
+                                {formValues.has_mouse ? "Есть" : "Нет"}
+                              </span>
+                            </div>
+                          </div>
+                        </Col>
+                        <Col span={12}>
+                          <div className="flex flex-col">
+                            <label className="text-gray-600 mb-1">
+                              Клавиатура:
+                            </label>
+                            <div
+                              style={{
+                                height: "40px",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              <Switch
+                                checked={formValues.has_keyboard}
+                                disabled
+                              />
+                              <span className="ml-2">
+                                {formValues.has_keyboard ? "Есть" : "Нет"}
+                              </span>
+                            </div>
+                          </div>
+                        </Col>
+                      </Row>
+                    </Col>
                     {(typeName.includes("ноутбук") ||
                       typeName.includes("моноблок")) && (
                       <Col span={12}>
@@ -803,45 +898,6 @@ const CreateEquipmentModal = ({
                         </div>
                       </Col>
                     )}
-                  </Row>
-
-                  <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                    <Col span={12}>
-                      <div className="flex flex-col">
-                        <label className="text-gray-600 mb-1">Мышка:</label>
-                        <div
-                          style={{
-                            height: "40px",
-                            display: "flex",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Switch checked={formValues.has_mouse} disabled />
-                          <span className="ml-2">
-                            {formValues.has_mouse ? "Есть" : "Нет"}
-                          </span>
-                        </div>
-                      </div>
-                    </Col>
-                    <Col span={12}>
-                      <div className="flex flex-col">
-                        <label className="text-gray-600 mb-1">
-                          Клавиатура:
-                        </label>
-                        <div
-                          style={{
-                            height: "40px",
-                            display: "flex",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Switch checked={formValues.has_keyboard} disabled />
-                          <span className="ml-2">
-                            {formValues.has_keyboard ? "Есть" : "Нет"}
-                          </span>
-                        </div>
-                      </div>
-                    </Col>
                   </Row>
                 </>
               )}
@@ -860,7 +916,7 @@ const CreateEquipmentModal = ({
         <Row gutter={16} className="mt-4">
           <Col span={12}>
             <Button
-              className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+              className="w-100  rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
               style={{ width: "100%" }}
               onClick={() => setCurrentStep(0)}
             >
@@ -870,7 +926,7 @@ const CreateEquipmentModal = ({
           <Col span={12}>
             <Button
               type="primary"
-              className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+              className="w-100  rounded-[10px] font-semibold text-white block hover:bg-indigo-600"
               style={{ width: "100%" }}
               onClick={handleStep2Submit}
               disabled={!isStep2Valid}
@@ -946,7 +1002,7 @@ const CreateEquipmentModal = ({
         <Row gutter={16} className="mt-4">
           <Col span={12}>
             <Button
-              className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+              className="w-100  rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
               style={{ width: "100%" }}
               onClick={() => setCurrentStep(1)}
             >
@@ -956,7 +1012,7 @@ const CreateEquipmentModal = ({
           <Col span={12}>
             <Button
               type="primary"
-              className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+              className="w-100 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
               style={{ width: "100%" }}
               onClick={handleStep3Submit}
               disabled={!isStep3Valid}

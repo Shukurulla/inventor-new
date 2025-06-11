@@ -29,6 +29,7 @@ import {
   createExtenderSpec,
   createMonitorSpec,
 } from "../../store/slices/specificationSlice";
+import { inventoryTypes } from "../../constants";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -103,6 +104,7 @@ const EditEquipmentModal = ({
         equipment.monitor_specification;
 
       if (spec) {
+        setSelectedSpecification(spec);
         initialValues.cpu = spec.cpu || "";
         initialValues.ram = spec.ram || "";
         if (spec.disk_specifications && spec.disk_specifications.length > 0) {
@@ -130,7 +132,6 @@ const EditEquipmentModal = ({
         initialValues.wifi_standart = spec.wifi_standart || "";
         initialValues.touch_type = spec.touch_type || "";
         initialValues.length = spec.length || "";
-        setSelectedSpecification(spec);
       }
 
       if (equipment.image) {
@@ -172,17 +173,10 @@ const EditEquipmentModal = ({
     if (!type) return [];
 
     const typeName = type.name.toLowerCase();
-    if (typeName.includes("компьютер")) return specifications.computer || [];
-    if (typeName.includes("проектор")) return specifications.projector || [];
-    if (typeName.includes("принтер")) return specifications.printer || [];
-    if (typeName.includes("телевизор")) return specifications.tv || [];
-    if (typeName.includes("роутер")) return specifications.router || [];
-    if (typeName.includes("ноутбук")) return specifications.notebook || [];
-    if (typeName.includes("моноблок")) return specifications.monoblok || [];
-    if (typeName.includes("доска")) return specifications.whiteboard || [];
-    if (typeName.includes("удлинитель")) return specifications.extender || [];
-    if (typeName.includes("монитор")) return specifications.monitor || [];
-    return [];
+    const specKey = inventoryTypes.find(
+      (c) => c.name.toLowerCase() === typeName
+    )?.key;
+    return specifications[specKey] || [];
   };
 
   const handleInputChange = (name, value) => {
@@ -223,16 +217,14 @@ const EditEquipmentModal = ({
     const typeId = equipment?.type_data?.id || equipment?.type;
     const availableSpecs = getSpecificationsForType(typeId);
     const spec = availableSpecs.find((s) => s.id === value);
-    setSelectedSpecification(specification(spec));
+    setSelectedSpecification(spec || null);
 
     const specFieldName = getSpecificationFieldName(typeId);
-    if (specFieldName) {
+    if (specFieldName && spec) {
       let storageDisplay = "";
       if (spec?.disk_specifications && spec.disk_specifications.length > 0) {
         storageDisplay = spec.disk_specifications
-          .map(
-            (disk) => `disk.capacity${disk.capacity_gb}}GB ${disk.disk_type}`
-          )
+          .map((disk) => `${disk.capacity_gb}GB ${disk.disk_type}`)
           .join(", ");
       } else {
         storageDisplay = spec?.storage || "";
@@ -263,6 +255,9 @@ const EditEquipmentModal = ({
       };
       setFormValues(newValues);
       form.setFieldsValue(newValues);
+    } else {
+      setFormValues((prev) => ({ ...prev, [specFieldName]: null }));
+      form.setFieldsValue({ [specFieldName]: null });
     }
   };
 
@@ -378,6 +373,11 @@ const EditEquipmentModal = ({
     const availableSpecs = getSpecificationsForType(typeId);
     const specFieldName = getSpecificationFieldName(typeId);
 
+    console.log("Type ID:", typeId);
+    console.log("Type Name:", typeName);
+    console.log("Available Specs:", availableSpecs);
+    console.log("Spec Field Name:", specFieldName);
+
     return (
       <>
         <Row gutter={[16, 16]}>
@@ -429,7 +429,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Процессор">
                       <Input
-                        value={formValues.cpu || "N/A"}
+                        value={selectedSpecification.cpu || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -438,7 +438,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="ОЗУ">
                       <Input
-                        value={formValues.ram || "N/A"}
+                        value={selectedSpecification.ram || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -449,42 +449,61 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Накопитель">
                       <Input
-                        value={formValues.storage || "N/A"}
+                        value={
+                          selectedSpecification.disk_specifications?.length > 0
+                            ? selectedSpecification.disk_specifications
+                                .map(
+                                  (disk) =>
+                                    `${disk.capacity_gb}GB ${disk.disk_type}`
+                                )
+                                .join(", ")
+                            : selectedSpecification.storage || "N/A"
+                        }
                         disabled
                         style={{ height: "40px" }}
                       />
                     </Form.Item>
                   </Col>
+                  <Row gutter={[16, 16]}>
+                    <Col span={12}>
+                      <Form.Item label="Мышка">
+                        <Switch
+                          checked={selectedSpecification.has_mouse}
+                          disabled
+                        />
+                        <span className="ml-2">
+                          {selectedSpecification.has_mouse ? "Есть" : "Нет"}
+                        </span>
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label="Клавиатура">
+                        <Switch
+                          checked={selectedSpecification.has_keyboard}
+                          disabled
+                        />
+                        <span className="ml-2">
+                          {selectedSpecification.has_keyboard ? "Есть" : "Нет"}
+                        </span>
+                      </Form.Item>
+                    </Col>
+                  </Row>
                   {(typeName?.includes("ноутбук") ||
                     typeName?.includes("моноблок")) && (
                     <Col span={12}>
                       <Form.Item label="Размер экрана">
                         <Input
-                          value={formValues.monitor_size || "N/A"}
+                          value={
+                            selectedSpecification.monitor_size ||
+                            selectedSpecification.screen_size ||
+                            "N/A"
+                          }
                           disabled
                           style={{ height: "40px" }}
                         />
                       </Form.Item>
                     </Col>
                   )}
-                </Row>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Мышка">
-                      <Switch checked={formValues.has_mouse} disabled />
-                      <span className="ml-2">
-                        {formValues.has_mouse ? "Есть" : "Нет"}
-                      </span>
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="Клавиатура">
-                      <Switch checked={formValues.has_keyboard} disabled />
-                      <span className="ml-2">
-                        {formValues.has_keyboard ? "Есть" : "Нет"}
-                      </span>
-                    </Form.Item>
-                  </Col>
                 </Row>
               </>
             )}
@@ -495,7 +514,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Модель">
                       <Input
-                        value={formValues.model || "N/A"}
+                        value={selectedSpecification.model || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -504,7 +523,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Яркость (люмен)">
                       <Input
-                        value={formValues.lumens || "N/A"}
+                        value={selectedSpecification.lumens || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -515,7 +534,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Разрешение">
                       <Input
-                        value={formValues.resolution || "N/A"}
+                        value={selectedSpecification.resolution || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -524,7 +543,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Тип проекции">
                       <Input
-                        value={formValues.throw_type || "N/A"}
+                        value={selectedSpecification.throw_type || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -540,7 +559,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Модель">
                       <Input
-                        value={formValues.model || "N/A"}
+                        value={selectedSpecification.model || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -548,9 +567,9 @@ const EditEquipmentModal = ({
                   </Col>
                   <Col span={12}>
                     <Form.Item label="Цветная печать">
-                      <Switch checked={formValues.color} disabled />
+                      <Switch checked={selectedSpecification.color} disabled />
                       <span className="ml-2">
-                        {formValues.color ? "Есть" : "Нет"}
+                        {selectedSpecification.color ? "Есть" : "Нет"}
                       </span>
                     </Form.Item>
                   </Col>
@@ -558,9 +577,9 @@ const EditEquipmentModal = ({
                 <Row gutter={[16, 16]}>
                   <Col span={12}>
                     <Form.Item label="Двусторонняя печать">
-                      <Switch checked={formValues.duplex} disabled />
+                      <Switch checked={selectedSpecification.duplex} disabled />
                       <span className="ml-2">
-                        {formValues.duplex ? "Есть" : "Нет"}
+                        {selectedSpecification.duplex ? "Есть" : "Нет"}
                       </span>
                     </Form.Item>
                   </Col>
@@ -575,7 +594,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Модель">
                       <Input
-                        value={formValues.model || "N/A"}
+                        value={selectedSpecification.model || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -584,7 +603,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Размер экрана (дюймы)">
                       <Input
-                        value={formValues.screen_size || "N/A"}
+                        value={selectedSpecification.screen_size || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -595,7 +614,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Тип матрицы">
                       <Input
-                        value={formValues.panel_type || "N/A"}
+                        value={selectedSpecification.panel_type || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -604,7 +623,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Частота обновления (Hz)">
                       <Input
-                        value={formValues.refresh_rate || "N/A"}
+                        value={selectedSpecification.refresh_rate || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -620,7 +639,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Модель">
                       <Input
-                        value={formValues.model || "N/A"}
+                        value={selectedSpecification.model || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -629,7 +648,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Количество портов">
                       <Input
-                        value={formValues.ports || "N/A"}
+                        value={selectedSpecification.ports || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -640,7 +659,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="WiFi стандарт">
                       <Input
-                        value={formValues.wifi_standart || "N/A"}
+                        value={selectedSpecification.wifi_standart || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -656,7 +675,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Модель">
                       <Input
-                        value={formValues.model || "N/A"}
+                        value={selectedSpecification.model || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -665,7 +684,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Размер (дюймы)">
                       <Input
-                        value={formValues.screen_size || "N/A"}
+                        value={selectedSpecification.screen_size || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -676,7 +695,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Тип касания">
                       <Input
-                        value={formValues.touch_type || "N/A"}
+                        value={selectedSpecification.touch_type || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -692,7 +711,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Количество портов">
                       <Input
-                        value={formValues.ports || "N/A"}
+                        value={selectedSpecification.ports || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -701,7 +720,7 @@ const EditEquipmentModal = ({
                   <Col span={12}>
                     <Form.Item label="Длина кабеля (м)">
                       <Input
-                        value={formValues.length || "N/A"}
+                        value={selectedSpecification.length || "N/A"}
                         disabled
                         style={{ height: "40px" }}
                       />
@@ -814,7 +833,6 @@ const EditEquipmentModal = ({
                   <Option value="NEW">Новое</Option>
                   <Option value="WORKING">Работает</Option>
                   <Option value="NEEDS_REPAIR">Требуется ремонт</Option>
-                  <Option value="REPAIR">На ремонте</Option>
                   <Option value="DISPOSED">Утилизировано</Option>
                 </Select>
               </Form.Item>
@@ -843,7 +861,7 @@ const EditEquipmentModal = ({
             <Col span={12}>
               <Button
                 type="default"
-                className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-gray-500"
+                className="w-100  rounded-[10px] font-semibold text-white block bg-gray-500"
                 style={{ width: "100%" }}
                 onClick={() => {
                   form.resetFields();
@@ -861,7 +879,7 @@ const EditEquipmentModal = ({
               <Button
                 type="primary"
                 htmlType="submit"
-                className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+                className="w-100  rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
                 style={{ width: "100%" }}
                 disabled={isSubmitting}
                 loading={isSubmitting}

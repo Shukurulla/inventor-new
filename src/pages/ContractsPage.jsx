@@ -1,4 +1,4 @@
-// src/pages/ContractsPage.jsx - FIXED loading issue
+// src/pages/ContractsPage.jsx - FIXED equipment edit modal
 
 "use client";
 
@@ -35,18 +35,22 @@ import {
   deleteContract,
 } from "../store/slices/contractSlice";
 import { equipmentAPI } from "../services/api";
+import EditEquipmentModal from "../components/Equipment/EditEquipmentModal";
 import dayjs from "dayjs";
 
 const ContractsPage = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [dependencyModalVisible, setDependencyModalVisible] = useState(false);
+  const [equipmentEditModalVisible, setEquipmentEditModalVisible] =
+    useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
+  const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [dependentEquipment, setDependentEquipment] = useState([]);
   const [isFormValid, setIsFormValid] = useState(false);
   const [isEditFormValid, setIsEditFormValid] = useState(false);
 
-  // FIXED: Individual loading states for each contract
+  // Individual loading states for each contract
   const [deletingContracts, setDeletingContracts] = useState(new Set());
 
   const [form] = Form.useForm();
@@ -58,6 +62,7 @@ const ContractsPage = () => {
   const { contracts, loading, pagination } = useSelector(
     (state) => state.contracts
   );
+  const { equipmentTypes } = useSelector((state) => state.equipment);
 
   // Validation for create form
   const validateCreateForm = () => {
@@ -75,7 +80,7 @@ const ContractsPage = () => {
     setIsEditFormValid(isValid);
   };
 
-  // FIXED: Check dependencies before deletion
+  // Check dependencies before deletion
   const checkContractDependencies = async (contract) => {
     // Add contract to deleting set to show loading for this specific contract
     setDeletingContracts((prev) => new Set(prev).add(contract.id));
@@ -213,24 +218,21 @@ const ContractsPage = () => {
     setIsFormValid(false);
   };
 
-  // FIXED: Navigate to AddedPage with equipment edit
+  // FIXED: Equipment edit handler - opens modal instead of navigation
   const handleEquipmentEdit = (equipment) => {
-    // Close dependency modal first
-    setDependencyModalVisible(false);
-    setDependentEquipment([]);
-    setSelectedContract(null);
+    setSelectedEquipment(equipment);
+    setEquipmentEditModalVisible(true);
+  };
 
-    // Navigate to AddedPage with equipment data
-    window.location.href = `/added?editEquipmentId=${equipment.id}`;
+  // Handle equipment edit modal close with refresh
+  const handleEquipmentEditModalClose = () => {
+    setEquipmentEditModalVisible(false);
+    setSelectedEquipment(null);
 
-    // Alternative navigation method using history API
-    // const state = {
-    //   editEquipmentId: equipment.id,
-    //   equipmentData: equipment,
-    //   fromContractDependency: true
-    // };
-    // window.history.pushState(state, '', '/added');
-    // window.location.reload(); // Force page reload to trigger useEffect
+    // Refresh dependencies after edit
+    if (selectedContract) {
+      checkContractDependencies(selectedContract);
+    }
   };
 
   const columns = [
@@ -575,6 +577,14 @@ const ContractsPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Equipment Edit Modal - FIXED: Opens modal instead of navigation */}
+      <EditEquipmentModal
+        visible={equipmentEditModalVisible}
+        onCancel={handleEquipmentEditModalClose}
+        equipment={selectedEquipment}
+        equipmentTypes={equipmentTypes}
+      />
     </div>
   );
 };

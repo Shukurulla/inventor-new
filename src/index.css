@@ -43,9 +43,16 @@ body {
 .dark .ant-modal-confirm-body-wrapper .ant-modal-confirm-content {
   color: #fff !important;
 }
+.dark .ant-upload.ant-upload-select {
+  color: #fff !important;
+}
 .overflow-y-scroll {
   overflow-y: scroll !important;
 }
+.dark .ant-form-item-control-input-content {
+  color: #fff !important;
+}
+
 .dark .ant-input-number-input {
   background: #222222 !important;
   color: #ffff !important;
