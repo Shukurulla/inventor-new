@@ -1,3 +1,4 @@
+// Enhanced HomePage.jsx with better equipment details display
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -8,6 +9,8 @@ import {
   Spin,
   Breadcrumb,
   message,
+  Tooltip,
+  Tag,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -17,6 +20,7 @@ import {
   FiLayers,
   FiClock,
   FiRefreshCw,
+  FiInfo,
 } from "react-icons/fi";
 import {
   getFloorsByBuilding,
@@ -289,18 +293,33 @@ const HomePage = () => {
     }
   };
 
+  // Enhanced equipment rendering with detailed info
   const renderEquipmentTypes = (roomId, room) => {
     const equipmentTypesData = equipmentTypesByRoom[roomId] || [];
     const isLoading = loadingStates.equipment[roomId];
+    const totalEquipment = equipmentTypesData.reduce(
+      (total, typeData) =>
+        total + (typeData.count || typeData.items?.length || 0),
+      0
+    );
 
     return (
       <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-        <div className="flex justify-end mb-2">
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center space-x-2">
+            <Tag color="blue" className="text-xs">
+              Всего: {totalEquipment} единиц
+            </Tag>
+            <Tooltip title="Информация о комнате">
+              <FiInfo className="text-gray-400 cursor-help" />
+            </Tooltip>
+          </div>
           <Button
             icon={<FiRefreshCw className={refreshing ? "animate-spin" : ""} />}
             onClick={() => refreshRoomEquipment(roomId)}
             size="small"
             disabled={isLoading}
+            type="text"
           />
         </div>
 
@@ -312,33 +331,38 @@ const HomePage = () => {
         ) : (
           <>
             {equipmentTypesData.length > 0 && (
-              <div className="space-y-2 mb-4">
+              <div className="space-y-3 mb-4">
                 {equipmentTypesData.map((typeData) => {
                   const typeName =
                     typeData.type?.name || typeData.name || "Неизвестный тип";
                   const count = typeData.count || typeData.items?.length || 0;
                   const typeId = typeData.type?.id || typeData.id;
+                  const items = typeData.items || [];
 
                   return (
                     <div
                       key={typeId || Math.random()}
-                      className="flex items-center justify-between p-3 bg-white rounded-lg border hover:shadow-sm transition-shadow cursor-pointer"
+                      className="p-4 bg-white rounded-lg border hover:shadow-md transition-shadow cursor-pointer"
                       onClick={() => handleEquipmentTypeClick(typeData, room)}
                     >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                          <EquipmentIcon type={typeName} />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                            <EquipmentIcon type={typeName} />
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-800">
+                              {typeName}
+                            </span>
+                          </div>
                         </div>
-                        <span className="font-medium text-gray-800">
-                          {typeName}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Badge
-                          count={count}
-                          style={{ backgroundColor: "#6366f1" }}
-                        />
-                        <FiChevronRight className="text-gray-400" />
+                        <div className="flex items-center space-x-3">
+                          <Badge
+                            count={count}
+                            style={{ backgroundColor: "#6366f1" }}
+                          />
+                          <FiChevronRight className="text-gray-400" />
+                        </div>
                       </div>
                     </div>
                   );
@@ -395,26 +419,51 @@ const HomePage = () => {
         onChange={handleRoomExpand(buildingId, floorId, facultyId)}
         activeKey={activeRoomPanels[key] || []}
       >
-        {rooms.map((room) => (
-          <Panel
-            key={room.id}
-            header={
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center">
-                    <FiHome className="text-blue-600 text-sm" />
+        {rooms.map((room) => {
+          const roomEquipment = equipmentTypesByRoom[room.id] || [];
+          const totalEquipment = roomEquipment.reduce(
+            (total, typeData) =>
+              total + (typeData.count || typeData.items?.length || 0),
+            0
+          );
+
+          return (
+            <Panel
+              key={room.id}
+              header={
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center">
+                      <FiHome className="text-blue-600 text-sm" />
+                    </div>
+                    <div>
+                      <span className="font-medium">
+                        {room.number} - {room.name}
+                      </span>
+                      {totalEquipment > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {totalEquipment} единиц оборудования
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <span className="font-medium">
-                    {room.number} - {room.name}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    {totalEquipment > 0 && (
+                      <Badge
+                        count={totalEquipment}
+                        size="small"
+                        style={{ backgroundColor: "#52c41a" }}
+                      />
+                    )}
+                    <FiChevronRight className="text-gray-400" />
+                  </div>
                 </div>
-                <FiChevronRight className="text-gray-400" />
-              </div>
-            }
-          >
-            {renderEquipmentTypes(room.id, room)}
-          </Panel>
-        ))}
+              }
+            >
+              {renderEquipmentTypes(room.id, room)}
+            </Panel>
+          );
+        })}
       </Collapse>
     );
   };

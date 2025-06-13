@@ -8,10 +8,12 @@ import {
   Switch,
   message,
   Upload,
+  Form,
+  Typography,
 } from "antd";
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { FiUpload, FiDownload } from "react-icons/fi";
+import { FiUpload, FiDownload, FiPlus } from "react-icons/fi";
 import {
   createEquipmentBulk,
   bulkUpdateInn,
@@ -19,9 +21,24 @@ import {
 import { getAllSpecifications } from "../../store/slices/specificationSlice";
 import { getContracts } from "../../store/slices/contractSlice";
 import { generateQRCodesPDF } from "../../utils/pdfGenerator";
+import CreateSpecificationForm from "./CreateSpecificationForm";
+import {
+  createComputerSpec,
+  createProjectorSpec,
+  createPrinterSpec,
+  createTVSpec,
+  createRouterSpec,
+  createNotebookSpec,
+  createMonoblokSpec,
+  createWhiteboardSpec,
+  createExtenderSpec,
+  createMonitorSpec,
+} from "../../store/slices/specificationSlice";
+import FormItemLabel from "antd/es/form/FormItemLabel";
 
 const { Option } = Select;
 const { TextArea } = Input;
+const { Text } = Typography;
 
 const CreateEquipmentModal = ({
   visible,
@@ -31,6 +48,10 @@ const CreateEquipmentModal = ({
   equipmentTypes,
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [createSpecModalVisible, setCreateSpecModalVisible] = useState(false);
+  const [specForm] = Form.useForm();
+  const [error, setError] = useState("");
+
   const [formValues, setFormValues] = useState({
     type_id: "",
     room_id: "",
@@ -49,6 +70,7 @@ const CreateEquipmentModal = ({
     whiteboard_specification_id: null,
     extender_specification_id: null,
     monitor_specification_id: null,
+    specification_id: null,
     cpu: "",
     ram: "",
     storage: "",
@@ -125,7 +147,6 @@ const CreateEquipmentModal = ({
       const specFieldName = getSpecificationFieldName(formValues.type_id);
       const availableSpecs = getSpecificationsForType(formValues.type_id);
 
-      // Agar specification kerak bo'lsa va mavjud bo'lsa, tanlangan bo'lishi kerak
       const isValid =
         !specFieldName ||
         formValues[specFieldName] ||
@@ -312,6 +333,7 @@ const CreateEquipmentModal = ({
         setFormValues((prev) => ({
           ...prev,
           [specFieldName]: selectedSpecId,
+          specification_id: selectedSpecId,
           ...specDetails,
         }));
         setSelectedSpecification(spec);
@@ -439,9 +461,14 @@ const CreateEquipmentModal = ({
         count: formValues.count || 1,
       };
 
+      // Faqat turga mos specification field'ni qo'shish
       if (specFieldName && formValues[specFieldName]) {
         equipmentData[specFieldName] = formValues[specFieldName];
       }
+
+      // specification_id ni o'chirish - API buni qabul qilmaydi
+
+      console.log("Sending equipment data:", equipmentData); // Debug uchun
 
       let finalData;
       if (formValues.image) {
@@ -609,6 +636,53 @@ const CreateEquipmentModal = ({
     }
   };
 
+  // Yangi shablon yaratish funksiyasi
+  const handleCreateNewSpec = () => {
+    setCreateSpecModalVisible(true);
+  };
+
+  const handleSpecCreate = async (values) => {
+    try {
+      const typeId = formValues.type_id;
+      const typeName = equipmentTypes
+        .find((t) => t.id === typeId)
+        ?.name?.toLowerCase();
+      let action;
+
+      if (typeName?.includes("компьютер")) action = createComputerSpec;
+      else if (typeName?.includes("проектор")) action = createProjectorSpec;
+      else if (typeName?.includes("принтер")) action = createPrinterSpec;
+      else if (typeName?.includes("телевизор")) action = createTVSpec;
+      else if (typeName?.includes("роутер")) action = createRouterSpec;
+      else if (typeName?.includes("ноутбук")) action = createNotebookSpec;
+      else if (typeName?.includes("моноблок")) action = createMonoblokSpec;
+      else if (typeName?.includes("доска")) action = createWhiteboardSpec;
+      else if (typeName?.includes("удлинитель")) action = createExtenderSpec;
+      else if (typeName?.includes("монитор")) action = createMonitorSpec;
+
+      if (action) {
+        const response = await dispatch(action(values)).unwrap();
+        const specFieldName = getSpecificationFieldName(typeId);
+
+        if (specFieldName) {
+          // Avtomatik ravishda yangi yaratilgan xarakteristikani tanlash
+          setFormValues((prev) => ({
+            ...prev,
+            [specFieldName]: response.id,
+          }));
+          setSelectedSpecification(response);
+        }
+
+        setCreateSpecModalVisible(false);
+        message.success("Характеристика успешно создана и применена!");
+        await dispatch(getAllSpecifications());
+      }
+    } catch (error) {
+      console.error("Specification creation error:", error);
+      message.error("Ошибка при создании характеристики");
+    }
+  };
+
   const renderStep1 = () => (
     <div className="px-6 py-4">
       <Row gutter={[16, 16]}>
@@ -726,6 +800,7 @@ const CreateEquipmentModal = ({
     </div>
   );
 
+  // Enhanced Step 2 render with create button
   const renderStep2 = () => {
     const typeId = formValues.type_id;
     const availableSpecs = getSpecificationsForType(typeId);
@@ -733,190 +808,330 @@ const CreateEquipmentModal = ({
     const selectedSpecId = formValues[specFieldName];
     const typeName =
       equipmentTypes.find((t) => t.id === typeId)?.name?.toLowerCase() || "";
-    console.log(formValues);
 
     return (
       <div className="px-6 py-4">
-        {availableSpecs.length > 0 ? (
-          <>
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <div className="flex flex-col">
-                  <Select
-                    value={selectedSpecId}
-                    onChange={handleSpecificationChange}
-                    placeholder="Выберите шаблон"
-                    style={{ height: "40px" }}
-                  >
-                    {availableSpecs.map((spec) => (
-                      <Option key={spec.id} value={spec.id}>
-                        {spec.model || spec.cpu || `Характеристика ${spec.id}`}
-                      </Option>
-                    ))}
-                  </Select>
-                  {errors[specFieldName] && (
-                    <span className="text-red-500 text-sm">
-                      {errors[specFieldName]}
-                    </span>
-                  )}
-                </div>
-              </Col>
-              <Col span={12}>
-                <div className="flex flex-col">
-                  <Input
-                    value={formValues.count}
-                    onChange={(e) => handleInputChange("count", e.target.value)}
-                    placeholder="1"
-                    style={{ height: "40px" }}
-                  />
-                </div>
-              </Col>
-            </Row>
+        <Row gutter={[16, 16]}>
+          <Col span={16}>
+            <div className="flex flex-col">
+              <Select
+                value={selectedSpecId}
+                onChange={handleSpecificationChange}
+                placeholder={
+                  availableSpecs.length > 0
+                    ? "Выберите шаблон"
+                    : "Нет доступных шаблонов"
+                }
+                style={{ height: "40px" }}
+                allowClear
+              >
+                {availableSpecs.length > 0 ? (
+                  availableSpecs.map((spec) => (
+                    <Option key={spec.id} value={spec.id}>
+                      {spec.model || spec.cpu || `Характеристика ${spec.id}`}
+                    </Option>
+                  ))
+                ) : (
+                  <Option value={null} disabled>
+                    Нет доступных шаблонов
+                  </Option>
+                )}
+              </Select>
+              {errors[specFieldName] && (
+                <span className="text-red-500 text-sm">
+                  {errors[specFieldName]}
+                </span>
+              )}
+            </div>
+          </Col>
+          <Col span={8}>
+            <Button
+              type="dashed"
+              icon={<FiPlus />}
+              onClick={handleCreateNewSpec}
+              className="h-[40px] w-full text-[#4E38F2] border-[#4E38F2] hover:bg-[#4E38F2] hover:text-white"
+            >
+              Создать шаблон
+            </Button>
+          </Col>
+        </Row>
+
+        {/* Enhanced specification display with ALL fields */}
+        {selectedSpecification && (
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-medium mb-3 text-gray-800">
+              Предварительный просмотр характеристик
+            </h4>
 
             {(typeName.includes("компьютер") ||
               typeName.includes("ноутбук") ||
-              typeName.includes("моноблок")) &&
-              selectedSpecId && (
-                <>
-                  <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                    <Col span={12}>
-                      <div className="flex flex-col">
-                        <label className="text-gray-600 mb-1">Процессор:</label>
-                        <Input
-                          value={formValues.cpu || "N/A"}
-                          disabled
-                          style={{ height: "40px" }}
-                        />
-                      </div>
-                    </Col>
-                    <Col span={12}>
-                      <div className="flex flex-col">
-                        <label className="text-gray-600 mb-1">RAM:</label>
-                        <Input
-                          value={formValues.ram}
-                          disabled
-                          style={{ height: "40px" }}
-                        />
-                      </div>
-                    </Col>
-                  </Row>
+              typeName.includes("моноблок")) && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-600 text-sm">Процессор:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.cpu || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">ОЗУ:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.ram || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">Видеокарта:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.gpu_specifications?.[0]?.model ||
+                      selectedSpecification.gpu_model ||
+                      "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">Накопители:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.disk_specifications?.length > 0
+                      ? selectedSpecification.disk_specifications
+                          .map(
+                            (disk) => `${disk.capacity_gb}GB ${disk.disk_type}`
+                          )
+                          .join(", ")
+                      : selectedSpecification.storage || "N/A"}
+                  </div>
+                </div>
+                {(typeName.includes("ноутбук") ||
+                  typeName.includes("моноблок")) && (
+                  <div>
+                    <label className="text-gray-600 text-sm">
+                      Размер экрана:
+                    </label>
+                    <div className="font-medium">
+                      {selectedSpecification.monitor_size ||
+                        selectedSpecification.screen_size ||
+                        "N/A"}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="text-gray-600 text-sm">Периферия:</label>
+                  <div className="font-medium">
+                    {`Мышь: ${
+                      selectedSpecification.has_mouse ? "Есть" : "Нет"
+                    }, 
+                      Клавиатура: ${
+                        selectedSpecification.has_keyboard ? "Есть" : "Нет"
+                      }`}
+                  </div>
+                </div>
+              </div>
+            )}
 
-                  {formValues.storageList.map((item) => (
-                    <Row gutter={16}>
-                      <Col span={12}>
-                        <div className="flex flex-col">
-                          <label className="text-gray-600 mb-1">Памят:</label>
-                          <Input
-                            value={item.capacity_gb + "GB"}
-                            disabled
-                            style={{ height: "40px" }}
-                          />
-                        </div>
-                      </Col>
-                      <Col span={12}>
-                        <div className="flex flex-col">
-                          <label className="text-gray-600 mb-1">
-                            Тип диска:
-                          </label>
-                          <Input
-                            value={item.disk_type}
-                            disabled
-                            style={{ height: "40px" }}
-                          />
-                        </div>
-                      </Col>
-                    </Row>
-                  ))}
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <div className="flex flex-col">
-                        <label className="text-gray-600 mb-1">
-                          Видеокарта:
-                        </label>
-                        <Input
-                          value={formValues.gpu_model || "N/A"}
-                          disabled
-                          style={{ height: "40px" }}
-                        />
-                      </div>
-                    </Col>
-                    <Col span={12}>
-                      <Row gutter={[16, 16]} style={{ marginTop: "16px" }}>
-                        <Col span={12}>
-                          <div className="flex flex-col">
-                            <label className="text-gray-600 mb-1">Мышка:</label>
-                            <div
-                              style={{
-                                height: "40px",
-                                display: "flex",
-                                alignItems: "center",
-                              }}
-                            >
-                              <Switch checked={formValues.has_mouse} disabled />
-                              <span className="ml-2">
-                                {formValues.has_mouse ? "Есть" : "Нет"}
-                              </span>
-                            </div>
-                          </div>
-                        </Col>
-                        <Col span={12}>
-                          <div className="flex flex-col">
-                            <label className="text-gray-600 mb-1">
-                              Клавиатура:
-                            </label>
-                            <div
-                              style={{
-                                height: "40px",
-                                display: "flex",
-                                alignItems: "center",
-                              }}
-                            >
-                              <Switch
-                                checked={formValues.has_keyboard}
-                                disabled
-                              />
-                              <span className="ml-2">
-                                {formValues.has_keyboard ? "Есть" : "Нет"}
-                              </span>
-                            </div>
-                          </div>
-                        </Col>
-                      </Row>
-                    </Col>
-                    {(typeName.includes("ноутбук") ||
-                      typeName.includes("моноблок")) && (
-                      <Col span={12}>
-                        <div className="flex flex-col">
-                          <label className="text-gray-600 mb-1">
-                            Размер экрана:
-                          </label>
-                          <Input
-                            value={formValues.monitor_size || "N/A"}
-                            disabled
-                            style={{ height: "40px" }}
-                          />
-                        </div>
-                      </Col>
-                    )}
-                  </Row>
-                </>
-              )}
-          </>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-500 mb-4">
-              Для данного типа оборудования нет созданных шаблонов
-            </p>
-            <p className="text-sm text-gray-400">
-              Создайте шаблон в разделе "Характеристики"
-            </p>
+            {typeName.includes("проектор") && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-600 text-sm">Модель:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.model || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">Яркость:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.lumens || "N/A"} люмен
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">Разрешение:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.resolution || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">Тип проекции:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.throw_type || "N/A"}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {typeName.includes("принтер") && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-600 text-sm">Модель:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.model || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">
+                    Цветная печать:
+                  </label>
+                  <div className="font-medium">
+                    {selectedSpecification.color ? "Да" : "Нет"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">
+                    Двусторонняя печать:
+                  </label>
+                  <div className="font-medium">
+                    {selectedSpecification.duplex ? "Да" : "Нет"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">
+                    Серийный номер:
+                  </label>
+                  <div className="font-medium">
+                    {selectedSpecification.serial_number || "N/A"}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(typeName.includes("телевизор") ||
+              typeName.includes("монитор")) && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-600 text-sm">Модель:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.model || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">
+                    Размер экрана:
+                  </label>
+                  <div className="font-medium">
+                    {selectedSpecification.screen_size || "N/A"}"
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">Разрешение:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.resolution || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">Тип матрицы:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.panel_type || "N/A"}
+                  </div>
+                </div>
+                {typeName.includes("монитор") && (
+                  <div>
+                    <label className="text-gray-600 text-sm">
+                      Частота обновления:
+                    </label>
+                    <div className="font-medium">
+                      {selectedSpecification.refresh_rate || "N/A"} Hz
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {typeName.includes("роутер") && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-600 text-sm">Модель:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.model || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">
+                    Количество портов:
+                  </label>
+                  <div className="font-medium">
+                    {selectedSpecification.ports || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">
+                    WiFi стандарт:
+                  </label>
+                  <div className="font-medium">
+                    {selectedSpecification.wifi_standart || "N/A"}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {typeName.includes("доска") && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-600 text-sm">Модель:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.model || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">Размер:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.screen_size || "N/A"}"
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">Тип касания:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.touch_type || "N/A"}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {typeName.includes("удлинитель") && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-gray-600 text-sm">
+                    Количество портов:
+                  </label>
+                  <div className="font-medium">
+                    {selectedSpecification.ports || "N/A"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-gray-600 text-sm">Длина кабеля:</label>
+                  <div className="font-medium">
+                    {selectedSpecification.length || "N/A"} м
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
-
-        <Row gutter={16} className="mt-4">
+        <Row gutter={16} className="items-center mt-4">
+          <Col span={12}>
+            <div className="flex items-center">
+              <label>Количество инвентаря</label>
+            </div>
+          </Col>
+          <Col span={12}>
+            <Input
+              value={formValues.count > 100 ? 100 : formValues.count}
+              onChange={(e) => handleInputChange("count", e.target.value)}
+              placeholder="Количество инвентаря"
+              style={{ height: "40px" }}
+              type="number"
+            />
+            {formValues.count > 100 && (
+              <Text type="danger" style={{ fontSize: "12px" }}>
+                {`max Количество инвентаря 100`}
+              </Text>
+            )}
+            {formValues.count == "" && (
+              <Text type="danger" style={{ fontSize: "12px" }}>
+                {`min Количество инвентаря 1`}
+              </Text>
+            )}
+          </Col>
+        </Row>
+        <Row gutter={16} className="mt-6">
           <Col span={12}>
             <Button
-              className="w-100  rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
+              className="w-100 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
               style={{ width: "100%" }}
               onClick={() => setCurrentStep(0)}
             >
@@ -926,7 +1141,7 @@ const CreateEquipmentModal = ({
           <Col span={12}>
             <Button
               type="primary"
-              className="w-100  rounded-[10px] font-semibold text-white block hover:bg-indigo-600"
+              className="w-100 rounded-[10px] font-semibold text-white block hover:bg-indigo-600"
               style={{ width: "100%" }}
               onClick={handleStep2Submit}
               disabled={!isStep2Valid}
@@ -1027,63 +1242,92 @@ const CreateEquipmentModal = ({
   };
 
   return (
-    <Modal
-      title={null}
-      visible={visible}
-      onCancel={() => {
-        resetModal();
-        onCancel();
-      }}
-      footer={null}
-      width={800}
-      className="rounded-lg mt-[-50px]"
-      destroyOnClose
-    >
-      <div className="px-6 py-4 mb-3 ">
-        <div className="flex items-center">
-          <div className="flex-1 relative">
-            <div
-              className={`h-[5px] rounded-full ${
-                currentStep >= 0 ? "bg-[#4E38F2]" : "bg-gray-300"
-              }`}
-            />
-            {currentStep === 0 && (
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#4E38F2] text-white px-4 py-1 rounded-lg text-sm font-medium whitespace-nowrap">
-                Общее
-              </div>
-            )}
-          </div>
-          <div className="flex-1 relative mx-2">
-            <div
-              className={`h-[5px] rounded-full ${
-                currentStep >= 1 ? "bg-[#4E38F2]" : "bg-gray-300"
-              }`}
-            />
-            {currentStep === 1 && (
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#4E38F2] text-white px-4 py-1 rounded-lg text-sm font-medium whitespace-nowrap">
-                Характеристики
-              </div>
-            )}
-          </div>
-          <div className="flex-1 relative">
-            <div
-              className={`h-[5px] rounded-full ${
-                currentStep >= 2 ? "bg-[#4E38F2]" : "bg-gray-300"
-              }`}
-            />
-            {currentStep === 2 && (
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#4E38F2] text-white px-4 py-1 rounded-lg text-sm font-medium whitespace-nowrap">
-                ИНН
-              </div>
-            )}
+    <>
+      <Modal
+        title={null}
+        visible={visible}
+        onCancel={() => {
+          resetModal();
+          onCancel();
+        }}
+        footer={null}
+        width={800}
+        className="rounded-lg mt-[-50px]"
+        destroyOnClose
+      >
+        <div className="px-6 py-4 mb-3 ">
+          <div className="flex items-center">
+            <div className="flex-1 relative">
+              <div
+                className={`h-[5px] rounded-full ${
+                  currentStep >= 0 ? "bg-[#4E38F2]" : "bg-gray-300"
+                }`}
+              />
+              {currentStep === 0 && (
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#4E38F2] text-white px-4 py-1 rounded-lg text-sm font-medium whitespace-nowrap">
+                  Общее
+                </div>
+              )}
+            </div>
+            <div className="flex-1 relative mx-2">
+              <div
+                className={`h-[5px] rounded-full ${
+                  currentStep >= 1 ? "bg-[#4E38F2]" : "bg-gray-300"
+                }`}
+              />
+              {currentStep === 1 && (
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#4E38F2] text-white px-4 py-1 rounded-lg text-sm font-medium whitespace-nowrap">
+                  Характеристики
+                </div>
+              )}
+            </div>
+            <div className="flex-1 relative">
+              <div
+                className={`h-[5px] rounded-full ${
+                  currentStep >= 2 ? "bg-[#4E38F2]" : "bg-gray-300"
+                }`}
+              />
+              {currentStep === 2 && (
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#4E38F2] text-white px-4 py-1 rounded-lg text-sm font-medium whitespace-nowrap">
+                  ИНН
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {currentStep === 0 && renderStep1()}
-      {currentStep === 1 && renderStep2()}
-      {currentStep === 2 && renderStep3()}
-    </Modal>
+        {currentStep === 0 && renderStep1()}
+        {currentStep === 1 && renderStep2()}
+        {currentStep === 2 && renderStep3()}
+      </Modal>
+
+      {/* Create Specification Modal */}
+      <Modal
+        title={null}
+        visible={createSpecModalVisible}
+        onCancel={() => {
+          setCreateSpecModalVisible(false);
+          specForm.resetFields();
+        }}
+        footer={null}
+        width={800}
+        className="rounded-lg"
+        destroyOnClose
+      >
+        <CreateSpecificationForm
+          form={specForm}
+          equipmentType={{
+            name: equipmentTypes.find((t) => t.id === formValues.type_id)?.name,
+          }}
+          onSubmit={handleSpecCreate}
+          onCancel={() => {
+            setCreateSpecModalVisible(false);
+            specForm.resetFields();
+          }}
+          isEdit={false}
+        />
+      </Modal>
+    </>
   );
 };
 

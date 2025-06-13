@@ -1,4 +1,4 @@
-// src/pages/ContractsPage.jsx - FIXED equipment edit modal
+// src/pages/ContractsPage.jsx - FIXED equipment filtering and edit modal
 
 "use client";
 
@@ -80,21 +80,33 @@ const ContractsPage = () => {
     setIsEditFormValid(isValid);
   };
 
-  // Check dependencies before deletion
+  // FIXED: Check dependencies with proper filtering
   const checkContractDependencies = async (contract) => {
     // Add contract to deleting set to show loading for this specific contract
     setDeletingContracts((prev) => new Set(prev).add(contract.id));
 
     try {
-      // Check if contract is used in any equipment
+      // FIXED: Get all equipment first (since API might not support contract_id filter)
       const response = await equipmentAPI.getFilteredEquipments({
-        contract_id: contract.id,
+        page_size: 1000, // Get all equipment
       });
 
       const equipmentList = response.data.results || response.data || [];
 
-      if (equipmentList.length > 0) {
-        setDependentEquipment(equipmentList);
+      // FIXED: Filter equipment that actually uses this contract based on actual data structure
+      const contractEquipment = equipmentList.filter((equipment) => {
+        // Check both contract.id and direct contract_id field
+        const contractId = JSON.parse(equipment.body).contract;
+        return contractId === contract.id;
+      });
+
+      console.log("Contract ID to check:", contractEquipment);
+      console.log("Total equipment:", equipmentList.length);
+      console.log("Filtered equipment:", contractEquipment.length);
+      console.log("Contract equipment:", equipmentList);
+
+      if (contractEquipment.length > 0) {
+        setDependentEquipment(contractEquipment);
         setSelectedContract(contract);
         setDependencyModalVisible(true);
       } else {
@@ -218,20 +230,40 @@ const ContractsPage = () => {
     setIsFormValid(false);
   };
 
-  // FIXED: Equipment edit handler - opens modal instead of navigation
-  const handleEquipmentEdit = (equipment) => {
-    setSelectedEquipment(equipment);
-    setEquipmentEditModalVisible(true);
+  // FIXED: Equipment edit handler with proper data structure
+  const handleEquipmentEdit = async (equipment) => {
+    try {
+      // FIXED: Fetch complete equipment data to ensure all required fields are present
+      const response = await equipmentAPI.getEquipmentById(equipment.id);
+      const fullEquipmentData = response.data;
+
+      // FIXED: Ensure type information is properly structured
+      if (!fullEquipmentData.type_data && fullEquipmentData.type) {
+        // If type_data is missing but type exists, find the type data
+        const typeData = equipmentTypes.find(
+          (t) => t.id === fullEquipmentData.type
+        );
+        if (typeData) {
+          fullEquipmentData.type_data = typeData;
+        }
+      }
+
+      setSelectedEquipment(fullEquipmentData);
+      setEquipmentEditModalVisible(true);
+    } catch (error) {
+      console.error("Error fetching equipment details:", error);
+      message.error("Ошибка при загрузке данных оборудования");
+    }
   };
 
   // Handle equipment edit modal close with refresh
-  const handleEquipmentEditModalClose = () => {
+  const handleEquipmentEditModalClose = async () => {
     setEquipmentEditModalVisible(false);
     setSelectedEquipment(null);
 
     // Refresh dependencies after edit
     if (selectedContract) {
-      checkContractDependencies(selectedContract);
+      await checkContractDependencies(selectedContract);
     }
   };
 
@@ -499,7 +531,7 @@ const ContractsPage = () => {
         </Form>
       </Modal>
 
-      {/* Dependency Check Modal */}
+      {/* FIXED: Dependency Check Modal with better filtering display */}
       <Modal
         title={
           <div className="flex items-center space-x-2">
@@ -531,7 +563,8 @@ const ContractsPage = () => {
           <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
             <p className="text-orange-800">
               <strong>
-                Данный договор используется в следующем оборудовании:
+                Договор "{selectedContract?.number}" используется в следующем
+                оборудовании ({dependentEquipment.length} шт.):
               </strong>
             </p>
             <p className="text-sm text-orange-700 mt-2">
@@ -552,7 +585,12 @@ const ContractsPage = () => {
                       </div>
                       <div className="text-sm text-gray-500">
                         Тип: {equipment.type_data?.name || "Неизвестно"} • ИНН:{" "}
-                        {equipment.inn || "Не указан"}
+                        {equipment.inn || "Не указан"} • Локация:{" "}
+                        {equipment.location || "Не указана"}
+                      </div>
+                      <div className="text-xs text-orange-600">
+                        Договор: {equipment.contract?.number || "Не указан"}{" "}
+                        (ID: {equipment.contract?.id})
                       </div>
                     </div>
                     <Button
@@ -578,7 +616,7 @@ const ContractsPage = () => {
         </div>
       </Modal>
 
-      {/* Equipment Edit Modal - FIXED: Opens modal instead of navigation */}
+      {/* FIXED: Equipment Edit Modal */}
       <EditEquipmentModal
         visible={equipmentEditModalVisible}
         onCancel={handleEquipmentEditModalClose}

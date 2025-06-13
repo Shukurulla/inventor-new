@@ -13,6 +13,7 @@ import {
   Form,
   Input,
   Select,
+  List,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -22,12 +23,14 @@ import {
   FiFilter,
   FiEye,
   FiMapPin,
+  FiAlertTriangle,
 } from "react-icons/fi";
 import {
   updateEquipment,
   deleteEquipment,
   getMyEquipments,
 } from "../store/slices/equipmentSlice";
+import { specificationsAPI, equipmentAPI } from "../services/api";
 import EditEquipmentModal from "../components/Equipment/EditEquipmentModal";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import { getStatusText, getStatusConfig } from "../utils/statusUtils";
@@ -38,7 +41,11 @@ const { Option } = Select;
 const AddedPage = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [dependencyModalVisible, setDependencyModalVisible] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [dependentSpecifications, setDependentSpecifications] = useState([]);
+  const [equipmentToDelete, setEquipmentToDelete] = useState(null);
+  const [deletingEquipment, setDeletingEquipment] = useState(new Set());
   const [filters, setFilters] = useState({
     building_id: null,
     room_id: null,
@@ -56,7 +63,6 @@ const AddedPage = () => {
   } = useSelector((state) => state.equipment);
   const { buildings = [] } = useSelector((state) => state.university);
   const { rooms = [] } = useSelector((state) => state.university);
-  console.log(myEquipments);
 
   // Получение данных оборудования в правильном формате
   const getValidEquipment = () => {
@@ -120,6 +126,132 @@ const AddedPage = () => {
     });
 
     return grouped;
+  };
+
+  // Enhanced dependency check for specifications
+  const checkEquipmentDependencies = async (equipment) => {
+    setDeletingEquipment((prev) => new Set(prev).add(equipment.id));
+
+    try {
+      const dependentSpecs = [];
+      const typeName = equipment.type_data?.name?.toLowerCase() || "";
+
+      // Check if equipment uses any specifications
+      const specChecks = [
+        {
+          field: "computer_specification_id",
+          api: specificationsAPI.getComputerSpecs,
+          type: "компьютер",
+        },
+        {
+          field: "projector_specification_id",
+          api: specificationsAPI.getProjectorSpecs,
+          type: "проектор",
+        },
+        {
+          field: "printer_specification_id",
+          api: specificationsAPI.getPrinterSpecs,
+          type: "принтер",
+        },
+        {
+          field: "tv_specification_id",
+          api: specificationsAPI.getTVSpecs,
+          type: "телевизор",
+        },
+        {
+          field: "router_specification_id",
+          api: specificationsAPI.getRouterSpecs,
+          type: "роутер",
+        },
+        {
+          field: "notebook_specification_id",
+          api: specificationsAPI.getNotebookSpecs,
+          type: "ноутбук",
+        },
+        {
+          field: "monoblok_specification_id",
+          api: specificationsAPI.getMonoblokSpecs,
+          type: "моноблок",
+        },
+        {
+          field: "whiteboard_specification_id",
+          api: specificationsAPI.getWhiteboardSpecs,
+          type: "доска",
+        },
+        {
+          field: "extender_specification_id",
+          api: specificationsAPI.getExtenderSpecs,
+          type: "удлинитель",
+        },
+        {
+          field: "monitor_specification_id",
+          api: specificationsAPI.getMonitorSpecs,
+          type: "монитор",
+        },
+      ];
+
+      for (const check of specChecks) {
+        if (equipment[check.field] && typeName.includes(check.type)) {
+          try {
+            const response = await check.api();
+            const spec = response.data.find(
+              (s) => s.id === equipment[check.field]
+            );
+            if (spec) {
+              // Check if this specification is used by other equipment
+              const allEquipmentResponse = await equipmentAPI.getMyEquipments();
+              const otherEquipmentUsingSpec = allEquipmentResponse.data.filter(
+                (eq) => eq.id !== equipment.id && eq[check.field] === spec.id
+              );
+
+              if (otherEquipmentUsingSpec.length === 0) {
+                dependentSpecs.push({
+                  ...spec,
+                  type: check.type,
+                  field: check.field,
+                  isLastUser: true,
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Error checking ${check.type} specs:`, error);
+          }
+        }
+      }
+
+      if (dependentSpecs.length > 0) {
+        setDependentSpecifications(dependentSpecs);
+        setEquipmentToDelete(equipment);
+        setDependencyModalVisible(true);
+      } else {
+        // No dependencies, safe to delete
+        confirmDirectDelete(equipment);
+      }
+    } catch (error) {
+      console.error("Error checking dependencies:", error);
+      message.error("Ошибка при проверке зависимостей");
+    } finally {
+      setDeletingEquipment((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(equipment.id);
+        return newSet;
+      });
+    }
+  };
+
+  const confirmDirectDelete = (equipment) => {
+    Modal.confirm({
+      title: "Удалить оборудование?",
+      content: `Вы уверены, что хотите удалить "${equipment.name}"?`,
+      onOk: () => handleDelete(equipment.id),
+      okText: "Да",
+      cancelText: "Нет",
+      okType: "danger",
+    });
+  };
+
+  const handleDeleteWithCheck = (equipment) => {
+    checkEquipmentDependencies(equipment);
   };
 
   // Handle view button click
@@ -186,6 +318,7 @@ const AddedPage = () => {
 
   const renderEquipmentItem = (item) => {
     const statusConfig = getStatusConfig(item.status);
+    const isDeleting = deletingEquipment.has(item.id);
 
     return (
       <div
@@ -251,17 +384,10 @@ const AddedPage = () => {
             type="text"
             danger
             icon={<FiTrash2 />}
-            onClick={() => {
-              Modal.confirm({
-                title: "Удалить оборудование?",
-                content: "Это действие нельзя отменить",
-                onOk: () => handleDelete(item.id),
-                okText: "Да",
-                cancelText: "Нет",
-              });
-            }}
+            onClick={() => handleDeleteWithCheck(item)}
             size="small"
             title="Удалить"
+            loading={isDeleting}
             className="text-red-500 hover:text-red-700"
           />
         </div>
@@ -636,6 +762,103 @@ const AddedPage = () => {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* Dependency Check Modal */}
+      <Modal
+        title={
+          <div className="flex items-center space-x-2">
+            <FiAlertTriangle className="text-orange-500" />
+            <span>Внимание: найдены связанные характеристики</span>
+          </div>
+        }
+        visible={dependencyModalVisible}
+        onCancel={() => {
+          setDependencyModalVisible(false);
+          setDependentSpecifications([]);
+          setEquipmentToDelete(null);
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setDependencyModalVisible(false);
+              setDependentSpecifications([]);
+              setEquipmentToDelete(null);
+            }}
+          >
+            Отмена
+          </Button>,
+          <Button
+            key="delete"
+            type="primary"
+            danger
+            onClick={() => {
+              setDependencyModalVisible(false);
+              confirmDirectDelete(equipmentToDelete);
+              setDependentSpecifications([]);
+              setEquipmentToDelete(null);
+            }}
+          >
+            Удалить все равно
+          </Button>,
+        ]}
+        width={800}
+      >
+        <div className="space-y-4">
+          <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+            <p className="text-orange-800">
+              <strong>
+                Данное оборудование является единственным пользователем
+                следующих характеристик:
+              </strong>
+            </p>
+            <p className="text-sm text-orange-700 mt-2">
+              При удалении оборудования эти характеристики станут
+              неиспользуемыми. Рекомендуется сначала отредактировать
+              оборудование или удалить неиспользуемые характеристики.
+            </p>
+          </div>
+
+          <div className="max-h-60 overflow-y-auto">
+            <List
+              dataSource={dependentSpecifications}
+              renderItem={(spec) => (
+                <List.Item className="border-b hover:bg-gray-50 transition-colors">
+                  <div className="w-full flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-800">
+                        {spec.model || spec.cpu || `Характеристика ${spec.id}`}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Тип: {spec.type} • ID: {spec.id}
+                      </div>
+                    </div>
+                    <Button
+                      type="link"
+                      onClick={() => {
+                        setDependencyModalVisible(false);
+                        setSelectedEquipment(equipmentToDelete);
+                        setEditModalVisible(true);
+                      }}
+                      className="text-indigo-600"
+                    >
+                      Редактировать оборудование →
+                    </Button>
+                  </div>
+                </List.Item>
+              )}
+            />
+          </div>
+
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <p className="text-blue-800 text-sm">
+              💡 <strong>Рекомендация:</strong> Отредактируйте оборудование и
+              измените или удалите привязку к характеристикам, либо удалите
+              оборудование вместе с неиспользуемыми характеристиками.
+            </p>
+          </div>
+        </div>
       </Modal>
     </div>
   );

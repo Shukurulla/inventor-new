@@ -1,5 +1,3 @@
-// src/pages/CharacteristicsPage.jsx - FIXED dependency check
-
 "use client";
 
 import { useState } from "react";
@@ -12,9 +10,8 @@ import {
   Empty,
   Modal,
   message,
-  Popconfirm,
-  Form,
   List,
+  Form,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -57,19 +54,15 @@ const CharacteristicsPage = () => {
   const [selectedSpec, setSelectedSpec] = useState(null);
   const [dependentEquipment, setDependentEquipment] = useState([]);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
-
-  // Individual loading states for each specification
   const [deletingSpecs, setDeletingSpecs] = useState(new Set());
 
   const [specForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
   const dispatch = useDispatch();
-
-  // Get data from Redux store
   const specifications = useSelector((state) => state.specifications);
   const { equipmentTypes } = useSelector((state) => state.equipment);
-  const { loading, specificationCount } = specifications;
+  const { loading } = specifications;
 
   const equipmentTypeTemplates = [
     {
@@ -82,11 +75,7 @@ const CharacteristicsPage = () => {
       icon: "компьютер",
       color: "bg-indigo-100 text-indigo-600",
     },
-    {
-      name: "Принтер",
-      icon: "принтер",
-      color: "bg-pink-100 text-pink-600",
-    },
+    { name: "Принтер", icon: "принтер", color: "bg-pink-100 text-pink-600" },
     {
       name: "Моноблок",
       icon: "моноблок",
@@ -107,130 +96,133 @@ const CharacteristicsPage = () => {
       icon: "ноутбук",
       color: "bg-indigo-100 text-indigo-600",
     },
-    {
-      name: "Роутер",
-      icon: "роутер",
-      color: "bg-red-100 text-red-600",
-    },
+    { name: "Роутер", icon: "роутер", color: "bg-red-100 text-red-600" },
     {
       name: "Удлинитель",
       icon: "удлинитель",
       color: "bg-indigo-100 text-indigo-600",
     },
-    {
-      name: "Монитор",
-      icon: "монитор",
-      color: "bg-cyan-100 text-cyan-600",
-    },
+    { name: "Монитор", icon: "монитор", color: "bg-cyan-100 text-cyan-600" },
   ];
 
-  // FIXED: Enhanced check dependencies with better logic
+  const getEquipmentTypeNameById = (typeId) => {
+    const type = equipmentTypes.find((t) => t.id === typeId);
+    return type ? type.name : "Неизвестный тип";
+  };
+
+  const enrichEquipmentData = (equipment) => {
+    if (
+      equipment.type_data &&
+      equipment.type_data.id &&
+      equipment.type_data.name
+    ) {
+      return { ...equipment, type: equipment.type_data.id };
+    }
+    if (equipment.type) {
+      return {
+        ...equipment,
+        type_data: {
+          id: equipment.type,
+          name: getEquipmentTypeNameById(equipment.type),
+        },
+      };
+    }
+    if (equipment.type_data && equipment.type_data.id) {
+      return {
+        ...equipment,
+        type: equipment.type_data.id,
+        type_data: {
+          ...equipment.type_data,
+          name:
+            equipment.type_data.name ||
+            getEquipmentTypeNameById(equipment.type_data.id),
+        },
+      };
+    }
+    console.warn(`Equipment ${equipment.id} has no type information`);
+    return {
+      ...equipment,
+      type: null,
+      type_data: { id: null, name: "Неизвестный тип" },
+    };
+  };
+
   const checkSpecificationDependencies = async (spec, typeName) => {
     const specKey = `${typeName}-${spec.id}`;
     setDeletingSpecs((prev) => new Set(prev).add(specKey));
 
     try {
-      // Get all equipment from API
-      const response = await equipmentAPI.getMyEquipments();
-      const allEquipment = response.data || [];
+      const response = await equipmentAPI.getFilteredEquipments({
+        page_size: 1000,
+      });
+      const allEquipment = response.data.results || response.data || [];
 
-      console.log(
-        "Checking dependencies for spec:",
-        spec.id,
-        "type:",
-        typeName
-      );
-      console.log("All equipment:", allEquipment);
-
-      // FIXED: More comprehensive dependency check
+      const typeNameLower = typeName.toLowerCase();
       const dependentEquipment = allEquipment.filter((equipment) => {
-        const typeNameLower = typeName.toLowerCase();
-
-        // Check various ways the specification could be referenced
         let isDependent = false;
-
         if (typeNameLower.includes("компьютер")) {
           isDependent =
             equipment.computer_specification_id === spec.id ||
             equipment.computer_specification?.id === spec.id ||
-            (equipment.computer_specification_data &&
-              equipment.computer_specification_data.id === spec.id);
+            equipment.computer_specification_data?.id === spec.id;
         } else if (typeNameLower.includes("проектор")) {
           isDependent =
             equipment.projector_specification_id === spec.id ||
             equipment.projector_specification?.id === spec.id ||
-            (equipment.projector_specification_data &&
-              equipment.projector_specification_data.id === spec.id);
+            equipment.projector_specification_data?.id === spec.id;
         } else if (typeNameLower.includes("принтер")) {
           isDependent =
             equipment.printer_specification_id === spec.id ||
             equipment.printer_specification?.id === spec.id ||
-            (equipment.printer_specification_data &&
-              equipment.printer_specification_data.id === spec.id);
+            equipment.printer_specification_data?.id === spec.id;
         } else if (typeNameLower.includes("телевизор")) {
           isDependent =
             equipment.tv_specification_id === spec.id ||
             equipment.tv_specification?.id === spec.id ||
-            (equipment.tv_specification_data &&
-              equipment.tv_specification_data.id === spec.id);
+            equipment.tv_specification_data?.id === spec.id;
         } else if (typeNameLower.includes("роутер")) {
           isDependent =
             equipment.router_specification_id === spec.id ||
             equipment.router_specification?.id === spec.id ||
-            (equipment.router_specification_data &&
-              equipment.router_specification_data.id === spec.id);
+            equipment.router_specification_data?.id === spec.id;
         } else if (typeNameLower.includes("ноутбук")) {
           isDependent =
             equipment.notebook_specification_id === spec.id ||
             equipment.notebook_specification?.id === spec.id ||
-            (equipment.notebook_specification_data &&
-              equipment.notebook_specification_data.id === spec.id);
+            equipment.notebook_specification_data?.id === spec.id;
         } else if (typeNameLower.includes("моноблок")) {
           isDependent =
             equipment.monoblok_specification_id === spec.id ||
             equipment.monoblok_specification?.id === spec.id ||
-            (equipment.monoblok_specification_data &&
-              equipment.monoblok_specification_data.id === spec.id);
+            equipment.monoblok_specification_data?.id === spec.id;
         } else if (typeNameLower.includes("доска")) {
           isDependent =
             equipment.whiteboard_specification_id === spec.id ||
             equipment.whiteboard_specification?.id === spec.id ||
-            (equipment.whiteboard_specification_data &&
-              equipment.whiteboard_specification_data.id === spec.id);
+            equipment.whiteboard_specification_data?.id === spec.id;
         } else if (typeNameLower.includes("удлинитель")) {
           isDependent =
             equipment.extender_specification_id === spec.id ||
             equipment.extender_specification?.id === spec.id ||
-            (equipment.extender_specification_data &&
-              equipment.extender_specification_data.id === spec.id);
+            equipment.extender_specification_data?.id === spec.id;
         } else if (typeNameLower.includes("монитор")) {
           isDependent =
             equipment.monitor_specification_id === spec.id ||
             equipment.monitor_specification?.id === spec.id ||
-            (equipment.monitor_specification_data &&
-              equipment.monitor_specification_data.id === spec.id);
+            equipment.monitor_specification_data?.id === spec.id;
         }
-
-        if (isDependent) {
-          console.log(
-            "Found dependent equipment:",
-            equipment.name,
-            equipment.id
-          );
-        }
-
         return isDependent;
       });
 
-      console.log("Dependent equipment found:", dependentEquipment.length);
-
       if (dependentEquipment.length > 0) {
-        setDependentEquipment(dependentEquipment);
+        const enrichedDependentEquipment = dependentEquipment.map((equipment) =>
+          enrichEquipmentData(equipment)
+        );
+        setDependentEquipment(enrichedDependentEquipment);
         setSelectedSpec(spec);
         setSelectedType(typeName);
         setDependencyModalVisible(true);
       } else {
-        // No dependencies, safe to delete
         confirmDirectDelete(spec, typeName);
       }
     } catch (error) {
@@ -268,20 +260,34 @@ const CharacteristicsPage = () => {
     setEditModalVisible(true);
   };
 
-  // FIXED: Equipment edit handler - opens modal instead of navigation
-  const handleEquipmentEdit = (equipment) => {
-    setSelectedEquipment(equipment);
-    setEquipmentEditModalVisible(true);
+  const handleEquipmentEdit = async (equipment) => {
+    try {
+      const response = await equipmentAPI.getEquipmentById(equipment.id);
+      const fullEquipmentData = response.data;
+
+      if (!fullEquipmentData.type_data && fullEquipmentData.type) {
+        const typeData = equipmentTypes.find(
+          (t) => t.id === fullEquipmentData.type
+        );
+        if (typeData) {
+          fullEquipmentData.type_data = typeData;
+        }
+      }
+
+      setSelectedEquipment(fullEquipmentData);
+      setEquipmentEditModalVisible(true);
+    } catch (error) {
+      console.error("Error fetching equipment details:", error);
+      message.error("Ошибка при загрузке данных оборудования");
+    }
   };
 
-  // Handle equipment edit modal close with refresh
-  const handleEquipmentEditModalClose = () => {
+  const handleEquipmentEditModalClose = async () => {
     setEquipmentEditModalVisible(false);
     setSelectedEquipment(null);
 
-    // Refresh dependencies after edit
     if (selectedSpec && selectedType) {
-      checkSpecificationDependencies(selectedSpec, selectedType);
+      await checkSpecificationDependencies(selectedSpec, selectedType);
     }
   };
 
@@ -413,7 +419,6 @@ const CharacteristicsPage = () => {
         </div>
         <span className="text-gray-600">Наличие шаблонов</span>
       </div>
-
       <div className="space-y-3">
         {equipmentTypeTemplates.map((template) => (
           <div
@@ -442,7 +447,6 @@ const CharacteristicsPage = () => {
 
   const renderSpecificationItem = (spec, type) => {
     const specKey = `${type}-${spec.id}`;
-
     return (
       <div className="flex items-center justify-between p-3 bg-white rounded-lg border mb-2">
         <div className="flex-1">
@@ -600,7 +604,6 @@ const CharacteristicsPage = () => {
           </div>
           <span className="text-gray-600">Количество</span>
         </div>
-
         <Collapse
           expandIcon={({ isActive }) => (
             <FiChevronRight
@@ -666,7 +669,6 @@ const CharacteristicsPage = () => {
         />
       </Card>
 
-      {/* Create Modal */}
       <Modal
         visible={createModalVisible}
         onCancel={() => {
@@ -691,7 +693,6 @@ const CharacteristicsPage = () => {
         />
       </Modal>
 
-      {/* Edit Modal */}
       <Modal
         visible={editModalVisible}
         onCancel={() => {
@@ -719,7 +720,6 @@ const CharacteristicsPage = () => {
         />
       </Modal>
 
-      {/* Dependency Check Modal */}
       <Modal
         title={
           <div className="flex items-center space-x-2">
@@ -753,7 +753,12 @@ const CharacteristicsPage = () => {
           <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
             <p className="text-orange-800">
               <strong>
-                Данная характеристика используется в следующем оборудовании:
+                Характеристика "
+                {selectedSpec?.model ||
+                  selectedSpec?.cpu ||
+                  `ID: ${selectedSpec?.id}`}
+                " используется в следующем оборудовании (
+                {dependentEquipment.length} шт.):
               </strong>
             </p>
             <p className="text-sm text-orange-700 mt-2">
@@ -762,7 +767,6 @@ const CharacteristicsPage = () => {
               другую.
             </p>
           </div>
-
           <div className="max-h-60 overflow-y-auto">
             <List
               dataSource={dependentEquipment}
@@ -775,7 +779,14 @@ const CharacteristicsPage = () => {
                       </div>
                       <div className="text-sm text-gray-500">
                         Тип: {equipment.type_data?.name || "Неизвестно"} • ИНН:{" "}
-                        {equipment.inn || "Не указан"}
+                        {equipment.inn || "Не указан"} • Локация:{" "}
+                        {equipment.location || "Не указана"}
+                      </div>
+                      <div className="text-xs text-orange-600">
+                        Характеристика:{" "}
+                        {selectedSpec?.model ||
+                          selectedSpec?.cpu ||
+                          `ID: ${selectedSpec?.id}`}
                       </div>
                     </div>
                     <Button
@@ -790,7 +801,6 @@ const CharacteristicsPage = () => {
               )}
             />
           </div>
-
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
             <p className="text-blue-800 text-sm">
               💡 <strong>Рекомендация:</strong> Перейдите к каждому оборудованию
@@ -801,7 +811,6 @@ const CharacteristicsPage = () => {
         </div>
       </Modal>
 
-      {/* Equipment Edit Modal - FIXED: Opens modal instead of navigation */}
       <EditEquipmentModal
         visible={equipmentEditModalVisible}
         onCancel={handleEquipmentEditModalClose}

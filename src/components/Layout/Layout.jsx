@@ -280,7 +280,7 @@ const Layout = ({ children }) => {
     const colors = {
       NEW: "bg-green-100 text-green-600",
       WORKING: "bg-indigo-100 text-indigo-600",
-      REPAIR: "bg-orange-100 text-orange-600",
+      NEEDS_REPAIR: "bg-orange-100 text-orange-600",
       DISPOSED: "bg-gray-100 text-gray-600",
     };
     return colors[status] || "bg-gray-100 text-gray-600";
@@ -290,7 +290,7 @@ const Layout = ({ children }) => {
     const texts = {
       NEW: "Новое",
       WORKING: "Работает",
-      REPAIR: "На ремонте",
+      NEEDS_REPAIR: "Требуется ремонт",
       DISPOSED: "Утилизировано",
     };
     return texts[status] || status;

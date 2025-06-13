@@ -34,12 +34,7 @@ import { inventoryTypes } from "../../constants";
 const { Option } = Select;
 const { TextArea } = Input;
 
-const EditEquipmentModal = ({
-  visible,
-  onCancel,
-  equipment,
-  equipmentTypes,
-}) => {
+const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
   const [form] = Form.useForm();
   const [specForm] = Form.useForm();
   const [formValues, setFormValues] = useState({});
@@ -50,7 +45,7 @@ const EditEquipmentModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const dispatch = useDispatch();
-  const { loading } = useSelector((state) => state.equipment);
+  const { loading, equipmentTypes } = useSelector((state) => state.equipment);
   const { contracts } = useSelector((state) => state.contracts);
   const specifications = useSelector((state) => state.specifications);
 
@@ -95,7 +90,7 @@ const EditEquipmentModal = ({
         equipment.computer_specification ||
         equipment.projector_specification ||
         equipment.printer_specification ||
-        equipment.tv_specification ||
+        equipment.tv_specification_data ||
         equipment.router_specification ||
         equipment.notebook_specification ||
         equipment.monoblok_specification ||
@@ -132,6 +127,7 @@ const EditEquipmentModal = ({
         initialValues.wifi_standart = spec.wifi_standart || "";
         initialValues.touch_type = spec.touch_type || "";
         initialValues.length = spec.length || "";
+        initialValues.id = spec.id;
       }
 
       if (equipment.image) {
@@ -312,71 +308,216 @@ const EditEquipmentModal = ({
 
   const handleSubmit = async (values) => {
     setIsSubmitting(true);
+
     try {
       const typeId = equipment?.type_data?.id || equipment?.type;
       if (!typeId) {
         message.error("Тип оборудования не указан");
         return;
       }
+
+      const type = equipmentTypes.find((t) => t.id === typeId);
+      const typeName = type?.name?.toLowerCase();
       const specFieldName = getSpecificationFieldName(typeId);
 
+      // FIXED: Ensure contract_id is properly handled
       const updateData = {
         name: values.name,
         description: values.description,
         status: values.status,
-        contract_id: values.contract_id || null,
         type: typeId,
       };
 
+      // FIXED: Handle contract_id specifically
+      if (values.contract_id) {
+        updateData.contract_id = values.contract_id;
+      } else {
+        // Explicitly set to null if no contract selected
+        updateData.contract_id = null;
+      }
+
+      console.log("Form values received:", values);
+      console.log("Current equipment contract:", equipment.contract);
+      console.log("New contract_id to send:", updateData.contract_id);
+
+      // Add specification data based on equipment type
       if (specFieldName && values[specFieldName]) {
         updateData[specFieldName] = values[specFieldName];
+        console.log(`Setting ${specFieldName}:`, values[specFieldName]);
+      } else {
+        // If no specification selected, add empty char data to satisfy backend requirements
+        if (typeName?.includes("компьютер")) {
+          updateData.computer_char = {
+            cpu: equipment.computer_details?.cpu || "",
+            ram: equipment.computer_details?.ram || "",
+            has_keyboard: equipment.computer_details?.has_keyboard || false,
+            has_mouse: equipment.computer_details?.has_mouse || false,
+          };
+        } else if (typeName?.includes("ноутбук")) {
+          updateData.notebook_char = {
+            cpu: equipment.notebook_details?.cpu || "",
+            ram: equipment.notebook_details?.ram || "",
+            has_keyboard: equipment.notebook_details?.has_keyboard || false,
+            has_mouse: equipment.notebook_details?.has_mouse || false,
+            screen_size: equipment.notebook_details?.screen_size || "",
+          };
+        } else if (typeName?.includes("моноблок")) {
+          updateData.monoblok_char = {
+            cpu: equipment.monoblok_details?.cpu || "",
+            ram: equipment.monoblok_details?.ram || "",
+            has_keyboard: equipment.monoblok_details?.has_keyboard || false,
+            has_mouse: equipment.monoblok_details?.has_mouse || false,
+            screen_size: equipment.monoblok_details?.screen_size || "",
+          };
+        } else if (typeName?.includes("проектор")) {
+          updateData.projector_char = {
+            model: equipment.projector_char?.model || "",
+            lumens: equipment.projector_char?.lumens || "",
+            resolution: equipment.projector_char?.resolution || "",
+            throw_type: equipment.projector_char?.throw_type || "",
+          };
+        } else if (typeName?.includes("принтер")) {
+          updateData.printer_char = {
+            model: equipment.printer_char?.model || "",
+            color: equipment.printer_char?.color || false,
+            duplex: equipment.printer_char?.duplex || false,
+          };
+        } else if (typeName?.includes("телевизор")) {
+          updateData.tv_char = {
+            model: equipment.tv_char?.model || "",
+            screen_size: equipment.tv_char?.screen_size || "",
+            panel_type: equipment.tv_char?.panel_type || "",
+            refresh_rate: equipment.tv_char?.refresh_rate || "",
+          };
+        } else if (typeName?.includes("роутер")) {
+          updateData.router_char = {
+            model: equipment.router_char?.model || "",
+            ports: equipment.router_char?.ports || "",
+            wifi_standart: equipment.router_char?.wifi_standart || "",
+          };
+        } else if (typeName?.includes("доска")) {
+          updateData.whiteboard_char = {
+            model: equipment.whiteboard_char?.model || "",
+            screen_size: equipment.whiteboard_char?.screen_size || "",
+            touch_type: equipment.whiteboard_char?.touch_type || "",
+          };
+        } else if (typeName?.includes("удлинитель")) {
+          updateData.extender_char = {
+            ports: equipment.extender_char?.ports || "",
+            length: equipment.extender_char?.length || "",
+          };
+        } else if (typeName?.includes("монитор")) {
+          updateData.monitor_char = {
+            model: equipment.monitor_char?.model || "",
+            screen_size: equipment.monitor_char?.screen_size || "",
+            panel_type: equipment.monitor_char?.panel_type || "",
+            refresh_rate: equipment.monitor_char?.refresh_rate || "",
+          };
+        }
       }
+
+      console.log("Final update data to send:", updateData);
 
       let finalData;
       if (formValues.image) {
         finalData = new FormData();
         Object.entries(updateData).forEach(([key, value]) => {
           if (value !== null && value !== undefined) {
-            finalData.append(key, value);
+            if (typeof value === "object") {
+              finalData.append(key, JSON.stringify(value));
+            } else {
+              finalData.append(key, value);
+            }
           }
         });
         finalData.append("image", formValues.image);
+
+        console.log("Sending FormData with image");
+        // Log FormData contents
+        for (let [key, value] of finalData.entries()) {
+          console.log(`FormData - ${key}:`, value);
+        }
       } else {
         finalData = updateData;
+        console.log("Sending JSON data:", finalData);
       }
 
-      await dispatch(
+      const response = await dispatch(
         updateEquipment({
           id: equipment.id,
           data: finalData,
         })
       ).unwrap();
 
+      console.log("Update response:", response);
+
       message.success("Оборудование успешно обновлено!");
-      onCancel();
+
+      // FIXED: Refresh the contract dependencies after successful update
+      if (onCancel) {
+        onCancel();
+      }
     } catch (error) {
       console.error("Equipment update error:", error);
-      message.error(
+      console.error("Error details:", error?.response?.data);
+
+      // Show more specific error message
+      const errorMessage =
+        error?.response?.data?.contract_id?.[0] ||
         error?.response?.data?.non_field_errors?.[0] ||
-          "Ошибка при обновлении оборудования"
-      );
+        error?.message ||
+        "Ошибка при обновлении оборудования";
+
+      message.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const renderSpecificationSection = () => {
-    const typeId = equipment?.type_data?.id || equipment?.type;
+    const typeId = equipment?.type;
     const typeName = equipmentTypes
       ?.find((t) => t.id === typeId)
       ?.name?.toLowerCase();
     const availableSpecs = getSpecificationsForType(typeId);
     const specFieldName = getSpecificationFieldName(typeId);
+    const titleCharacteristics = (spec) => {
+      console.log(spec);
+
+      if (spec.projector_specification_data) {
+        return `model: ${spec.projector_specification_data.model}`;
+      } else if (spec.computer_details) {
+        return `${spec.computer_details.cpu} ${spec.computer_details.ram} ${spec.computer_details?.disks[0].capacity_gb}GB ${spec.computer_details.disks[0]?.disk_type}`;
+      } else if (spec.printer_specification_data) {
+        return `model: ${spec.printer_specification_data.model}`;
+      } else if (
+        spec.type_data?.name === "Моноблок" &&
+        spec.disks?.length &&
+        spec.gpus?.length
+      ) {
+        return `Диск: ${spec.disks[0].capacity_gb}GB ${spec.disks[0].disk_type}, GPU: ${spec.gpus[0].model}`;
+      } else if (spec.whiteboard_specification_data) {
+        return `model: ${spec.whiteboard_specification_data.model} ${spec.whiteboard_specification_data.screen_size}`;
+      } else if (
+        spec.type_data?.name === "Ноутбук" &&
+        spec.disks?.length &&
+        spec.gpus?.length
+      ) {
+        return `Диск: ${spec.disks[0].capacity_gb}GB ${spec.disks[0].disk_type}, GPU: ${spec.gpus[0].model}`;
+      } else if (spec.router_char) {
+        return `model: ${spec.router_char.model} port: ${spec.router_char.ports}`;
+      } else if (spec.tv_specification_data) {
+        return `model: ${spec.tv_specification_data.model} port: ${spec.tv_specification_data.screen_size}`;
+      } else {
+        return "Нет доступных шаблонов";
+      }
+    };
 
     console.log("Type ID:", typeId);
     console.log("Type Name:", typeName);
     console.log("Available Specs:", availableSpecs);
     console.log("Spec Field Name:", specFieldName);
+    console.log(titleCharacteristics(equipment));
 
     return (
       <>
@@ -384,11 +525,7 @@ const EditEquipmentModal = ({
           <Col span={12}>
             <Form.Item label="Характеристики" name={specFieldName}>
               <Select
-                placeholder={
-                  availableSpecs.length > 0
-                    ? "Выберите шаблон"
-                    : "Нет доступных шаблонов"
-                }
+                placeholder={titleCharacteristics(equipment)}
                 onChange={handleSpecificationChange}
                 style={{ height: "40px" }}
                 allowClear
@@ -407,7 +544,7 @@ const EditEquipmentModal = ({
               </Select>
             </Form.Item>
           </Col>
-          <Col span={12} className="flex items-end">
+          <Col span={12} className="flex items-start mt-8">
             <Button
               type="link"
               icon={<FiPlus />}
@@ -488,7 +625,7 @@ const EditEquipmentModal = ({
                       </Form.Item>
                     </Col>
                   </Row>
-                  {(typeName?.includes("ноутбук") ||
+                  {/* {(typeName?.includes("ноутбук") ||
                     typeName?.includes("моноблок")) && (
                     <Col span={12}>
                       <Form.Item label="Размер экрана">
@@ -503,7 +640,7 @@ const EditEquipmentModal = ({
                         />
                       </Form.Item>
                     </Col>
-                  )}
+                  )} */}
                 </Row>
               </>
             )}
@@ -784,8 +921,8 @@ const EditEquipmentModal = ({
               </Form.Item>
             </Col>
             <Col span={12}>
-              <div className="flex items-center justify-between h-[40px]">
-                <span className="text-gray-700 text-lg font-semibold">
+              <div className="flex mt-7 items-center justify-between h-[40px]">
+                <span className="text-gray-700 text-lg  font-semibold">
                   Фото техники:
                 </span>
                 <Upload
