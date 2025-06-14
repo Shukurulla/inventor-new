@@ -5,7 +5,7 @@ import { Card, Form, Input, Button, message, Avatar, Spin } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { FiEdit, FiUser } from "react-icons/fi";
 import { setTheme, setFontSize } from "../store/slices/settingsSlice";
-import api from "../services/api";
+import api, { authAPI } from "../services/api";
 
 const SettingsPage = () => {
   const [editMode, setEditMode] = useState(false);
@@ -20,6 +20,15 @@ const SettingsPage = () => {
   const { theme, fontSize } = useSelector((state) => state.settings);
 
   // Use user data from Redux instead of separate API call
+  useEffect(() => {
+    const profile = async () => {
+      const { data } = await authAPI.getProfile();
+      console.log(data);
+
+      setProfileData(data);
+    };
+    profile();
+  }, []);
   useEffect(() => {
     if (user) {
       setProfileData(user);
@@ -61,6 +70,7 @@ const SettingsPage = () => {
         `/user/users/${profileData.id}/`,
         values
       );
+      console.log(response);
 
       // Update local state with new data
       setProfileData(response.data);
@@ -101,89 +111,98 @@ const SettingsPage = () => {
     { label: "Roboto", value: "roboto" },
   ];
 
-  // No loading screen needed since data comes from Redux
-  if (!profileData) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Spin size="large" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Profile Settings */}
-      <Card
-        title="Профиль пользователя"
-        className="shadow-sm"
-        extra={
-          <Button type="primary" icon={<FiEdit />} onClick={handleEditToggle}>
-            {editMode ? "Отмена" : "Редактировать"}
-          </Button>
-        }
-      >
-        <Form
-          form={profileForm}
-          layout="vertical"
-          onFinish={handleProfileUpdate}
+      {!profileData ? (
+        <div className="flex justify-center items-center h-64">
+          <Spin size="large" />
+        </div>
+      ) : (
+        <Card
+          title="Профиль пользователя"
+          className="shadow-sm"
+          extra={
+            <Button type="primary" icon={<FiEdit />} onClick={handleEditToggle}>
+              {editMode ? "Отмена" : "Редактировать"}
+            </Button>
+          }
         >
-          <div className="flex items-start space-x-6 mb-6">
-            <div className="flex-1 grid grid-cols-2 gap-4">
-              <Form.Item
-                label="Имя пользователя"
-                name="username"
-                rules={[
-                  { required: true, message: "Введите имя пользователя!" },
-                ]}
-              >
-                <Input disabled={!editMode} />
-              </Form.Item>
+          <Form
+            form={profileForm}
+            layout="vertical"
+            onFinish={handleProfileUpdate}
+          >
+            <div className="flex items-start space-x-6 mb-6">
+              <div className="flex-1 grid grid-cols-2 gap-4">
+                <Form.Item
+                  label="Имя пользователя"
+                  name="username"
+                  rules={[
+                    { required: true, message: "Введите имя пользователя!" },
+                  ]}
+                >
+                  <Input
+                    placeholder={profileData.username}
+                    disabled={!editMode}
+                  />
+                </Form.Item>
 
-              <Form.Item
-                label="Email"
-                name="email"
-                rules={[
-                  { type: "email", message: "Введите корректный email!" },
-                ]}
-              >
-                <Input disabled={!editMode} />
-              </Form.Item>
+                <Form.Item
+                  label="Email"
+                  name="email"
+                  rules={[
+                    { type: "email", message: "Введите корректный email!" },
+                  ]}
+                >
+                  <Input placeholder={profileData.email} disabled={!editMode} />
+                </Form.Item>
 
-              <Form.Item label="Имя" name="first_name">
-                <Input disabled={!editMode} />
-              </Form.Item>
+                <Form.Item label="Имя" name="first_name">
+                  <Input
+                    placeholder={profileData.first_name}
+                    disabled={!editMode}
+                  />
+                </Form.Item>
 
-              <Form.Item label="Фамилия" name="last_name">
-                <Input disabled={!editMode} />
-              </Form.Item>
+                <Form.Item label="Фамилия" name="last_name">
+                  <Input
+                    placeholder={profileData.last_name}
+                    disabled={!editMode}
+                  />
+                </Form.Item>
 
-              <Form.Item label="Телефон" name="phone_number">
-                <Input disabled={!editMode} />
-              </Form.Item>
+                <Form.Item label="Телефон" name="phone_number">
+                  <Input
+                    placeholder={profileData.phone_number}
+                    disabled={!editMode}
+                  />
+                </Form.Item>
 
-              <Form.Item label="Роль">
-                <Input
-                  value={
-                    profileData?.role_display ||
-                    profileData?.role ||
-                    "Пользователь"
-                  }
-                  disabled
-                />
-              </Form.Item>
+                <Form.Item label="Роль">
+                  <Input
+                    value={
+                      profileData?.role_display ||
+                      profileData?.role ||
+                      "Пользователь"
+                    }
+                    disabled
+                  />
+                </Form.Item>
+              </div>
             </div>
-          </div>
 
-          {editMode && (
-            <div className="flex justify-end space-x-2">
-              <Button onClick={handleEditToggle}>Отмена</Button>
-              <Button type="primary" htmlType="submit" loading={loading}>
-                Сохранить изменения
-              </Button>
-            </div>
-          )}
-        </Form>
-      </Card>
+            {editMode && (
+              <div className="flex justify-end space-x-2">
+                <Button onClick={handleEditToggle}>Отмена</Button>
+                <Button type="primary" htmlType="submit" loading={loading}>
+                  Сохранить изменения
+                </Button>
+              </div>
+            )}
+          </Form>
+        </Card>
+      )}
 
       {/* Theme Settings */}
       <Card title="Цветовой режим" className="shadow-sm">

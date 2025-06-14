@@ -558,18 +558,9 @@ const AddedPage = () => {
         {renderEquipmentList()}
       </Card>
 
-      {/* Edit Equipment Modal */}
-      <EditEquipmentModal
-        visible={editModalVisible}
-        onCancel={handleEditModalClose}
-        equipment={selectedEquipment}
-        equipmentTypes={equipmentTypes}
-      />
-
-      {/* Detail Equipment Modal */}
       <Modal
         title="Подробная информация об оборудовании"
-        visible={detailModalVisible}
+        open={detailModalVisible}
         onCancel={handleDetailModalClose}
         footer={[
           <Button key="close" onClick={handleDetailModalClose}>
@@ -745,12 +736,12 @@ const AddedPage = () => {
             </div>
 
             {/* QR Code */}
-            {selectedEquipment.qr_code_url && (
+            {selectedEquipment.inn && (
               <div className="bg-blue-50 p-4 rounded-lg text-center">
                 <h4 className="font-medium mb-3">QR Код</h4>
                 <div className="inline-block p-3 bg-white rounded-lg shadow-sm">
                   <img
-                    src={selectedEquipment.qr_code_url}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?data=${selectedEquipment.inn}&size=x&bgcolor=`}
                     alt="QR Code"
                     className="w-32 h-32 mx-auto"
                   />
@@ -763,6 +754,16 @@ const AddedPage = () => {
           </div>
         )}
       </Modal>
+      {/* Edit Equipment Modal */}
+
+      <EditEquipmentModal
+        visible={editModalVisible}
+        onCancel={handleEditModalClose}
+        equipment={selectedEquipment}
+        equipmentTypes={equipmentTypes}
+      />
+
+      {/* Detail Equipment Modal */}
 
       {/* Dependency Check Modal */}
       <Modal

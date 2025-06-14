@@ -68,7 +68,7 @@ const ContractsPage = () => {
   const validateCreateForm = () => {
     const values = form.getFieldsValue();
     const isValid =
-      values.number && values.number.trim() !== "" && values.valid_until;
+      values.number && values.number.trim() !== "" && values.signed_date;
     setIsFormValid(isValid);
   };
 
@@ -76,7 +76,7 @@ const ContractsPage = () => {
   const validateEditForm = () => {
     const values = editForm.getFieldsValue();
     const isValid =
-      values.number && values.number.trim() !== "" && values.valid_until;
+      values.number && values.number.trim() !== "" && values.signed_date;
     setIsEditFormValid(isValid);
   };
 
@@ -141,7 +141,7 @@ const ContractsPage = () => {
     try {
       const formData = new FormData();
       formData.append("number", values.number.trim());
-      formData.append("valid_until", values.valid_until.format("YYYY-MM-DD"));
+      formData.append("signed_date", values.signed_date.format("YYYY-MM-DD"));
 
       if (values.file && values.file.fileList && values.file.fileList[0]) {
         formData.append("file", values.file.fileList[0].originFileObj);
@@ -161,7 +161,7 @@ const ContractsPage = () => {
     try {
       const formData = new FormData();
       formData.append("number", values.number.trim());
-      formData.append("valid_until", values.valid_until.format("YYYY-MM-DD"));
+      formData.append("signed_date", values.signed_date.format("YYYY-MM-DD"));
 
       if (values.file && values.file.fileList && values.file.fileList[0]) {
         formData.append("file", values.file.fileList[0].originFileObj);
@@ -218,7 +218,7 @@ const ContractsPage = () => {
     setSelectedContract(contract);
     editForm.setFieldsValue({
       number: contract.number,
-      valid_until: dayjs(contract.valid_until),
+      signed_date: dayjs(contract.signed_date),
     });
     setEditModalVisible(true);
     // Validate initial form state
@@ -283,8 +283,8 @@ const ContractsPage = () => {
     },
     {
       title: "Дата заключения",
-      dataIndex: "valid_until",
-      key: "valid_until",
+      dataIndex: "signed_date",
+      key: "signed_date",
       render: (date) => (
         <span className="text-gray-600">
           {dayjs(date).format("DD.MM.YYYY")}
@@ -408,7 +408,7 @@ const ContractsPage = () => {
 
           <Form.Item
             label="Дата заключения"
-            name="valid_until"
+            name="signed_date"
             rules={[{ required: true, message: "Выберите дату заключения!" }]}
           >
             <DatePicker
@@ -487,7 +487,7 @@ const ContractsPage = () => {
 
           <Form.Item
             label="Дата заключения"
-            name="valid_until"
+            name="signed_date"
             rules={[{ required: true, message: "Выберите дату заключения!" }]}
           >
             <DatePicker

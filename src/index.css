@@ -963,3 +963,7 @@ body {
 .d-none {
   display: none !important;
 }
+.dark .inline-block.p-3.bg-white.rounded-lg.shadow-sm {
+  background: #fff !important;
+  color: #000 !important;
+}

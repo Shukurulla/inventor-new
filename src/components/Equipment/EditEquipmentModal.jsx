@@ -199,10 +199,10 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
 
   const handleImageChange = ({ fileList: newFileList }) => {
     setFileList(newFileList);
-    if (newFileList.length > 0 && newFileList[0].originFileObj) {
+    if (newFileList.length > 0 && newFileList[0]?.originFileObj) {
       setFormValues((prev) => ({
         ...prev,
-        image: newFileList[0].originFileObj,
+        image: newFileList[0]?.originFileObj,
       }));
     } else {
       setFormValues((prev) => ({ ...prev, image: null }));
@@ -483,34 +483,35 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
     const specFieldName = getSpecificationFieldName(typeId);
     const titleCharacteristics = (spec) => {
       console.log(spec);
+      return "Caractristics";
 
-      if (spec.projector_specification_data) {
-        return `model: ${spec.projector_specification_data.model}`;
-      } else if (spec.computer_details) {
-        return `${spec.computer_details.cpu} ${spec.computer_details.ram} ${spec.computer_details?.disks[0].capacity_gb}GB ${spec.computer_details.disks[0]?.disk_type}`;
-      } else if (spec.printer_specification_data) {
-        return `model: ${spec.printer_specification_data.model}`;
-      } else if (
-        spec.type_data?.name === "Моноблок" &&
-        spec.disks?.length &&
-        spec.gpus?.length
-      ) {
-        return `Диск: ${spec.disks[0].capacity_gb}GB ${spec.disks[0].disk_type}, GPU: ${spec.gpus[0].model}`;
-      } else if (spec.whiteboard_specification_data) {
-        return `model: ${spec.whiteboard_specification_data.model} ${spec.whiteboard_specification_data.screen_size}`;
-      } else if (
-        spec.type_data?.name === "Ноутбук" &&
-        spec.disks?.length &&
-        spec.gpus?.length
-      ) {
-        return `Диск: ${spec.disks[0].capacity_gb}GB ${spec.disks[0].disk_type}, GPU: ${spec.gpus[0].model}`;
-      } else if (spec.router_char) {
-        return `model: ${spec.router_char.model} port: ${spec.router_char.ports}`;
-      } else if (spec.tv_specification_data) {
-        return `model: ${spec.tv_specification_data.model} port: ${spec.tv_specification_data.screen_size}`;
-      } else {
-        return "Нет доступных шаблонов";
-      }
+      // if (spec.projector_specification_data !== null) {
+      //   return `model: ${spec.projector_specification_data.model}`;
+      // } else if (spec.computer_details !== null) {
+      //   return `${spec.computer_details.cpu} ${spec.computer_details.ram} ${spec.computer_details?.disks[0]?.capacity_gb}GB ${spec.computer_details.disks[0]?.disk_type}`;
+      // } else if (spec.printer_specification_data !== null) {
+      //   return `model: ${spec.printer_specification_data.model}`;
+      // } else if (
+      //   spec.type_data?.name === "Моноблок" &&
+      //   spec.disks?.length &&
+      //   spec.gpus?.length
+      // ) {
+      //   return `Диск: ${spec.disks[0]?.capacity_gb}GB ${spec.disks[0]?.disk_type}, GPU: ${spec.gpus[0]?.model}`;
+      // } else if (spec.whiteboard_specification_data !== null) {
+      //   return `model: ${spec.whiteboard_specification_data.model} ${spec.whiteboard_specification_data.screen_size}`;
+      // } else if (
+      //   spec.type_data?.name === "Ноутбук" &&
+      //   spec.disks?.length &&
+      //   spec.gpus?.length
+      // ) {
+      //   return `Диск: ${spec.disks[0]?.capacity_gb}GB ${spec.disks[0]?.disk_type}, GPU: ${spec.gpus[0]?.model}`;
+      // } else if (spec.router_char !== null) {
+      //   return `model: ${spec.router_char.model} port: ${spec.router_char.ports}`;
+      // } else if (spec.tv_specification_data !== null) {
+      //   return `model: ${spec.tv_specification_data.model} port: ${spec.tv_specification_data.screen_size}`;
+      // } else {
+      //   return "Нет доступных шаблонов";
+      // }
     };
 
     console.log("Type ID:", typeId);

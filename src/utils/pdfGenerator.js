@@ -169,15 +169,8 @@ export const generateQRCodesPDF = async (equipmentData) => {
       let qrCodeUrl = null;
       if (equipment.inn) {
         // Create comprehensive QR data
-        const qrData = JSON.stringify({
-          inn: equipment.inn,
-          name: equipment.name,
-          type: equipment.type_data?.name || "Unknown",
-          id: equipment.id,
-        });
 
-        const encodedData = encodeURIComponent(qrData);
-        qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodedData}&size=300x300&bgcolor=FFFFFF&color=000000&format=png&margin=10`;
+        qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${equipment.inn}&size=300x300&bgcolor=FFFFFF&color=000000&format=png&margin=10`;
         console.log(`Generated QR URL for "${equipment.name}": ${qrCodeUrl}`);
       }
 

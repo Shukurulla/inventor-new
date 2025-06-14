@@ -39,7 +39,10 @@ import { specificationsAPI, equipmentAPI } from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateSpecificationForm from "../components/Equipment/CreateSpecificationForm";
 import EditEquipmentModal from "../components/Equipment/EditEquipmentModal";
-
+import {
+  equipmentUsesSpecification,
+  enrichEquipmentData,
+} from "../utils/specificationUtils";
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
 
@@ -110,109 +113,237 @@ const CharacteristicsPage = () => {
     return type ? type.name : "Неизвестный тип";
   };
 
-  const enrichEquipmentData = (equipment) => {
-    if (
-      equipment.type_data &&
-      equipment.type_data.id &&
-      equipment.type_data.name
-    ) {
-      return { ...equipment, type: equipment.type_data.id };
-    }
-    if (equipment.type) {
-      return {
-        ...equipment,
-        type_data: {
-          id: equipment.type,
-          name: getEquipmentTypeNameById(equipment.type),
-        },
-      };
-    }
-    if (equipment.type_data && equipment.type_data.id) {
-      return {
-        ...equipment,
-        type: equipment.type_data.id,
-        type_data: {
-          ...equipment.type_data,
-          name:
-            equipment.type_data.name ||
-            getEquipmentTypeNameById(equipment.type_data.id),
-        },
-      };
-    }
-    console.warn(`Equipment ${equipment.id} has no type information`);
-    return {
-      ...equipment,
-      type: null,
-      type_data: { id: null, name: "Неизвестный тип" },
-    };
-  };
-
   const checkSpecificationDependencies = async (spec, typeName) => {
     const specKey = `${typeName}-${spec.id}`;
     setDeletingSpecs((prev) => new Set(prev).add(specKey));
 
     try {
-      const response = await equipmentAPI.getFilteredEquipments({
-        page_size: 1000,
-      });
-      const allEquipment = response.data.results || response.data || [];
+      console.log("=== DEBUG: Starting dependency check ===");
+      console.log("Spec to check:", spec);
+      console.log("Type name:", typeName);
+
+      // To'liq equipment ma'lumotlarini olish
+      const response = await equipmentAPI.getMyEquipments();
+      const allEquipment = response.data || [];
+
+      console.log("Total equipment found:", allEquipment);
 
       const typeNameLower = typeName.toLowerCase();
-      const dependentEquipment = allEquipment.filter((equipment) => {
+      console.log("Type name lower:", typeNameLower);
+
+      const dependentEquipment = allEquipment.filter((equipment, index) => {
         let isDependent = false;
-        if (typeNameLower.includes("компьютер")) {
-          isDependent =
-            equipment.computer_specification_id === spec.id ||
-            equipment.computer_specification?.id === spec.id ||
-            equipment.computer_specification_data?.id === spec.id;
-        } else if (typeNameLower.includes("проектор")) {
-          isDependent =
-            equipment.projector_specification_id === spec.id ||
-            equipment.projector_specification?.id === spec.id ||
-            equipment.projector_specification_data?.id === spec.id;
-        } else if (typeNameLower.includes("принтер")) {
-          isDependent =
-            equipment.printer_specification_id === spec.id ||
-            equipment.printer_specification?.id === spec.id ||
-            equipment.printer_specification_data?.id === spec.id;
-        } else if (typeNameLower.includes("телевизор")) {
-          isDependent =
-            equipment.tv_specification_id === spec.id ||
-            equipment.tv_specification?.id === spec.id ||
-            equipment.tv_specification_data?.id === spec.id;
-        } else if (typeNameLower.includes("роутер")) {
-          isDependent =
-            equipment.router_specification_id === spec.id ||
-            equipment.router_specification?.id === spec.id ||
-            equipment.router_specification_data?.id === spec.id;
-        } else if (typeNameLower.includes("ноутбук")) {
-          isDependent =
-            equipment.notebook_specification_id === spec.id ||
-            equipment.notebook_specification?.id === spec.id ||
-            equipment.notebook_specification_data?.id === spec.id;
-        } else if (typeNameLower.includes("моноблок")) {
-          isDependent =
-            equipment.monoblok_specification_id === spec.id ||
-            equipment.monoblok_specification?.id === spec.id ||
-            equipment.monoblok_specification_data?.id === spec.id;
-        } else if (typeNameLower.includes("доска")) {
-          isDependent =
-            equipment.whiteboard_specification_id === spec.id ||
-            equipment.whiteboard_specification?.id === spec.id ||
-            equipment.whiteboard_specification_data?.id === spec.id;
-        } else if (typeNameLower.includes("удлинитель")) {
-          isDependent =
-            equipment.extender_specification_id === spec.id ||
-            equipment.extender_specification?.id === spec.id ||
-            equipment.extender_specification_data?.id === spec.id;
-        } else if (typeNameLower.includes("монитор")) {
-          isDependent =
-            equipment.monitor_specification_id === spec.id ||
-            equipment.monitor_specification?.id === spec.id ||
-            equipment.monitor_specification_data?.id === spec.id;
+
+        // Equipment typeini aniqlash
+        const equipmentTypeName =
+          equipment.type_data?.name?.toLowerCase() || "";
+
+        // Faqat mos type'dagi equipment'larni tekshirish
+        if (!equipmentTypeName.includes(typeNameLower)) {
+          return false;
         }
+
+        // Debug uchun birinchi nechta equipment ni ko'ramiz
+        if (index < 3) {
+          console.log(`\n--- Equipment ${index + 1}: ${equipment.name} ---`);
+          console.log("Equipment type:", equipmentTypeName);
+          console.log("Looking for spec ID:", spec.id);
+        }
+
+        // Specification dependency'ni tekshirish - equipment details orqali
+        if (typeNameLower.includes("компьютер")) {
+          // computer_details.specification_id tekshirish
+          const computerSpecId = equipment.computer_details?.specification_id;
+          isDependent = computerSpecId === spec.id;
+
+          if (index < 3) {
+            console.log("- computer_details.specification_id:", computerSpecId);
+            console.log("- Match:", isDependent);
+          }
+
+          // Agar computer_details da yo'q bo'lsa, boshqa joylarni ham tekshiramiz
+          if (!isDependent) {
+            isDependent =
+              equipment.computer_specification_id === spec.id ||
+              equipment.computer_specification_data?.id === spec.id ||
+              equipment.computer_specification?.id === spec.id;
+          }
+        } else if (typeNameLower.includes("проектор")) {
+          // projector_char.specification_id yoki to'g'ridan-to'g'ri projector_char.id
+          const projectorSpecId =
+            equipment.projector_char?.specification_id ||
+            equipment.projector_char?.id;
+          isDependent = projectorSpecId === spec.id;
+
+          if (index < 3) {
+            console.log("- projector_char:", equipment.projector_char);
+            console.log("- projector spec ID:", projectorSpecId);
+            console.log("- Match:", isDependent);
+          }
+
+          if (!isDependent) {
+            isDependent =
+              equipment.projector_specification_id === spec.id ||
+              equipment.projector_specification_data?.id === spec.id ||
+              equipment.projector_specification?.id === spec.id;
+          }
+        } else if (typeNameLower.includes("принтер")) {
+          const printerSpecId =
+            equipment.printer_char?.specification_id ||
+            equipment.printer_char?.id;
+          isDependent = printerSpecId === spec.id;
+
+          if (index < 3) {
+            console.log("- printer_char:", equipment.printer_char);
+            console.log("- printer spec ID:", printerSpecId);
+            console.log("- Match:", isDependent);
+          }
+
+          if (!isDependent) {
+            isDependent =
+              equipment.printer_specification_id === spec.id ||
+              equipment.printer_specification_data?.id === spec.id ||
+              equipment.printer_specification?.id === spec.id;
+          }
+        } else if (typeNameLower.includes("телевизор")) {
+          const tvSpecId =
+            equipment.tv_char?.specification_id || equipment.tv_char?.id;
+          isDependent = tvSpecId === spec.id;
+
+          if (index < 3) {
+            console.log("- tv_char:", equipment.tv_char);
+            console.log("- tv spec ID:", tvSpecId);
+            console.log("- Match:", isDependent);
+          }
+
+          if (!isDependent) {
+            isDependent =
+              equipment.tv_specification_id === spec.id ||
+              equipment.tv_specification_data?.id === spec.id ||
+              equipment.tv_specification?.id === spec.id;
+          }
+        } else if (typeNameLower.includes("роутер")) {
+          const routerSpecId =
+            equipment.router_char?.specification_id ||
+            equipment.router_char?.id;
+          isDependent = routerSpecId === spec.id;
+
+          if (index < 3) {
+            console.log("- router_char:", equipment.router_char);
+            console.log("- router spec ID:", routerSpecId);
+            console.log("- Match:", isDependent);
+          }
+
+          if (!isDependent) {
+            isDependent =
+              equipment.router_specification_id === spec.id ||
+              equipment.router_specification_data?.id === spec.id ||
+              equipment.router_specification?.id === spec.id;
+          }
+        } else if (typeNameLower.includes("ноутбук")) {
+          const notebookSpecId =
+            equipment.notebook_char?.specification_id ||
+            equipment.notebook_char?.id;
+          isDependent = notebookSpecId === spec.id;
+
+          if (index < 3) {
+            console.log("- notebook_char:", equipment.notebook_char);
+            console.log("- notebook spec ID:", notebookSpecId);
+            console.log("- Match:", isDependent);
+          }
+
+          if (!isDependent) {
+            isDependent =
+              equipment.notebook_specification_id === spec.id ||
+              equipment.notebook_specification_data?.id === spec.id ||
+              equipment.notebook_specification?.id === spec.id;
+          }
+        } else if (typeNameLower.includes("моноблок")) {
+          const monoblokSpecId =
+            equipment.monoblok_char?.specification_id ||
+            equipment.monoblok_char?.id;
+          isDependent = monoblokSpecId === spec.id;
+
+          if (index < 3) {
+            console.log("- monoblok_char:", equipment.monoblok_char);
+            console.log("- monoblok spec ID:", monoblokSpecId);
+            console.log("- Match:", isDependent);
+          }
+
+          if (!isDependent) {
+            isDependent =
+              equipment.monoblok_specification_id === spec.id ||
+              equipment.monoblok_specification_data?.id === spec.id ||
+              equipment.monoblok_specification?.id === spec.id;
+          }
+        } else if (typeNameLower.includes("доска")) {
+          const whiteboardSpecId =
+            equipment.whiteboard_char?.specification_id ||
+            equipment.whiteboard_char?.id;
+          isDependent = whiteboardSpecId === spec.id;
+
+          if (index < 3) {
+            console.log("- whiteboard_char:", equipment.whiteboard_char);
+            console.log("- whiteboard spec ID:", whiteboardSpecId);
+            console.log("- Match:", isDependent);
+          }
+
+          if (!isDependent) {
+            isDependent =
+              equipment.whiteboard_specification_id === spec.id ||
+              equipment.whiteboard_specification_data?.id === spec.id ||
+              equipment.whiteboard_specification?.id === spec.id;
+          }
+        } else if (typeNameLower.includes("удлинитель")) {
+          const extenderSpecId =
+            equipment.extender_char?.specification_id ||
+            equipment.extender_char?.id;
+          isDependent = extenderSpecId === spec.id;
+
+          if (index < 3) {
+            console.log("- extender_char:", equipment.extender_char);
+            console.log("- extender spec ID:", extenderSpecId);
+            console.log("- Match:", isDependent);
+          }
+
+          if (!isDependent) {
+            isDependent =
+              equipment.extender_specification_id === spec.id ||
+              equipment.extender_specification_data?.id === spec.id ||
+              equipment.extender_specification?.id === spec.id;
+          }
+        } else if (typeNameLower.includes("монитор")) {
+          const monitorSpecId =
+            equipment.monitor_char?.specification_id ||
+            equipment.monitor_char?.id;
+          isDependent = monitorSpecId === spec.id;
+
+          if (index < 3) {
+            console.log("- monitor_char:", equipment.monitor_char);
+            console.log("- monitor spec ID:", monitorSpecId);
+            console.log("- Match:", isDependent);
+          }
+
+          if (!isDependent) {
+            isDependent =
+              equipment.monitor_specification_id === spec.id ||
+              equipment.monitor_specification_data?.id === spec.id ||
+              equipment.monitor_specification?.id === spec.id;
+          }
+        }
+
+        if (isDependent) {
+          console.log(
+            `✅ Found dependency in equipment: ${equipment.name} (ID: ${equipment.id})`
+          );
+        }
+
         return isDependent;
       });
+
+      console.log("=== DEBUG: Results ===");
+      console.log("Dependent equipment count:", dependentEquipment.length);
+      console.log("Dependent equipment:", dependentEquipment);
 
       if (dependentEquipment.length > 0) {
         const enrichedDependentEquipment = dependentEquipment.map((equipment) =>

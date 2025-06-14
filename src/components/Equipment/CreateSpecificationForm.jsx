@@ -53,7 +53,7 @@ const CreateSpecificationForm = ({
         formValues.gpu_model = initialData.gpu_specifications[0].model;
       }
 
-      // Set other form values
+      // Set other form values including title
       Object.keys(initialData).forEach((key) => {
         if (key !== "disk_specifications" && key !== "gpu_specifications") {
           formValues[key] = initialData[key];
@@ -79,6 +79,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Название шаблона"
+            name="title"
+            rules={[{ required: true, message: "Введите название шаблона!" }]}
+          >
+            <Input placeholder="Например: Офисный компьютер" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
             label="Процессор (CPU)"
             name="cpu"
             rules={[{ required: true, message: "Введите процессор!" }]}
@@ -86,6 +95,8 @@ const CreateSpecificationForm = ({
             <Input placeholder="Intel Core i5-8400" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="ОЗУ (RAM)"
@@ -93,6 +104,15 @@ const CreateSpecificationForm = ({
             rules={[{ required: true, message: "Введите объем ОЗУ!" }]}
           >
             <Input placeholder="8 GB" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
+            label="Видеокарта"
+            name="gpu_model"
+            rules={[{ required: true, message: "Введите видеокарту!" }]}
+          >
+            <Input placeholder="NVIDIA GTX 1050 Ti" />
           </Form.Item>
         </Col>
       </Row>
@@ -163,15 +183,6 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
-            label="Видеокарта"
-            name="gpu_model"
-            rules={[{ required: true, message: "Введите видеокарту!" }]}
-          >
-            <Input placeholder="NVIDIA GTX 1050 Ti" />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item
             label="Есть клавиатура"
             name="has_keyboard"
             valuePropName="checked"
@@ -180,7 +191,7 @@ const CreateSpecificationForm = ({
             <Switch />
           </Form.Item>
         </Col>
-        <Col span={6}>
+        <Col span={12}>
           <Form.Item
             label="Есть мышь"
             name="has_mouse"
@@ -199,6 +210,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Название шаблона"
+            name="title"
+            rules={[{ required: true, message: "Введите название шаблона!" }]}
+          >
+            <Input placeholder="Например: Игровой ноутбук" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
             label="Процессор"
             name="cpu"
             rules={[{ required: true, message: "Введите процессор!" }]}
@@ -206,6 +226,8 @@ const CreateSpecificationForm = ({
             <Input placeholder="Intel Core i7-1165G7" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="ОЗУ"
@@ -213,6 +235,15 @@ const CreateSpecificationForm = ({
             rules={[{ required: true, message: "Введите объем ОЗУ!" }]}
           >
             <Input placeholder="16 GB" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
+            label="Видеокарта"
+            name="gpu_model"
+            rules={[{ required: true, message: "Введите видеокарту!" }]}
+          >
+            <Input placeholder="NVIDIA GTX 1650" />
           </Form.Item>
         </Col>
       </Row>
@@ -284,15 +315,6 @@ const CreateSpecificationForm = ({
 
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item
-            label="Видеокарта"
-            name="gpu_model"
-            rules={[{ required: true, message: "Введите видеокарту!" }]}
-          >
-            <Input placeholder="NVIDIA GTX 1650" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
           <Form.Item label="Размер экрана (дюймы)" name="monitor_size">
             <InputNumber
               min={10}
@@ -311,6 +333,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Название шаблона"
+            name="title"
+            rules={[{ required: true, message: "Введите название шаблона!" }]}
+          >
+            <Input placeholder="Например: Офисный моноблок" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
             label="Процессор"
             name="cpu"
             rules={[{ required: true, message: "Введите процессор!" }]}
@@ -318,6 +349,8 @@ const CreateSpecificationForm = ({
             <Input placeholder="Intel Core i5-8400" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="ОЗУ"
@@ -325,6 +358,15 @@ const CreateSpecificationForm = ({
             rules={[{ required: true, message: "Введите объем ОЗУ!" }]}
           >
             <Input placeholder="8 GB" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
+            label="Видеокарта"
+            name="gpu_model"
+            rules={[{ required: true, message: "Введите видеокарту!" }]}
+          >
+            <Input placeholder="NVIDIA GTX 1650" />
           </Form.Item>
         </Col>
       </Row>
@@ -397,15 +439,6 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
-            label="Видеокарта"
-            name="gpu_model"
-            rules={[{ required: true, message: "Введите видеокарту!" }]}
-          >
-            <Input placeholder="NVIDIA GTX 1650" />
-          </Form.Item>
-        </Col>
-        <Col span={6}>
-          <Form.Item
             label="Размер экрана (дюймы)"
             name="screen_size"
             rules={[{ required: true, message: "Введите размер экрана!" }]}
@@ -449,6 +482,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Название шаблона"
+            name="title"
+            rules={[{ required: true, message: "Введите название шаблона!" }]}
+          >
+            <Input placeholder="Например: Игровой монитор 24'" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
             label="Модель"
             name="model"
             rules={[{ required: true, message: "Введите модель!" }]}
@@ -456,13 +498,13 @@ const CreateSpecificationForm = ({
             <Input placeholder="Samsung C24F390" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item label="Серийный номер" name="serial_number">
             <Input placeholder="S/N 123456789" />
           </Form.Item>
         </Col>
-      </Row>
-      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Размер экрана (дюймы)"
@@ -472,6 +514,8 @@ const CreateSpecificationForm = ({
             <Input placeholder="24" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Разрешение"
@@ -481,8 +525,6 @@ const CreateSpecificationForm = ({
             <Input placeholder="1920x1080" />
           </Form.Item>
         </Col>
-      </Row>
-      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Тип матрицы"
@@ -497,6 +539,8 @@ const CreateSpecificationForm = ({
             </Select>
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Частота обновления (Hz)"
@@ -520,6 +564,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Название шаблона"
+            name="title"
+            rules={[{ required: true, message: "Введите название шаблона!" }]}
+          >
+            <Input placeholder="Например: Презентационный проектор" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
             label="Модель"
             name="model"
             rules={[{ required: true, message: "Введите модель!" }]}
@@ -527,6 +580,8 @@ const CreateSpecificationForm = ({
             <Input placeholder="Epson EB-X05" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Яркость (люмен)"
@@ -541,8 +596,6 @@ const CreateSpecificationForm = ({
             />
           </Form.Item>
         </Col>
-      </Row>
-      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Разрешение"
@@ -552,6 +605,8 @@ const CreateSpecificationForm = ({
             <Input placeholder="1920x1080" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Тип проекции"
@@ -574,6 +629,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Название шаблона"
+            name="title"
+            rules={[{ required: true, message: "Введите название шаблона!" }]}
+          >
+            <Input placeholder="Например: Лазерный принтер ч/б" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
             label="Модель"
             name="model"
             rules={[{ required: true, message: "Введите модель!" }]}
@@ -581,13 +645,13 @@ const CreateSpecificationForm = ({
             <Input placeholder="HP LaserJet Pro M404n" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item label="Серийный номер" name="serial_number">
             <Input placeholder="VNC1K23456" />
           </Form.Item>
         </Col>
-      </Row>
-      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Цветная печать"
@@ -598,6 +662,8 @@ const CreateSpecificationForm = ({
             <Switch />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Двусторонняя печать"
@@ -617,6 +683,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Название шаблона"
+            name="title"
+            rules={[{ required: true, message: "Введите название шаблона!" }]}
+          >
+            <Input placeholder="Например: Smart TV 43'" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
             label="Модель"
             name="model"
             rules={[{ required: true, message: "Введите модель!" }]}
@@ -624,6 +699,8 @@ const CreateSpecificationForm = ({
             <Input placeholder="Samsung UE43TU7100" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Размер экрана (дюймы)"
@@ -647,6 +724,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Название шаблона"
+            name="title"
+            rules={[{ required: true, message: "Введите название шаблона!" }]}
+          >
+            <Input placeholder="Например: Wi-Fi роутер AC1200" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
             label="Модель"
             name="model"
             rules={[{ required: true, message: "Введите модель!" }]}
@@ -654,6 +740,8 @@ const CreateSpecificationForm = ({
             <Input placeholder="TP-Link Archer C7" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Количество портов"
@@ -663,8 +751,6 @@ const CreateSpecificationForm = ({
             <InputNumber min={1} max={48} className="w-full" placeholder="4" />
           </Form.Item>
         </Col>
-      </Row>
-      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="WiFi стандарт"
@@ -687,6 +773,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Название шаблона"
+            name="title"
+            rules={[{ required: true, message: "Введите название шаблона!" }]}
+          >
+            <Input placeholder="Например: Интерактивная доска 65'" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
             label="Модель"
             name="model"
             rules={[{ required: true, message: "Введите модель!" }]}
@@ -694,6 +789,8 @@ const CreateSpecificationForm = ({
             <Input placeholder="SMART Board 6065" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Размер (дюймы)"
@@ -708,8 +805,6 @@ const CreateSpecificationForm = ({
             />
           </Form.Item>
         </Col>
-      </Row>
-      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Тип касания"
@@ -732,6 +827,15 @@ const CreateSpecificationForm = ({
       <Row gutter={16}>
         <Col span={12}>
           <Form.Item
+            label="Название шаблона"
+            name="title"
+            rules={[{ required: true, message: "Введите название шаблона!" }]}
+          >
+            <Input placeholder="Например: Удлинитель USB 6 портов" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
             label="Количество портов"
             name="ports"
             rules={[{ required: true, message: "Введите количество портов!" }]}
@@ -739,6 +843,8 @@ const CreateSpecificationForm = ({
             <InputNumber min={1} max={20} className="w-full" placeholder="6" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Длина кабеля (м)"
@@ -771,16 +877,29 @@ const CreateSpecificationForm = ({
     if (typeName.includes("монитор")) return renderMonitorFields();
 
     return (
-      <Form.Item
-        label="Описание"
-        name="description"
-        rules={[{ required: true, message: "Введите описание!" }]}
-      >
-        <Input.TextArea
-          rows={3}
-          placeholder="Введите характеристики оборудования"
-        />
-      </Form.Item>
+      <>
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              label="Название шаблона"
+              name="title"
+              rules={[{ required: true, message: "Введите название шаблона!" }]}
+            >
+              <Input placeholder="Название для шаблона" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Form.Item
+          label="Описание"
+          name="description"
+          rules={[{ required: true, message: "Введите описание!" }]}
+        >
+          <Input.TextArea
+            rows={3}
+            placeholder="Введите характеристики оборудования"
+          />
+        </Form.Item>
+      </>
     );
   };
 
