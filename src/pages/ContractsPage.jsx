@@ -100,11 +100,6 @@ const ContractsPage = () => {
         return contractId === contract.id;
       });
 
-      console.log("Contract ID to check:", contractEquipment);
-      console.log("Total equipment:", equipmentList.length);
-      console.log("Filtered equipment:", contractEquipment.length);
-      console.log("Contract equipment:", equipmentList);
-
       if (contractEquipment.length > 0) {
         setDependentEquipment(contractEquipment);
         setSelectedContract(contract);

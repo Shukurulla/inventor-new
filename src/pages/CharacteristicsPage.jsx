@@ -65,7 +65,6 @@ const CharacteristicsPage = () => {
   const dispatch = useDispatch();
   const specifications = useSelector((state) => state.specifications);
   const { equipmentTypes } = useSelector((state) => state.equipment);
-  const { loading } = specifications;
 
   const equipmentTypeTemplates = [
     {
@@ -108,28 +107,16 @@ const CharacteristicsPage = () => {
     { name: "Монитор", icon: "монитор", color: "bg-cyan-100 text-cyan-600" },
   ];
 
-  const getEquipmentTypeNameById = (typeId) => {
-    const type = equipmentTypes.find((t) => t.id === typeId);
-    return type ? type.name : "Неизвестный тип";
-  };
-
   const checkSpecificationDependencies = async (spec, typeName) => {
     const specKey = `${typeName}-${spec.id}`;
     setDeletingSpecs((prev) => new Set(prev).add(specKey));
 
     try {
-      console.log("=== DEBUG: Starting dependency check ===");
-      console.log("Spec to check:", spec);
-      console.log("Type name:", typeName);
-
       // To'liq equipment ma'lumotlarini olish
       const response = await equipmentAPI.getMyEquipments();
       const allEquipment = response.data || [];
 
-      console.log("Total equipment found:", allEquipment);
-
       const typeNameLower = typeName.toLowerCase();
-      console.log("Type name lower:", typeNameLower);
 
       const dependentEquipment = allEquipment.filter((equipment, index) => {
         let isDependent = false;
@@ -143,23 +130,11 @@ const CharacteristicsPage = () => {
           return false;
         }
 
-        // Debug uchun birinchi nechta equipment ni ko'ramiz
-        if (index < 3) {
-          console.log(`\n--- Equipment ${index + 1}: ${equipment.name} ---`);
-          console.log("Equipment type:", equipmentTypeName);
-          console.log("Looking for spec ID:", spec.id);
-        }
-
         // Specification dependency'ni tekshirish - equipment details orqali
         if (typeNameLower.includes("компьютер")) {
           // computer_details.specification_id tekshirish
           const computerSpecId = equipment.computer_details?.specification_id;
           isDependent = computerSpecId === spec.id;
-
-          if (index < 3) {
-            console.log("- computer_details.specification_id:", computerSpecId);
-            console.log("- Match:", isDependent);
-          }
 
           // Agar computer_details da yo'q bo'lsa, boshqa joylarni ham tekshiramiz
           if (!isDependent) {
@@ -175,12 +150,6 @@ const CharacteristicsPage = () => {
             equipment.projector_char?.id;
           isDependent = projectorSpecId === spec.id;
 
-          if (index < 3) {
-            console.log("- projector_char:", equipment.projector_char);
-            console.log("- projector spec ID:", projectorSpecId);
-            console.log("- Match:", isDependent);
-          }
-
           if (!isDependent) {
             isDependent =
               equipment.projector_specification_id === spec.id ||
@@ -193,12 +162,6 @@ const CharacteristicsPage = () => {
             equipment.printer_char?.id;
           isDependent = printerSpecId === spec.id;
 
-          if (index < 3) {
-            console.log("- printer_char:", equipment.printer_char);
-            console.log("- printer spec ID:", printerSpecId);
-            console.log("- Match:", isDependent);
-          }
-
           if (!isDependent) {
             isDependent =
               equipment.printer_specification_id === spec.id ||
@@ -209,12 +172,6 @@ const CharacteristicsPage = () => {
           const tvSpecId =
             equipment.tv_char?.specification_id || equipment.tv_char?.id;
           isDependent = tvSpecId === spec.id;
-
-          if (index < 3) {
-            console.log("- tv_char:", equipment.tv_char);
-            console.log("- tv spec ID:", tvSpecId);
-            console.log("- Match:", isDependent);
-          }
 
           if (!isDependent) {
             isDependent =
@@ -228,12 +185,6 @@ const CharacteristicsPage = () => {
             equipment.router_char?.id;
           isDependent = routerSpecId === spec.id;
 
-          if (index < 3) {
-            console.log("- router_char:", equipment.router_char);
-            console.log("- router spec ID:", routerSpecId);
-            console.log("- Match:", isDependent);
-          }
-
           if (!isDependent) {
             isDependent =
               equipment.router_specification_id === spec.id ||
@@ -245,12 +196,6 @@ const CharacteristicsPage = () => {
             equipment.notebook_char?.specification_id ||
             equipment.notebook_char?.id;
           isDependent = notebookSpecId === spec.id;
-
-          if (index < 3) {
-            console.log("- notebook_char:", equipment.notebook_char);
-            console.log("- notebook spec ID:", notebookSpecId);
-            console.log("- Match:", isDependent);
-          }
 
           if (!isDependent) {
             isDependent =
@@ -264,12 +209,6 @@ const CharacteristicsPage = () => {
             equipment.monoblok_char?.id;
           isDependent = monoblokSpecId === spec.id;
 
-          if (index < 3) {
-            console.log("- monoblok_char:", equipment.monoblok_char);
-            console.log("- monoblok spec ID:", monoblokSpecId);
-            console.log("- Match:", isDependent);
-          }
-
           if (!isDependent) {
             isDependent =
               equipment.monoblok_specification_id === spec.id ||
@@ -281,12 +220,6 @@ const CharacteristicsPage = () => {
             equipment.whiteboard_char?.specification_id ||
             equipment.whiteboard_char?.id;
           isDependent = whiteboardSpecId === spec.id;
-
-          if (index < 3) {
-            console.log("- whiteboard_char:", equipment.whiteboard_char);
-            console.log("- whiteboard spec ID:", whiteboardSpecId);
-            console.log("- Match:", isDependent);
-          }
 
           if (!isDependent) {
             isDependent =
@@ -300,12 +233,6 @@ const CharacteristicsPage = () => {
             equipment.extender_char?.id;
           isDependent = extenderSpecId === spec.id;
 
-          if (index < 3) {
-            console.log("- extender_char:", equipment.extender_char);
-            console.log("- extender spec ID:", extenderSpecId);
-            console.log("- Match:", isDependent);
-          }
-
           if (!isDependent) {
             isDependent =
               equipment.extender_specification_id === spec.id ||
@@ -318,12 +245,6 @@ const CharacteristicsPage = () => {
             equipment.monitor_char?.id;
           isDependent = monitorSpecId === spec.id;
 
-          if (index < 3) {
-            console.log("- monitor_char:", equipment.monitor_char);
-            console.log("- monitor spec ID:", monitorSpecId);
-            console.log("- Match:", isDependent);
-          }
-
           if (!isDependent) {
             isDependent =
               equipment.monitor_specification_id === spec.id ||
@@ -332,18 +253,8 @@ const CharacteristicsPage = () => {
           }
         }
 
-        if (isDependent) {
-          console.log(
-            `✅ Found dependency in equipment: ${equipment.name} (ID: ${equipment.id})`
-          );
-        }
-
         return isDependent;
       });
-
-      console.log("=== DEBUG: Results ===");
-      console.log("Dependent equipment count:", dependentEquipment.length);
-      console.log("Dependent equipment:", dependentEquipment);
 
       if (dependentEquipment.length > 0) {
         const enrichedDependentEquipment = dependentEquipment.map((equipment) =>
@@ -357,7 +268,6 @@ const CharacteristicsPage = () => {
         confirmDirectDelete(spec, typeName);
       }
     } catch (error) {
-      console.error("Error checking dependencies:", error);
       message.error("Ошибка при проверке зависимостей");
     } finally {
       setDeletingSpecs((prev) => {

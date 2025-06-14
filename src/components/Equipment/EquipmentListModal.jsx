@@ -5,9 +5,7 @@ import {
   List,
   Button,
   Empty,
-  Divider,
   Form,
-  Input,
   Select,
   message,
   Popconfirm,
@@ -26,19 +24,9 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
-  const [form] = Form.useForm();
-  const [specs, setSpecs] = useState([]);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   const dispatch = useDispatch();
 
-  // Force refresh when modal opens
-  useEffect(() => {
-    if (visible && room) {
-      setRefreshTrigger((prev) => prev + 1);
-    }
-  }, [visible, room]);
-
-  // Refresh room data when needed
   const refreshRoomData = async () => {
     if (room) {
       try {
@@ -110,10 +98,8 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
         default:
           response = { data: [] };
       }
-      setSpecs(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       message.error("Failed to load specifications");
-      setSpecs([]);
     }
   };
 
@@ -157,11 +143,6 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
     } catch (error) {
       message.error("Failed to delete equipment");
     }
-  };
-
-  // Handle add new equipment (placeholder)
-  const handleAddNew = () => {
-    message.info("Add new equipment functionality to be implemented");
   };
 
   if (!equipmentTypeData || !room) {

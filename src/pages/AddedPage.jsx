@@ -81,17 +81,6 @@ const AddedPage = () => {
     );
   };
 
-  const getStatusColor = (status) => {
-    const statusColors = {
-      NEW: "green",
-      WORKING: "blue",
-      REPAIR: "orange",
-      NEEDS_REPAIR: "red",
-      DISPOSED: "default",
-    };
-    return statusColors[status] || "default";
-  };
-
   const groupEquipmentByType = () => {
     const validEquipment = getValidEquipment();
     let filteredEquipment = [...validEquipment];
@@ -460,14 +449,6 @@ const AddedPage = () => {
     );
   };
 
-  const getTotalCount = () => {
-    const groupedEquipment = groupEquipmentByType();
-    return Object.values(groupedEquipment).reduce(
-      (total, items) => total + items.length,
-      0
-    );
-  };
-
   return (
     <div>
       <Card className="shadow-sm">
@@ -762,9 +743,6 @@ const AddedPage = () => {
         equipment={selectedEquipment}
         equipmentTypes={equipmentTypes}
       />
-
-      {/* Detail Equipment Modal */}
-
       {/* Dependency Check Modal */}
       <Modal
         title={

@@ -34,7 +34,6 @@ import {
   createExtenderSpec,
   createMonitorSpec,
 } from "../../store/slices/specificationSlice";
-import FormItemLabel from "antd/es/form/FormItemLabel";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -50,7 +49,6 @@ const CreateEquipmentModal = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [createSpecModalVisible, setCreateSpecModalVisible] = useState(false);
   const [specForm] = Form.useForm();
-  const [error, setError] = useState("");
 
   const [formValues, setFormValues] = useState({
     type_id: "",
@@ -108,7 +106,6 @@ const CreateEquipmentModal = ({
   const [isStep3Valid, setIsStep3Valid] = useState(false);
 
   const dispatch = useDispatch();
-  const { loading } = useSelector((state) => state.equipment);
   const { contracts } = useSelector((state) => state.contracts);
   const specifications = useSelector((state) => state.specifications);
 
@@ -446,10 +443,6 @@ const CreateEquipmentModal = ({
     setIsSubmitting(true);
     try {
       const specFieldName = getSpecificationFieldName(formValues.type_id);
-      const typeName =
-        equipmentTypes
-          .find((t) => t.id === formValues.type_id)
-          ?.name?.toLowerCase() || "";
 
       const equipmentData = {
         type_id: formValues.type_id,
@@ -467,8 +460,6 @@ const CreateEquipmentModal = ({
       }
 
       // specification_id ni o'chirish - API buni qabul qilmaydi
-
-      console.log("Sending equipment data:", equipmentData); // Debug uchun
 
       let finalData;
       if (formValues.image) {
@@ -523,29 +514,16 @@ const CreateEquipmentModal = ({
   const handleDownloadQRCodes = async () => {
     setIsSubmitting(true);
     try {
-      console.log("Starting QR code download...");
-      console.log("Created equipment:", createdEquipment);
-
       const equipmentForPDF = createdEquipment.map((equipment, index) => {
         const innValue =
           innValues[`inn_${equipment.id}`] ||
           `ИНН${String(index + 1).padStart(9, "0")}`;
-
-        console.log(`Equipment ${index + 1}:`, {
-          name: equipment.name,
-          inn: innValue,
-          uid: equipment.uid,
-          type_data: equipment.type_data,
-          room_data: equipment.room_data,
-        });
 
         return {
           ...equipment,
           inn: innValue,
         };
       });
-
-      console.log("Prepared equipment for PDF:", equipmentForPDF);
 
       message.loading("Создание PDF файла...", 0);
       await generateQRCodesPDF(equipmentForPDF);

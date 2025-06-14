@@ -45,7 +45,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const dispatch = useDispatch();
-  const { loading, equipmentTypes } = useSelector((state) => state.equipment);
+  const { equipmentTypes } = useSelector((state) => state.equipment);
   const { contracts } = useSelector((state) => state.contracts);
   const specifications = useSelector((state) => state.specifications);
 
@@ -336,14 +336,9 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
         updateData.contract_id = null;
       }
 
-      console.log("Form values received:", values);
-      console.log("Current equipment contract:", equipment.contract);
-      console.log("New contract_id to send:", updateData.contract_id);
-
       // Add specification data based on equipment type
       if (specFieldName && values[specFieldName]) {
         updateData[specFieldName] = values[specFieldName];
-        console.log(`Setting ${specFieldName}:`, values[specFieldName]);
       } else {
         // If no specification selected, add empty char data to satisfy backend requirements
         if (typeName?.includes("компьютер")) {
@@ -416,8 +411,6 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
         }
       }
 
-      console.log("Final update data to send:", updateData);
-
       let finalData;
       if (formValues.image) {
         finalData = new FormData();
@@ -431,12 +424,6 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
           }
         });
         finalData.append("image", formValues.image);
-
-        console.log("Sending FormData with image");
-        // Log FormData contents
-        for (let [key, value] of finalData.entries()) {
-          console.log(`FormData - ${key}:`, value);
-        }
       } else {
         finalData = updateData;
         console.log("Sending JSON data:", finalData);
@@ -449,8 +436,6 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
         })
       ).unwrap();
 
-      console.log("Update response:", response);
-
       message.success("Оборудование успешно обновлено!");
 
       // FIXED: Refresh the contract dependencies after successful update
@@ -458,9 +443,6 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
         onCancel();
       }
     } catch (error) {
-      console.error("Equipment update error:", error);
-      console.error("Error details:", error?.response?.data);
-
       // Show more specific error message
       const errorMessage =
         error?.response?.data?.contract_id?.[0] ||
@@ -482,43 +464,8 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
     const availableSpecs = getSpecificationsForType(typeId);
     const specFieldName = getSpecificationFieldName(typeId);
     const titleCharacteristics = (spec) => {
-      console.log(spec);
       return "Caractristics";
-
-      // if (spec.projector_specification_data !== null) {
-      //   return `model: ${spec.projector_specification_data.model}`;
-      // } else if (spec.computer_details !== null) {
-      //   return `${spec.computer_details.cpu} ${spec.computer_details.ram} ${spec.computer_details?.disks[0]?.capacity_gb}GB ${spec.computer_details.disks[0]?.disk_type}`;
-      // } else if (spec.printer_specification_data !== null) {
-      //   return `model: ${spec.printer_specification_data.model}`;
-      // } else if (
-      //   spec.type_data?.name === "Моноблок" &&
-      //   spec.disks?.length &&
-      //   spec.gpus?.length
-      // ) {
-      //   return `Диск: ${spec.disks[0]?.capacity_gb}GB ${spec.disks[0]?.disk_type}, GPU: ${spec.gpus[0]?.model}`;
-      // } else if (spec.whiteboard_specification_data !== null) {
-      //   return `model: ${spec.whiteboard_specification_data.model} ${spec.whiteboard_specification_data.screen_size}`;
-      // } else if (
-      //   spec.type_data?.name === "Ноутбук" &&
-      //   spec.disks?.length &&
-      //   spec.gpus?.length
-      // ) {
-      //   return `Диск: ${spec.disks[0]?.capacity_gb}GB ${spec.disks[0]?.disk_type}, GPU: ${spec.gpus[0]?.model}`;
-      // } else if (spec.router_char !== null) {
-      //   return `model: ${spec.router_char.model} port: ${spec.router_char.ports}`;
-      // } else if (spec.tv_specification_data !== null) {
-      //   return `model: ${spec.tv_specification_data.model} port: ${spec.tv_specification_data.screen_size}`;
-      // } else {
-      //   return "Нет доступных шаблонов";
-      // }
     };
-
-    console.log("Type ID:", typeId);
-    console.log("Type Name:", typeName);
-    console.log("Available Specs:", availableSpecs);
-    console.log("Spec Field Name:", specFieldName);
-    console.log(titleCharacteristics(equipment));
 
     return (
       <>
@@ -626,22 +573,6 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
                       </Form.Item>
                     </Col>
                   </Row>
-                  {/* {(typeName?.includes("ноутбук") ||
-                    typeName?.includes("моноблок")) && (
-                    <Col span={12}>
-                      <Form.Item label="Размер экрана">
-                        <Input
-                          value={
-                            selectedSpecification.monitor_size ||
-                            selectedSpecification.screen_size ||
-                            "N/A"
-                          }
-                          disabled
-                          style={{ height: "40px" }}
-                        />
-                      </Form.Item>
-                    </Col>
-                  )} */}
                 </Row>
               </>
             )}

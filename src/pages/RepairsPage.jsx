@@ -19,24 +19,10 @@ import {
   Tabs,
   Tooltip,
 } from "antd";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  FiChevronRight,
-  FiTrash2,
-  FiEdit,
-  FiTool,
-  FiSettings,
-  FiClock,
-  FiCheckCircle,
-  FiXCircle,
-  FiAlertTriangle,
-  FiArchive,
-  FiMapPin,
-  FiSave,
-} from "react-icons/fi";
+import { FiChevronRight, FiMapPin, FiSave } from "react-icons/fi";
 import { equipmentAPI } from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
-import { getStatusConfig, getStatusText } from "../utils/statusUtils";
+import { getStatusConfig } from "../utils/statusUtils";
 
 const { Panel } = Collapse;
 const { Option } = Select;
@@ -46,11 +32,9 @@ const RepairsPage = () => {
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [activeTab, setActiveTab] = useState("repairs");
   const [form] = Form.useForm();
-  const [statusForm] = Form.useForm();
   const [selectedStatuses, setSelectedStatuses] = useState({});
   const [savingStatuses, setSavingStatuses] = useState({});
 
@@ -349,27 +333,6 @@ const RepairsPage = () => {
     { value: "DISPOSED", label: "Утилизировано" },
   ];
 
-  const handleEdit = (item) => {
-    setSelectedEquipment(item);
-    form.setFieldsValue({
-      name: item.name || "",
-      inn: item.inn || "",
-      description: item.description || "",
-      status: item.status || "NEEDS_REPAIR",
-      serial_number: item.serial_number || "",
-    });
-    setEditModalVisible(true);
-  };
-
-  const handleStatusManagement = (item) => {
-    setSelectedEquipment(item);
-    statusForm.setFieldsValue({
-      status: item.status,
-      reason: "",
-    });
-    setStatusModalVisible(true);
-  };
-
   const handleUpdateEquipment = async (values) => {
     try {
       const equipmentData = prepareEquipmentData(selectedEquipment);
@@ -391,67 +354,7 @@ const RepairsPage = () => {
     }
   };
 
-  const handleStatusUpdate = async (values) => {
-    try {
-      const equipmentData = prepareEquipmentData(selectedEquipment);
-
-      const updateData = {
-        ...equipmentData,
-        status: values.status,
-        reason: values.reason,
-      };
-
-      await equipmentAPI.patchEquipment(selectedEquipment.id, updateData);
-      message.success("Статус успешно обновлен!");
-      setStatusModalVisible(false);
-      setSelectedEquipment(null);
-      statusForm.resetFields();
-      loadEquipment();
-    } catch (error) {
-      message.error("Ошибка при обновлении статуса");
-      console.error("Update status error:", error);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      await equipmentAPI.deleteEquipment(id);
-      message.success("Оборудование успешно удалено!");
-      loadEquipment();
-    } catch (error) {
-      message.error("Ошибка при удалении оборудования");
-      console.error("Delete equipment error:", error);
-    }
-  };
-
-  const handleQuickStatusChange = async (equipment, newStatus) => {
-    try {
-      const equipmentData = prepareEquipmentData(equipment);
-
-      const updateData = {
-        ...equipmentData,
-        status: newStatus,
-      };
-
-      await equipmentAPI.patchEquipment(equipment.id, updateData);
-
-      const statusMessages = {
-        WORKING: "Оборудование помечено как рабочее",
-        REPAIR: "Оборудование отправлено на ремонт",
-        DISPOSED: "Оборудование утилизировано",
-        NEEDS_REPAIR: "Оборудование помечено как требующее ремонта",
-      };
-
-      message.success(statusMessages[newStatus] || "Статус обновлен");
-      loadEquipment();
-    } catch (error) {
-      message.error("Ошибка при обновлении статуса");
-      console.error("Quick status change error:", error);
-    }
-  };
-
   const renderEquipmentItem = (item) => {
-    const statusConfig = getStatusConfig(item.status);
     const currentSelectedStatus = selectedStatuses[item.id];
     const hasStatusChanged = currentSelectedStatus !== item.status;
     const isSaving = savingStatuses[item.id];

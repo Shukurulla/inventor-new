@@ -276,23 +276,6 @@ const HomePage = () => {
     setEquipmentModalVisible(true);
   };
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      // Refresh all currently open rooms
-      const roomIds = Object.values(activeRoomPanels).flat();
-      await Promise.all(
-        roomIds.map((roomId) => dispatch(getEquipmentTypesByRoom(roomId)))
-      );
-      message.success("Данные обновлены");
-    } catch (error) {
-      message.error("Ошибка при обновлении данных");
-      console.error("Refresh error:", error);
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   // Enhanced equipment rendering with detailed info
   const renderEquipmentTypes = (roomId, room) => {
     const equipmentTypesData = equipmentTypesByRoom[roomId] || [];
@@ -337,7 +320,6 @@ const HomePage = () => {
                     typeData.type?.name || typeData.name || "Неизвестный тип";
                   const count = typeData.count || typeData.items?.length || 0;
                   const typeId = typeData.type?.id || typeData.id;
-                  const items = typeData.items || [];
 
                   return (
                     <div
