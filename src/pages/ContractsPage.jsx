@@ -1,4 +1,4 @@
-// src/pages/ContractsPage.jsx - FIXED equipment filtering and edit modal
+// src/pages/ContractsPage.jsx - Simplified version without dependency checks
 
 "use client";
 
@@ -13,9 +13,7 @@ import {
   DatePicker,
   Upload,
   message,
-  Popconfirm,
   Space,
-  List,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -26,7 +24,6 @@ import {
   FiDownload,
   FiUpload,
   FiFileText,
-  FiAlertTriangle,
 } from "react-icons/fi";
 import {
   getContracts,
@@ -34,24 +31,14 @@ import {
   updateContract,
   deleteContract,
 } from "../store/slices/contractSlice";
-import { equipmentAPI } from "../services/api";
-import EditEquipmentModal from "../components/Equipment/EditEquipmentModal";
 import dayjs from "dayjs";
 
 const ContractsPage = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [dependencyModalVisible, setDependencyModalVisible] = useState(false);
-  const [equipmentEditModalVisible, setEquipmentEditModalVisible] =
-    useState(false);
   const [selectedContract, setSelectedContract] = useState(null);
-  const [selectedEquipment, setSelectedEquipment] = useState(null);
-  const [dependentEquipment, setDependentEquipment] = useState([]);
   const [isFormValid, setIsFormValid] = useState(false);
   const [isEditFormValid, setIsEditFormValid] = useState(false);
-
-  // Individual loading states for each contract
-  const [deletingContracts, setDeletingContracts] = useState(new Set());
 
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -62,7 +49,6 @@ const ContractsPage = () => {
   const { contracts, loading, pagination } = useSelector(
     (state) => state.contracts
   );
-  const { equipmentTypes } = useSelector((state) => state.equipment);
 
   // Validation for create form
   const validateCreateForm = () => {
@@ -80,48 +66,8 @@ const ContractsPage = () => {
     setIsEditFormValid(isValid);
   };
 
-  // FIXED: Check dependencies with proper filtering
-  const checkContractDependencies = async (contract) => {
-    // Add contract to deleting set to show loading for this specific contract
-    setDeletingContracts((prev) => new Set(prev).add(contract.id));
-
-    try {
-      // FIXED: Get all equipment first (since API might not support contract_id filter)
-      const response = await equipmentAPI.getFilteredEquipments({
-        page_size: 1000, // Get all equipment
-      });
-
-      const equipmentList = response.data.results || response.data || [];
-
-      // FIXED: Filter equipment that actually uses this contract based on actual data structure
-      const contractEquipment = equipmentList.filter((equipment) => {
-        // Check both contract.id and direct contract_id field
-        const contractId = JSON.parse(equipment.body).contract;
-        return contractId === contract.id;
-      });
-
-      if (contractEquipment.length > 0) {
-        setDependentEquipment(contractEquipment);
-        setSelectedContract(contract);
-        setDependencyModalVisible(true);
-      } else {
-        // No dependencies, safe to delete
-        confirmDirectDelete(contract);
-      }
-    } catch (error) {
-      console.error("Error checking dependencies:", error);
-      message.error("Ошибка при проверке зависимостей");
-    } finally {
-      // Remove contract from deleting set
-      setDeletingContracts((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(contract.id);
-        return newSet;
-      });
-    }
-  };
-
-  const confirmDirectDelete = (contract) => {
+  // Direct delete without dependency check
+  const handleDeleteClick = (contract) => {
     Modal.confirm({
       title: "Удалить договор?",
       content: `Вы уверены, что хотите удалить договор "${contract.number}"?`,
@@ -225,43 +171,6 @@ const ContractsPage = () => {
     setIsFormValid(false);
   };
 
-  // FIXED: Equipment edit handler with proper data structure
-  const handleEquipmentEdit = async (equipment) => {
-    try {
-      // FIXED: Fetch complete equipment data to ensure all required fields are present
-      const response = await equipmentAPI.getEquipmentById(equipment.id);
-      const fullEquipmentData = response.data;
-
-      // FIXED: Ensure type information is properly structured
-      if (!fullEquipmentData.type_data && fullEquipmentData.type) {
-        // If type_data is missing but type exists, find the type data
-        const typeData = equipmentTypes.find(
-          (t) => t.id === fullEquipmentData.type
-        );
-        if (typeData) {
-          fullEquipmentData.type_data = typeData;
-        }
-      }
-
-      setSelectedEquipment(fullEquipmentData);
-      setEquipmentEditModalVisible(true);
-    } catch (error) {
-      console.error("Error fetching equipment details:", error);
-      message.error("Ошибка при загрузке данных оборудования");
-    }
-  };
-
-  // Handle equipment edit modal close with refresh
-  const handleEquipmentEditModalClose = async () => {
-    setEquipmentEditModalVisible(false);
-    setSelectedEquipment(null);
-
-    // Refresh dependencies after edit
-    if (selectedContract) {
-      await checkContractDependencies(selectedContract);
-    }
-  };
-
   const columns = [
     {
       title: "Номер договора",
@@ -307,8 +216,7 @@ const ContractsPage = () => {
             type="text"
             danger
             icon={<FiTrash2 />}
-            onClick={() => checkContractDependencies(record)}
-            loading={deletingContracts.has(record.id)}
+            onClick={() => handleDeleteClick(record)}
             className="text-red-500 hover:text-red-600"
           />
           <Button
@@ -525,99 +433,6 @@ const ContractsPage = () => {
           </div>
         </Form>
       </Modal>
-
-      {/* FIXED: Dependency Check Modal with better filtering display */}
-      <Modal
-        title={
-          <div className="flex items-center space-x-2">
-            <FiAlertTriangle className="text-orange-500" />
-            <span>Невозможно удалить договор</span>
-          </div>
-        }
-        visible={dependencyModalVisible}
-        onCancel={() => {
-          setDependencyModalVisible(false);
-          setDependentEquipment([]);
-          setSelectedContract(null);
-        }}
-        footer={[
-          <Button
-            key="close"
-            onClick={() => {
-              setDependencyModalVisible(false);
-              setDependentEquipment([]);
-              setSelectedContract(null);
-            }}
-          >
-            Закрыть
-          </Button>,
-        ]}
-        width={800}
-      >
-        <div className="space-y-4">
-          <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-            <p className="text-orange-800">
-              <strong>
-                Договор "{selectedContract?.number}" используется в следующем
-                оборудовании ({dependentEquipment.length} шт.):
-              </strong>
-            </p>
-            <p className="text-sm text-orange-700 mt-2">
-              Для удаления договора необходимо сначала отвязать его от всего
-              оборудования или изменить договор у оборудования на другой.
-            </p>
-          </div>
-
-          <div className="max-h-60 overflow-y-auto">
-            <List
-              dataSource={dependentEquipment}
-              renderItem={(equipment) => (
-                <List.Item className="border-b hover:bg-gray-50 transition-colors">
-                  <div className="w-full flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-800">
-                        {equipment.name || `ID: ${equipment.id}`}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Тип: {equipment.type_data?.name || "Неизвестно"} • ИНН:{" "}
-                        {equipment.inn || "Не указан"} • Локация:{" "}
-                        {equipment.location || "Не указана"}
-                      </div>
-                      <div className="text-xs text-orange-600">
-                        Договор: {equipment.contract?.number || "Не указан"}{" "}
-                        (ID: {equipment.contract?.id})
-                      </div>
-                    </div>
-                    <Button
-                      type="link"
-                      onClick={() => handleEquipmentEdit(equipment)}
-                      className="text-indigo-600"
-                    >
-                      Редактировать →
-                    </Button>
-                  </div>
-                </List.Item>
-              )}
-            />
-          </div>
-
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <p className="text-blue-800 text-sm">
-              💡 <strong>Рекомендация:</strong> Перейдите к каждому оборудованию
-              и измените или удалите привязку к данному договору, после чего вы
-              сможете безопасно удалить договор.
-            </p>
-          </div>
-        </div>
-      </Modal>
-
-      {/* FIXED: Equipment Edit Modal */}
-      <EditEquipmentModal
-        visible={equipmentEditModalVisible}
-        onCancel={handleEquipmentEditModalClose}
-        equipment={selectedEquipment}
-        equipmentTypes={equipmentTypes}
-      />
     </div>
   );
 };

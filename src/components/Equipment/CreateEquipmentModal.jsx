@@ -495,6 +495,8 @@ const CreateEquipmentModal = ({
     }
   };
 
+  // CreateEquipmentModal.jsx faylida templatePrefix uchun uzgarish
+
   const handleInnTemplateSelect = (data) => {
     setTemplateInnValues(data.innValues);
     setInnValues(data.innValues);
@@ -502,41 +504,7 @@ const CreateEquipmentModal = ({
     setInnTemplateModalVisible(false);
   };
 
-  const handleStep3Submit = async () => {
-    if (!validateStep3()) {
-      message.error("Пожалуйста, заполните все поля ИНН!");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const equipments = createdEquipment.map((equipment, index) => ({
-        id: equipment.id,
-        inn:
-          innValues[`inn_${equipment.id}`] ||
-          `ИНН${String(index + 1).padStart(9, "0")}`,
-      }));
-
-      // Use the updated API method with image
-      const updateData = {
-        equipments: equipments,
-      };
-
-      // Add image if it was saved from step 1
-      if (savedImage) {
-        updateData.image = savedImage;
-      }
-
-      await equipmentAPI.bulkUpdateInnWithImage(updateData);
-      message.success("ИНН успешно присвоены!");
-      setIsCompleted(true);
-    } catch (error) {
-      console.error("Bulk update INN error:", error);
-      message.error("Ошибка при присвоении ИНН");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  // renderStep3 funksiyasida ham templatePrefix bo'yicha uzgarish
 
   const handleDownloadQRCodes = async () => {
     setIsSubmitting(true);
@@ -1221,7 +1189,7 @@ const CreateEquipmentModal = ({
                 />
                 {templatePrefix && (
                   <div className="text-xs text-blue-600 mt-1">
-                    Префикс "{templatePrefix}-" защищен от изменения
+                    Префикс "{templatePrefix}/" защищен от изменения
                   </div>
                 )}
                 {errors[`inn_${equipment.id}`] && (

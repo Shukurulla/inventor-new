@@ -14,13 +14,7 @@ import {
   Form,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  FiPlus,
-  FiEdit,
-  FiTrash2,
-  FiChevronRight,
-  FiAlertTriangle,
-} from "react-icons/fi";
+import { FiPlus, FiEdit, FiTrash2, FiChevronRight } from "react-icons/fi";
 import {
   getAllSpecifications,
   getSpecificationCount,
@@ -35,14 +29,10 @@ import {
   createExtenderSpec,
   createMonitorSpec,
 } from "../store/slices/specificationSlice";
-import { specificationsAPI, equipmentAPI } from "../services/api";
+import { specificationsAPI } from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateSpecificationForm from "../components/Equipment/CreateSpecificationForm";
-import EditEquipmentModal from "../components/Equipment/EditEquipmentModal";
-import {
-  equipmentUsesSpecification,
-  enrichEquipmentData,
-} from "../utils/specificationUtils";
+
 const { TabPane } = Tabs;
 const { Panel } = Collapse;
 
@@ -50,13 +40,8 @@ const CharacteristicsPage = () => {
   const [activeTab, setActiveTab] = useState("templates");
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [dependencyModalVisible, setDependencyModalVisible] = useState(false);
-  const [equipmentEditModalVisible, setEquipmentEditModalVisible] =
-    useState(false);
   const [selectedType, setSelectedType] = useState(null);
   const [selectedSpec, setSelectedSpec] = useState(null);
-  const [dependentEquipment, setDependentEquipment] = useState([]);
-  const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [deletingSpecs, setDeletingSpecs] = useState(new Set());
 
   const [specForm] = Form.useForm();
@@ -107,186 +92,63 @@ const CharacteristicsPage = () => {
     { name: "Монитор", icon: "монитор", color: "bg-cyan-100 text-cyan-600" },
   ];
 
-  const checkSpecificationDependencies = async (spec, typeName) => {
+  // Direct delete without dependency check
+  const handleDeleteSpec = async (spec, typeName) => {
     const specKey = `${typeName}-${spec.id}`;
-    setDeletingSpecs((prev) => new Set(prev).add(specKey));
-
-    try {
-      // To'liq equipment ma'lumotlarini olish
-      const response = await equipmentAPI.getMyEquipments();
-      const allEquipment = response.data || [];
-
-      const typeNameLower = typeName.toLowerCase();
-
-      const dependentEquipment = allEquipment.filter((equipment, index) => {
-        let isDependent = false;
-
-        // Equipment typeini aniqlash
-        const equipmentTypeName =
-          equipment.type_data?.name?.toLowerCase() || "";
-
-        // Faqat mos type'dagi equipment'larni tekshirish
-        if (!equipmentTypeName.includes(typeNameLower)) {
-          return false;
-        }
-
-        // Specification dependency'ni tekshirish - equipment details orqali
-        if (typeNameLower.includes("компьютер")) {
-          // computer_details.specification_id tekshirish
-          const computerSpecId = equipment.computer_details?.specification_id;
-          isDependent = computerSpecId === spec.id;
-
-          // Agar computer_details da yo'q bo'lsa, boshqa joylarni ham tekshiramiz
-          if (!isDependent) {
-            isDependent =
-              equipment.computer_specification_id === spec.id ||
-              equipment.computer_specification_data?.id === spec.id ||
-              equipment.computer_specification?.id === spec.id;
-          }
-        } else if (typeNameLower.includes("проектор")) {
-          // projector_char.specification_id yoki to'g'ridan-to'g'ri projector_char.id
-          const projectorSpecId =
-            equipment.projector_char?.specification_id ||
-            equipment.projector_char?.id;
-          isDependent = projectorSpecId === spec.id;
-
-          if (!isDependent) {
-            isDependent =
-              equipment.projector_specification_id === spec.id ||
-              equipment.projector_specification_data?.id === spec.id ||
-              equipment.projector_specification?.id === spec.id;
-          }
-        } else if (typeNameLower.includes("принтер")) {
-          const printerSpecId =
-            equipment.printer_char?.specification_id ||
-            equipment.printer_char?.id;
-          isDependent = printerSpecId === spec.id;
-
-          if (!isDependent) {
-            isDependent =
-              equipment.printer_specification_id === spec.id ||
-              equipment.printer_specification_data?.id === spec.id ||
-              equipment.printer_specification?.id === spec.id;
-          }
-        } else if (typeNameLower.includes("телевизор")) {
-          const tvSpecId =
-            equipment.tv_char?.specification_id || equipment.tv_char?.id;
-          isDependent = tvSpecId === spec.id;
-
-          if (!isDependent) {
-            isDependent =
-              equipment.tv_specification_id === spec.id ||
-              equipment.tv_specification_data?.id === spec.id ||
-              equipment.tv_specification?.id === spec.id;
-          }
-        } else if (typeNameLower.includes("роутер")) {
-          const routerSpecId =
-            equipment.router_char?.specification_id ||
-            equipment.router_char?.id;
-          isDependent = routerSpecId === spec.id;
-
-          if (!isDependent) {
-            isDependent =
-              equipment.router_specification_id === spec.id ||
-              equipment.router_specification_data?.id === spec.id ||
-              equipment.router_specification?.id === spec.id;
-          }
-        } else if (typeNameLower.includes("ноутбук")) {
-          const notebookSpecId =
-            equipment.notebook_char?.specification_id ||
-            equipment.notebook_char?.id;
-          isDependent = notebookSpecId === spec.id;
-
-          if (!isDependent) {
-            isDependent =
-              equipment.notebook_specification_id === spec.id ||
-              equipment.notebook_specification_data?.id === spec.id ||
-              equipment.notebook_specification?.id === spec.id;
-          }
-        } else if (typeNameLower.includes("моноблок")) {
-          const monoblokSpecId =
-            equipment.monoblok_char?.specification_id ||
-            equipment.monoblok_char?.id;
-          isDependent = monoblokSpecId === spec.id;
-
-          if (!isDependent) {
-            isDependent =
-              equipment.monoblok_specification_id === spec.id ||
-              equipment.monoblok_specification_data?.id === spec.id ||
-              equipment.monoblok_specification?.id === spec.id;
-          }
-        } else if (typeNameLower.includes("доска")) {
-          const whiteboardSpecId =
-            equipment.whiteboard_char?.specification_id ||
-            equipment.whiteboard_char?.id;
-          isDependent = whiteboardSpecId === spec.id;
-
-          if (!isDependent) {
-            isDependent =
-              equipment.whiteboard_specification_id === spec.id ||
-              equipment.whiteboard_specification_data?.id === spec.id ||
-              equipment.whiteboard_specification?.id === spec.id;
-          }
-        } else if (typeNameLower.includes("удлинитель")) {
-          const extenderSpecId =
-            equipment.extender_char?.specification_id ||
-            equipment.extender_char?.id;
-          isDependent = extenderSpecId === spec.id;
-
-          if (!isDependent) {
-            isDependent =
-              equipment.extender_specification_id === spec.id ||
-              equipment.extender_specification_data?.id === spec.id ||
-              equipment.extender_specification?.id === spec.id;
-          }
-        } else if (typeNameLower.includes("монитор")) {
-          const monitorSpecId =
-            equipment.monitor_char?.specification_id ||
-            equipment.monitor_char?.id;
-          isDependent = monitorSpecId === spec.id;
-
-          if (!isDependent) {
-            isDependent =
-              equipment.monitor_specification_id === spec.id ||
-              equipment.monitor_specification_data?.id === spec.id ||
-              equipment.monitor_specification?.id === spec.id;
-          }
-        }
-
-        return isDependent;
-      });
-
-      if (dependentEquipment.length > 0) {
-        const enrichedDependentEquipment = dependentEquipment.map((equipment) =>
-          enrichEquipmentData(equipment)
-        );
-        setDependentEquipment(enrichedDependentEquipment);
-        setSelectedSpec(spec);
-        setSelectedType(typeName);
-        setDependencyModalVisible(true);
-      } else {
-        confirmDirectDelete(spec, typeName);
-      }
-    } catch (error) {
-      message.error("Ошибка при проверке зависимостей");
-    } finally {
-      setDeletingSpecs((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(specKey);
-        return newSet;
-      });
-    }
-  };
-
-  const confirmDirectDelete = (spec, typeName) => {
     const specName = spec.model || spec.cpu || `Характеристика ${spec.id}`;
+
     Modal.confirm({
       title: "Удалить характеристику?",
       content: `Вы уверены, что хотите удалить характеристику "${specName}"?`,
       okText: "Да, удалить",
       cancelText: "Отмена",
       okType: "danger",
-      onOk: () => handleDeleteSpec(spec, typeName),
+      onOk: async () => {
+        setDeletingSpecs((prev) => new Set(prev).add(specKey));
+
+        try {
+          const typeNameLower = typeName.toLowerCase();
+          let apiCall;
+
+          if (typeNameLower.includes("компьютер")) {
+            apiCall = () => specificationsAPI.deleteComputerSpec(spec.id);
+          } else if (typeNameLower.includes("проектор")) {
+            apiCall = () => specificationsAPI.deleteProjectorSpec(spec.id);
+          } else if (typeNameLower.includes("принтер")) {
+            apiCall = () => specificationsAPI.deletePrinterSpec(spec.id);
+          } else if (typeNameLower.includes("телевизор")) {
+            apiCall = () => specificationsAPI.deleteTVSpec(spec.id);
+          } else if (typeNameLower.includes("роутер")) {
+            apiCall = () => specificationsAPI.deleteRouterSpec(spec.id);
+          } else if (typeNameLower.includes("ноутбук")) {
+            apiCall = () => specificationsAPI.deleteNotebookSpec(spec.id);
+          } else if (typeNameLower.includes("моноблок")) {
+            apiCall = () => specificationsAPI.deleteMonoblokSpec(spec.id);
+          } else if (typeNameLower.includes("доска")) {
+            apiCall = () => specificationsAPI.deleteWhiteboardSpec(spec.id);
+          } else if (typeNameLower.includes("удлинитель")) {
+            apiCall = () => specificationsAPI.deleteExtenderSpec(spec.id);
+          } else if (typeNameLower.includes("монитор")) {
+            apiCall = () => specificationsAPI.deleteMonitorSpec(spec.id);
+          }
+
+          if (apiCall) {
+            await apiCall();
+            message.success("Характеристика успешно удалена!");
+            dispatch(getAllSpecifications());
+            dispatch(getSpecificationCount());
+          }
+        } catch (error) {
+          console.error("Spec delete error:", error);
+          message.error("Ошибка при удалении характеристики");
+        } finally {
+          setDeletingSpecs((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(specKey);
+            return newSet;
+          });
+        }
+      },
     });
   };
 
@@ -299,37 +161,6 @@ const CharacteristicsPage = () => {
     setSelectedSpec(spec);
     setSelectedType(typeName);
     setEditModalVisible(true);
-  };
-
-  const handleEquipmentEdit = async (equipment) => {
-    try {
-      const response = await equipmentAPI.getEquipmentById(equipment.id);
-      const fullEquipmentData = response.data;
-
-      if (!fullEquipmentData.type_data && fullEquipmentData.type) {
-        const typeData = equipmentTypes.find(
-          (t) => t.id === fullEquipmentData.type
-        );
-        if (typeData) {
-          fullEquipmentData.type_data = typeData;
-        }
-      }
-
-      setSelectedEquipment(fullEquipmentData);
-      setEquipmentEditModalVisible(true);
-    } catch (error) {
-      console.error("Error fetching equipment details:", error);
-      message.error("Ошибка при загрузке данных оборудования");
-    }
-  };
-
-  const handleEquipmentEditModalClose = async () => {
-    setEquipmentEditModalVisible(false);
-    setSelectedEquipment(null);
-
-    if (selectedSpec && selectedType) {
-      await checkSpecificationDependencies(selectedSpec, selectedType);
-    }
   };
 
   const handleSubmitSpec = async (values) => {
@@ -409,45 +240,6 @@ const CharacteristicsPage = () => {
     } catch (error) {
       console.error("Spec update error:", error);
       message.error("Ошибка при обновлении характеристики");
-    }
-  };
-
-  const handleDeleteSpec = async (spec, typeName) => {
-    try {
-      const typeNameLower = typeName.toLowerCase();
-      let apiCall;
-
-      if (typeNameLower.includes("компьютер")) {
-        apiCall = () => specificationsAPI.deleteComputerSpec(spec.id);
-      } else if (typeNameLower.includes("проектор")) {
-        apiCall = () => specificationsAPI.deleteProjectorSpec(spec.id);
-      } else if (typeNameLower.includes("принтер")) {
-        apiCall = () => specificationsAPI.deletePrinterSpec(spec.id);
-      } else if (typeNameLower.includes("телевизор")) {
-        apiCall = () => specificationsAPI.deleteTVSpec(spec.id);
-      } else if (typeNameLower.includes("роутер")) {
-        apiCall = () => specificationsAPI.deleteRouterSpec(spec.id);
-      } else if (typeNameLower.includes("ноутбук")) {
-        apiCall = () => specificationsAPI.deleteNotebookSpec(spec.id);
-      } else if (typeNameLower.includes("моноблок")) {
-        apiCall = () => specificationsAPI.deleteMonoblokSpec(spec.id);
-      } else if (typeNameLower.includes("доска")) {
-        apiCall = () => specificationsAPI.deleteWhiteboardSpec(spec.id);
-      } else if (typeNameLower.includes("удлинитель")) {
-        apiCall = () => specificationsAPI.deleteExtenderSpec(spec.id);
-      } else if (typeNameLower.includes("монитор")) {
-        apiCall = () => specificationsAPI.deleteMonitorSpec(spec.id);
-      }
-
-      if (apiCall) {
-        await apiCall();
-        message.success("Характеристика успешно удалена!");
-        dispatch(getAllSpecifications());
-        dispatch(getSpecificationCount());
-      }
-    } catch (error) {
-      console.error("Spec delete error:", error);
-      message.error("Ошибка при удалении характеристики");
     }
   };
 
@@ -532,7 +324,7 @@ const CharacteristicsPage = () => {
             icon={<FiTrash2 />}
             size="small"
             loading={deletingSpecs.has(specKey)}
-            onClick={() => checkSpecificationDependencies(spec, type)}
+            onClick={() => handleDeleteSpec(spec, type)}
           />
         </div>
       </div>
@@ -760,104 +552,6 @@ const CharacteristicsPage = () => {
           initialData={selectedSpec}
         />
       </Modal>
-
-      <Modal
-        title={
-          <div className="flex items-center space-x-2">
-            <FiAlertTriangle className="text-orange-500" />
-            <span>Невозможно удалить характеристику</span>
-          </div>
-        }
-        visible={dependencyModalVisible}
-        onCancel={() => {
-          setDependencyModalVisible(false);
-          setDependentEquipment([]);
-          setSelectedSpec(null);
-          setSelectedType(null);
-        }}
-        footer={[
-          <Button
-            key="close"
-            onClick={() => {
-              setDependencyModalVisible(false);
-              setDependentEquipment([]);
-              setSelectedSpec(null);
-              setSelectedType(null);
-            }}
-          >
-            Закрыть
-          </Button>,
-        ]}
-        width={800}
-      >
-        <div className="space-y-4">
-          <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-            <p className="text-orange-800">
-              <strong>
-                Характеристика "
-                {selectedSpec?.model ||
-                  selectedSpec?.cpu ||
-                  `ID: ${selectedSpec?.id}`}
-                " используется в следующем оборудовании (
-                {dependentEquipment.length} шт.):
-              </strong>
-            </p>
-            <p className="text-sm text-orange-700 mt-2">
-              Для удаления характеристики необходимо сначала отвязать её от
-              всего оборудования или изменить характеристику у оборудования на
-              другую.
-            </p>
-          </div>
-          <div className="max-h-60 overflow-y-auto">
-            <List
-              dataSource={dependentEquipment}
-              renderItem={(equipment) => (
-                <List.Item className="border-b hover:bg-gray-50 transition-colors">
-                  <div className="w-full flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-800">
-                        {equipment.name || `ID: ${equipment.id}`}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Тип: {equipment.type_data?.name || "Неизвестно"} • ИНН:{" "}
-                        {equipment.inn || "Не указан"} • Локация:{" "}
-                        {equipment.location || "Не указана"}
-                      </div>
-                      <div className="text-xs text-orange-600">
-                        Характеристика:{" "}
-                        {selectedSpec?.model ||
-                          selectedSpec?.cpu ||
-                          `ID: ${selectedSpec?.id}`}
-                      </div>
-                    </div>
-                    <Button
-                      type="link"
-                      onClick={() => handleEquipmentEdit(equipment)}
-                      className="text-indigo-600"
-                    >
-                      Редактировать →
-                    </Button>
-                  </div>
-                </List.Item>
-              )}
-            />
-          </div>
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <p className="text-blue-800 text-sm">
-              💡 <strong>Рекомендация:</strong> Перейдите к каждому оборудованию
-              и измените или удалите привязку к данной характеристике, после
-              чего вы сможете безопасно удалить характеристику.
-            </p>
-          </div>
-        </div>
-      </Modal>
-
-      <EditEquipmentModal
-        visible={equipmentEditModalVisible}
-        onCancel={handleEquipmentEditModalClose}
-        equipment={selectedEquipment}
-        equipmentTypes={equipmentTypes}
-      />
     </div>
   );
 };

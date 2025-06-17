@@ -68,13 +68,13 @@ const InnTemplateModal = ({
       return;
     }
 
-    // Set only template prefix, user will add suffix manually
+    // Set only template prefix with "/" instead of "-", user will add suffix manually
     const templatePrefix = selectedTemplate.name;
     const innValues = {};
 
     createdEquipment.forEach((equipment, index) => {
-      // Only set template prefix, user will complete the INN
-      innValues[`inn_${equipment.id}`] = `${templatePrefix}-`;
+      // Only set template prefix with "/", user will complete the INN
+      innValues[`inn_${equipment.id}`] = `${templatePrefix}/`;
     });
 
     onSelect({
@@ -130,7 +130,7 @@ const InnTemplateModal = ({
               </h4>
               <div className="space-y-1 text-sm">
                 {createdEquipment.slice(0, 3).map((equipment, index) => {
-                  const innValue = `${selectedTemplate.name}-[пользователь заполнит]`;
+                  const innValue = `${selectedTemplate.name}/[пользователь заполнит]`;
                   return (
                     <div key={equipment.id} className="text-blue-700">
                       {equipment.name}:{" "}
@@ -145,7 +145,7 @@ const InnTemplateModal = ({
                 )}
               </div>
               <div className="text-xs text-blue-600 mt-2">
-                💡 Префикс "{selectedTemplate.name}-" будет автоматически
+                💡 Префикс "{selectedTemplate.name}/" будет автоматически
                 добавлен. Вы сможете заполнить окончание ИНН.
               </div>
             </div>
@@ -188,7 +188,7 @@ const InnTemplateModal = ({
               onPressEnter={handleCreateTemplate}
             />
             <div className="text-xs text-gray-500 mt-1">
-              Это будет префикс для всех ИНН (например: COMP-001, COMP-002)
+              Это будет префикс для всех ИНН (например: COMP/001, COMP/002)
             </div>
           </div>
 

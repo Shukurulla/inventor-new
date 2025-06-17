@@ -18,17 +18,17 @@ const ProtectedInnInput = ({
   const handleChange = (e) => {
     let newValue = e.target.value;
 
-    // If there's a template prefix, ensure it's protected
+    // If there's a template prefix, ensure it's protected with "/" separator
     if (templatePrefix && templatePrefix.trim() !== "") {
-      const prefixWithDash = `${templatePrefix}-`;
+      const prefixWithSlash = `${templatePrefix}/`;
 
       // If user tries to delete the prefix, restore it
-      if (!newValue.startsWith(prefixWithDash)) {
+      if (!newValue.startsWith(prefixWithSlash)) {
         // Extract any suffix the user might have typed
         const possibleSuffix = newValue
           .replace(templatePrefix, "")
-          .replace("-", "");
-        newValue = `${prefixWithDash}${possibleSuffix}`;
+          .replace("/", "");
+        newValue = `${prefixWithSlash}${possibleSuffix}`;
       }
     }
 
@@ -38,20 +38,20 @@ const ProtectedInnInput = ({
 
   const handleKeyDown = (e) => {
     if (templatePrefix && templatePrefix.trim() !== "") {
-      const prefixWithDash = `${templatePrefix}-`;
+      const prefixWithSlash = `${templatePrefix}/`;
       const cursorPosition = e.target.selectionStart;
 
       // Prevent deletion of prefix characters
       if (
         (e.key === "Backspace" || e.key === "Delete") &&
-        cursorPosition <= prefixWithDash.length
+        cursorPosition <= prefixWithSlash.length
       ) {
         e.preventDefault();
         // Move cursor to after prefix
         setTimeout(() => {
           e.target.setSelectionRange(
-            prefixWithDash.length,
-            prefixWithDash.length
+            prefixWithSlash.length,
+            prefixWithSlash.length
           );
         }, 0);
       }
@@ -60,15 +60,15 @@ const ProtectedInnInput = ({
 
   const handleClick = (e) => {
     if (templatePrefix && templatePrefix.trim() !== "") {
-      const prefixWithDash = `${templatePrefix}-`;
+      const prefixWithSlash = `${templatePrefix}/`;
       const cursorPosition = e.target.selectionStart;
 
       // If user clicks within prefix area, move cursor to after prefix
-      if (cursorPosition < prefixWithDash.length) {
+      if (cursorPosition < prefixWithSlash.length) {
         setTimeout(() => {
           e.target.setSelectionRange(
-            prefixWithDash.length,
-            prefixWithDash.length
+            prefixWithSlash.length,
+            prefixWithSlash.length
           );
         }, 0);
       }
