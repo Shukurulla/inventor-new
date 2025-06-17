@@ -162,7 +162,7 @@ export const universityAPI = {
   getRooms: () => api.get("/university/rooms/"),
 };
 
-// Equipment API - FIXED updateEquipment method
+// Equipment API
 export const equipmentAPI = {
   getEquipmentTypes: () => api.get("/inventory/equipment-types/"),
   getEquipment: (params = {}) => {
@@ -191,7 +191,7 @@ export const equipmentAPI = {
   createEquipmentBulk: (data) =>
     api.post("/inventory/equipment/bulk-create/", data),
 
-  // FIXED: updateEquipment method now properly handles both file and non-file data
+  // Updated updateEquipment method that properly handles both file and non-file data
   updateEquipment: (id, data) => {
     // Check if data contains file
     const hasFile = Object.values(data).some((value) => value instanceof File);
@@ -257,8 +257,38 @@ export const equipmentAPI = {
   sendToRepair: (id) => api.post(`/inventory/equipment/${id}/send-to-repair/`),
   disposeEquipment: (id, data) =>
     api.post(`/inventory/equipment/${id}/dispose/`, data),
+
+  // Original bulkUpdateInn method
   bulkUpdateInn: (data) =>
     api.post("/inventory/equipment/bulk-update-inn/", data),
+
+  // NEW: Enhanced method to include image with INN update
+  bulkUpdateInnWithImage: (data) => {
+    // Check if data contains image
+    const hasImage = data.image instanceof File;
+
+    if (hasImage) {
+      const formData = new FormData();
+
+      // Add equipments data
+      formData.append("equipments", JSON.stringify(data.equipments));
+
+      // Add image
+      formData.append("photo", data.image);
+
+      return api.post("/inventory/equipment/bulk-update-inn/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    }
+
+    // If no image, use regular JSON
+    return api.post("/inventory/equipment/bulk-update-inn/", {
+      equipments: data.equipments,
+    });
+  },
+
   bulkUpdateStatus: (data) =>
     api.post("/inventory/equipment/bulk-update-status/", data),
   moveEquipment: (data) =>
@@ -267,6 +297,13 @@ export const equipmentAPI = {
     api.post("/inventory/equipment/scan-qr/", { qr_data: qrData }),
   getEquipmentById: (id) => api.get(`/inventory/equipment/${id}/`),
   getMovementHistory: () => api.get("/inventory/movement-history/"),
+};
+
+// INN Templates API - NEW
+export const innTemplatesAPI = {
+  getTemplates: () => api.get("/inventory/inn-templates/"),
+  createTemplate: (data) => api.post("/inventory/inn-templates/", data),
+  deleteTemplate: (id) => api.delete(`/inventory/inn-templates/${id}/`),
 };
 
 export const specificationsAPI = {

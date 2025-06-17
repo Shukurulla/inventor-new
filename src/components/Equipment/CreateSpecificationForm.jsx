@@ -61,6 +61,9 @@ const CreateSpecificationForm = ({
       });
 
       form.setFieldsValue(formValues);
+    } else if (isEdit && initialData) {
+      // For non-computer types, set all form values directly
+      form.setFieldsValue(initialData);
     }
   }, [isEdit, initialData, form]);
 
@@ -583,6 +586,11 @@ const CreateSpecificationForm = ({
       </Row>
       <Row gutter={16}>
         <Col span={12}>
+          <Form.Item label="Серийный номер" name="serial_number">
+            <Input placeholder="C11C524051" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
           <Form.Item
             label="Яркость (люмен)"
             name="lumens"
@@ -596,6 +604,8 @@ const CreateSpecificationForm = ({
             />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Разрешение"
@@ -605,8 +615,6 @@ const CreateSpecificationForm = ({
             <Input placeholder="1920x1080" />
           </Form.Item>
         </Col>
-      </Row>
-      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Тип проекции"
@@ -702,6 +710,11 @@ const CreateSpecificationForm = ({
       </Row>
       <Row gutter={16}>
         <Col span={12}>
+          <Form.Item label="Серийный номер" name="serial_number">
+            <Input placeholder="03AL201008004821" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
           <Form.Item
             label="Размер экрана (дюймы)"
             name="screen_size"
@@ -713,6 +726,31 @@ const CreateSpecificationForm = ({
               className="w-full"
               placeholder="43"
             />
+          </Form.Item>
+        </Col>
+      </Row>
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item
+            label="Разрешение"
+            name="resolution"
+            rules={[{ required: true, message: "Введите разрешение!" }]}
+          >
+            <Input placeholder="3840x2160" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
+            label="Тип матрицы"
+            name="panel_type"
+            rules={[{ required: true, message: "Выберите тип матрицы!" }]}
+          >
+            <Select placeholder="Выберите тип матрицы">
+              <Option value="LED">LED</Option>
+              <Option value="OLED">OLED</Option>
+              <Option value="QLED">QLED</Option>
+              <Option value="LCD">LCD</Option>
+            </Select>
           </Form.Item>
         </Col>
       </Row>
@@ -743,6 +781,11 @@ const CreateSpecificationForm = ({
       </Row>
       <Row gutter={16}>
         <Col span={12}>
+          <Form.Item label="Серийный номер" name="serial_number">
+            <Input placeholder="2182F4A001234" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
           <Form.Item
             label="Количество портов"
             name="ports"
@@ -751,6 +794,8 @@ const CreateSpecificationForm = ({
             <InputNumber min={1} max={48} className="w-full" placeholder="4" />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="WiFi стандарт"
@@ -792,6 +837,11 @@ const CreateSpecificationForm = ({
       </Row>
       <Row gutter={16}>
         <Col span={12}>
+          <Form.Item label="Серийный номер" name="serial_number">
+            <Input placeholder="SB6065123456" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
           <Form.Item
             label="Размер (дюймы)"
             name="screen_size"
@@ -805,6 +855,8 @@ const CreateSpecificationForm = ({
             />
           </Form.Item>
         </Col>
+      </Row>
+      <Row gutter={16}>
         <Col span={12}>
           <Form.Item
             label="Тип касания"
@@ -832,6 +884,22 @@ const CreateSpecificationForm = ({
             rules={[{ required: true, message: "Введите название шаблона!" }]}
           >
             <Input placeholder="Например: Удлинитель USB 6 портов" />
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
+            label="Модель"
+            name="model"
+            rules={[{ required: true, message: "Введите модель!" }]}
+          >
+            <Input placeholder="Anker PowerExpand+ 7-in-1" />
+          </Form.Item>
+        </Col>
+      </Row>
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item label="Серийный номер" name="serial_number">
+            <Input placeholder="A8352011" />
           </Form.Item>
         </Col>
         <Col span={12}>
@@ -978,7 +1046,7 @@ const CreateSpecificationForm = ({
             className="w-100 p-2 rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
             style={{ width: "100%" }}
           >
-            Создать шаблон
+            {isEdit ? "Обновить шаблон" : "Создать шаблон"}
           </button>
         </Col>
       </Row>

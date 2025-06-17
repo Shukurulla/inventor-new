@@ -22,6 +22,9 @@ import { getAllSpecifications } from "../../store/slices/specificationSlice";
 import { getContracts } from "../../store/slices/contractSlice";
 import { generateQRCodesPDF } from "../../utils/pdfGenerator";
 import CreateSpecificationForm from "./CreateSpecificationForm";
+import InnTemplateModal from "./InnTemplateModal";
+import ProtectedInnInput from "./ProtectedInnInput";
+import { equipmentAPI } from "../../services/api";
 import {
   createComputerSpec,
   createProjectorSpec,
@@ -48,6 +51,7 @@ const CreateEquipmentModal = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [createSpecModalVisible, setCreateSpecModalVisible] = useState(false);
+  const [innTemplateModalVisible, setInnTemplateModalVisible] = useState(false);
   const [specForm] = Form.useForm();
 
   const [formValues, setFormValues] = useState({
@@ -90,15 +94,18 @@ const CreateEquipmentModal = ({
     length: "",
     gpu_model: "",
     storageList: [],
-    image: null,
+    photo: null,
   });
   const [createdEquipment, setCreatedEquipment] = useState([]);
   const [selectedSpecification, setSelectedSpecification] = useState(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [innValues, setInnValues] = useState({});
+  const [templateInnValues, setTemplateInnValues] = useState({});
+  const [templatePrefix, setTemplatePrefix] = useState("");
   const [errors, setErrors] = useState({});
   const [fileList, setFileList] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savedImage, setSavedImage] = useState(null); // Store image from step 1
 
   // Validation states for each step
   const [isStep1Valid, setIsStep1Valid] = useState(false);
@@ -354,6 +361,7 @@ const CreateEquipmentModal = ({
 
   const handleInnChange = (equipmentId, value) => {
     setInnValues((prev) => ({ ...prev, [`inn_${equipmentId}`]: value }));
+
     if (errors[`inn_${equipmentId}`]) {
       setErrors((prev) => ({ ...prev, [`inn_${equipmentId}`]: null }));
     }
@@ -376,12 +384,15 @@ const CreateEquipmentModal = ({
   const handleImageChange = ({ fileList: newFileList }) => {
     setFileList(newFileList);
     if (newFileList.length > 0) {
+      const file = newFileList[0].originFileObj;
       setFormValues((prev) => ({
         ...prev,
-        image: newFileList[0].originFileObj,
+        photo: file,
       }));
+      setSavedImage(file); // Save image for later use
     } else {
-      setFormValues((prev) => ({ ...prev, image: null }));
+      setFormValues((prev) => ({ ...prev, photo: null }));
+      setSavedImage(null);
     }
   };
 
@@ -459,17 +470,15 @@ const CreateEquipmentModal = ({
         equipmentData[specFieldName] = formValues[specFieldName];
       }
 
-      // specification_id ni o'chirish - API buni qabul qilmaydi
-
       let finalData;
-      if (formValues.image) {
+      if (savedImage) {
         finalData = new FormData();
         Object.keys(equipmentData).forEach((key) => {
           if (equipmentData[key] !== null && equipmentData[key] !== undefined) {
             finalData.append(key, equipmentData[key]);
           }
         });
-        finalData.append("image", formValues.image);
+        finalData.append("image", savedImage);
       } else {
         finalData = equipmentData;
       }
@@ -484,6 +493,13 @@ const CreateEquipmentModal = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleInnTemplateSelect = (data) => {
+    setTemplateInnValues(data.innValues);
+    setInnValues(data.innValues);
+    setTemplatePrefix(data.templatePrefix);
+    setInnTemplateModalVisible(false);
   };
 
   const handleStep3Submit = async () => {
@@ -501,10 +517,21 @@ const CreateEquipmentModal = ({
           `ИНН${String(index + 1).padStart(9, "0")}`,
       }));
 
-      await dispatch(bulkUpdateInn({ equipments })).unwrap();
+      // Use the updated API method with image
+      const updateData = {
+        equipments: equipments,
+      };
+
+      // Add image if it was saved from step 1
+      if (savedImage) {
+        updateData.image = savedImage;
+      }
+
+      await equipmentAPI.bulkUpdateInnWithImage(updateData);
       message.success("ИНН успешно присвоены!");
       setIsCompleted(true);
     } catch (error) {
+      console.error("Bulk update INN error:", error);
       message.error("Ошибка при присвоении ИНН");
     } finally {
       setIsSubmitting(false);
@@ -579,14 +606,17 @@ const CreateEquipmentModal = ({
       length: "",
       gpu_model: "",
       storageList: [],
-      image: null,
+      photo: null,
     });
     setCreatedEquipment([]);
     setSelectedSpecification(null);
     setIsCompleted(false);
     setInnValues({});
+    setTemplateInnValues({});
+    setTemplatePrefix("");
     setErrors({});
     setFileList([]);
+    setSavedImage(null);
     setIsSubmitting(false);
     setIsStep1Valid(false);
     setIsStep2Valid(false);
@@ -1165,6 +1195,13 @@ const CreateEquipmentModal = ({
       <div className="px-6 py-4">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-medium">ИНН</h3>
+          <Button
+            type="primary"
+            onClick={() => setInnTemplateModalVisible(true)}
+            className="bg-[#4E38F2] border-[#4E38F2] hover:bg-[#4A63D7]"
+          >
+            Выбрать шаблон ИНН
+          </Button>
         </div>
         <div className="space-y-4">
           {createdEquipment.map((equipment, index) => (
@@ -1175,14 +1212,18 @@ const CreateEquipmentModal = ({
                 </div>
               </Col>
               <Col span={12}>
-                <Input
+                <ProtectedInnInput
                   value={innValues[`inn_${equipment.id}`] || ""}
-                  onChange={(e) =>
-                    handleInnChange(equipment.id, e.target.value)
-                  }
+                  onChange={(value) => handleInnChange(equipment.id, value)}
+                  templatePrefix={templatePrefix}
                   placeholder={`ИНН${String(index + 1).padStart(9, "0")}`}
                   style={{ height: "40px" }}
                 />
+                {templatePrefix && (
+                  <div className="text-xs text-blue-600 mt-1">
+                    Префикс "{templatePrefix}-" защищен от изменения
+                  </div>
+                )}
                 {errors[`inn_${equipment.id}`] && (
                   <span className="text-red-500 text-sm">
                     {errors[`inn_${equipment.id}`]}
@@ -1305,6 +1346,14 @@ const CreateEquipmentModal = ({
           isEdit={false}
         />
       </Modal>
+
+      {/* INN Template Modal */}
+      <InnTemplateModal
+        visible={innTemplateModalVisible}
+        onCancel={() => setInnTemplateModalVisible(false)}
+        onSelect={handleInnTemplateSelect}
+        createdEquipment={createdEquipment}
+      />
     </>
   );
 };

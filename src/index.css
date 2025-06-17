@@ -110,6 +110,7 @@ body {
   border-bottom: 1px solid #404040 !important;
   color: #ffffff !important;
 }
+
 .dark
   .min-h-screen.bg-gradient-to-br.from-indigo-50.to-indigo-50.flex.items-center.justify-center.p-4 {
   background: #000 !important;
@@ -664,7 +665,7 @@ body {
 
 .ant-modal-footer {
   padding: 16px 24px !important;
-  border-top: 1px solid #f1f5f9 !important;
+  border-top: 1px solid #e5e7eb !important;
 }
 
 .ant-steps-item-process .ant-steps-item-icon {
@@ -966,4 +967,10 @@ body {
 .dark .inline-block.p-3.bg-white.rounded-lg.shadow-sm {
   background: #fff !important;
   color: #000 !important;
+}
+.dark * {
+  border-color: #464545;
+}
+.dark .ant-pagination-item-link svg {
+  color: #7c7c7c !important;
 }
