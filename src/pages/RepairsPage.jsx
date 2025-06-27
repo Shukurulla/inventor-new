@@ -1,4 +1,4 @@
-// RepairsPage.jsx - Fixed version with consistent equipment data handling
+// RepairsPage.jsx - Optimized version using Redux store data
 "use client";
 
 import { useEffect, useState } from "react";
@@ -20,7 +20,9 @@ import {
   Tooltip,
 } from "antd";
 import { FiChevronRight, FiMapPin, FiSave } from "react-icons/fi";
+import { useSelector, useDispatch } from "react-redux";
 import { equipmentAPI } from "../services/api";
+import { getMyEquipments } from "../store/slices/equipmentSlice";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import { getStatusConfig } from "../utils/statusUtils";
 
@@ -29,60 +31,55 @@ const { Option } = Select;
 const { TabPane } = Tabs;
 
 const RepairsPage = () => {
-  const [equipment, setEquipment] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [activeTab, setActiveTab] = useState("repairs");
   const [form] = Form.useForm();
   const [selectedStatuses, setSelectedStatuses] = useState({});
   const [savingStatuses, setSavingStatuses] = useState({});
+  const [filteredEquipment, setFilteredEquipment] = useState([]);
 
+  // OPTIMIZED: Use data from Redux store instead of separate API calls
+  const { myEquipments = [], loading } = useSelector(
+    (state) => state.equipment
+  );
+
+  // OPTIMIZED: Filter equipment from Redux store instead of loading separately
   useEffect(() => {
-    loadEquipment();
-  }, []);
+    const filtered = myEquipments.filter(
+      (item) =>
+        item.status === "NEEDS_REPAIR" ||
+        item.status === "REPAIR" ||
+        item.status === "DISPOSED"
+    );
+    setFilteredEquipment(filtered);
 
-  const loadEquipment = async () => {
-    setLoading(true);
-    try {
-      const response = await equipmentAPI.getMyEquipments();
-      const filteredData = response.data.filter(
-        (item) =>
-          item.status === "NEEDS_REPAIR" ||
-          item.status === "REPAIR" ||
-          item.status === "DISPOSED"
-      );
-      setEquipment(filteredData);
-      const initialStatuses = {};
-      filteredData.forEach((item) => {
-        initialStatuses[item.id] = item.status;
-      });
-      setSelectedStatuses(initialStatuses);
-    } catch (error) {
-      message.error("Ошибка при загрузке данных");
-      console.error("Load equipment error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Initialize status states
+    const initialStatuses = {};
+    filtered.forEach((item) => {
+      initialStatuses[item.id] = item.status;
+    });
+    setSelectedStatuses(initialStatuses);
+  }, [myEquipments]);
 
   const getFilteredEquipment = () => {
     switch (activeTab) {
       case "repairs":
-        return equipment.filter(
+        return filteredEquipment.filter(
           (item) => item.status === "NEEDS_REPAIR" || item.status === "REPAIR"
         );
       case "disposed":
-        return equipment.filter((item) => item.status === "DISPOSED");
+        return filteredEquipment.filter((item) => item.status === "DISPOSED");
       default:
-        return equipment;
+        return filteredEquipment;
     }
   };
 
   const groupEquipmentByType = () => {
-    const filteredEquipment = getFilteredEquipment();
+    const equipment = getFilteredEquipment();
     const grouped = {};
-    filteredEquipment.forEach((item) => {
+    equipment.forEach((item) => {
       const typeName = item.type_data?.name || "Неизвестный тип";
       if (!grouped[typeName]) {
         grouped[typeName] = [];
@@ -281,7 +278,9 @@ const RepairsPage = () => {
 
   const handleSaveStatus = async (equipmentId) => {
     const newStatus = selectedStatuses[equipmentId];
-    const currentEquipment = equipment.find((item) => item.id === equipmentId);
+    const currentEquipment = filteredEquipment.find(
+      (item) => item.id === equipmentId
+    );
 
     if (newStatus === currentEquipment.status) {
       message.info("Статус не изменился");
@@ -309,11 +308,8 @@ const RepairsPage = () => {
 
       message.success(statusMessages[newStatus] || "Статус обновлен");
 
-      setEquipment((prev) =>
-        prev.map((item) =>
-          item.id === equipmentId ? { ...item, status: newStatus } : item
-        )
-      );
+      // OPTIMIZED: Refresh data using Redux action
+      dispatch(getMyEquipments());
     } catch (error) {
       message.error("Ошибка при обновлении статуса");
       console.error("Update status error:", error);
@@ -347,7 +343,8 @@ const RepairsPage = () => {
       setEditModalVisible(false);
       setSelectedEquipment(null);
       form.resetFields();
-      loadEquipment();
+      // OPTIMIZED: Refresh data using Redux action
+      dispatch(getMyEquipments());
     } catch (error) {
       message.error("Ошибка при обновлении оборудования");
       console.error("Update equipment error:", error);
@@ -495,11 +492,11 @@ const RepairsPage = () => {
     );
   };
 
-  const repairCount = equipment.filter(
+  const repairCount = filteredEquipment.filter(
     (item) => item.status === "NEEDS_REPAIR" || item.status === "REPAIR"
   ).length;
 
-  const disposedCount = equipment.filter(
+  const disposedCount = filteredEquipment.filter(
     (item) => item.status === "DISPOSED"
   ).length;
 

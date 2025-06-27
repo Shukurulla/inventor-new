@@ -12,7 +12,7 @@ import RepairsPage from "./pages/RepairsPage";
 import SettingsPage from "./pages/SettingsPage";
 import { initializeTheme } from "./store/slices/settingsSlice";
 
-// Import all async actions for centralized loading
+// Centralized data loading imports
 import { getUserActions } from "./store/slices/authSlice";
 import {
   getBuildings,
@@ -29,7 +29,6 @@ import {
   getAllSpecifications,
   getSpecificationCount,
 } from "./store/slices/specificationSlice";
-import { LogoLight } from "../public";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
@@ -64,49 +63,53 @@ function App() {
     };
   }, [dispatch]);
 
-  // Centralized data loading when user is authenticated
+  // OPTIMIZED: Centralized data loading - faqat bir marta token bor bo'lganda
   useEffect(() => {
     if (token && !isDataLoaded) {
       loadAllApplicationData();
     }
   }, [token, isDataLoaded]);
 
+  // OPTIMIZED: Parallel data loading with proper error handling
   const loadAllApplicationData = async () => {
     setIsAppLoading(true);
-    console.log("🚀 Starting centralized data loading...");
+    console.log("🚀 Starting optimized centralized data loading...");
 
     try {
-      // Load all essential data in parallel for better performance
-      const loadingPromises = [
-        // Auth related data
+      // Phase 1: Critical data that other components depend on
+      const criticalDataPromises = [
         dispatch(getUserActions()),
-
-        // University structure data
-        dispatch(getBuildings()),
-        dispatch(getUniversities()),
-        dispatch(getFloors()),
-        dispatch(getRooms()),
-
-        // Equipment related data
         dispatch(getEquipmentTypes()),
-        dispatch(getMyEquipments()),
-
-        // Contract data
-        dispatch(getContracts()),
-
-        // Specifications data
-        dispatch(getAllSpecifications()),
-        dispatch(getSpecificationCount()),
+        dispatch(getUniversities()),
+        dispatch(getBuildings()),
       ];
 
-      // Wait for all essential data to load
-      await Promise.allSettled(loadingPromises);
+      await Promise.allSettled(criticalDataPromises);
+      console.log("✅ Phase 1: Critical data loaded");
+
+      // Phase 2: General application data
+      const generalDataPromises = [
+        dispatch(getFloors()),
+        dispatch(getRooms()),
+        dispatch(getAllSpecifications()),
+        dispatch(getSpecificationCount()),
+        dispatch(getContracts()),
+      ];
+
+      await Promise.allSettled(generalDataPromises);
+      console.log("✅ Phase 2: General data loaded");
+
+      // Phase 3: User-specific data
+      const userDataPromises = [dispatch(getMyEquipments())];
+
+      await Promise.allSettled(userDataPromises);
+      console.log("✅ Phase 3: User-specific data loaded");
 
       console.log("✅ All application data loaded successfully");
       setIsDataLoaded(true);
     } catch (error) {
       console.error("❌ Error loading application data:", error);
-      // Even if some data fails, mark as loaded to prevent infinite loading
+      // Mark as loaded even if some data fails to prevent infinite loading
       setIsDataLoaded(true);
     } finally {
       setIsAppLoading(false);
@@ -131,6 +134,9 @@ function App() {
         <div className="text-center">
           <Spin size="large" />
           <p className="mt-4 text-gray-600">Загрузка данных приложения...</p>
+          <p className="mt-2 text-gray-500 text-sm">
+            Оптимизированная загрузка данных
+          </p>
         </div>
       </div>
     );

@@ -55,16 +55,17 @@ const AddedPage = () => {
 
   const dispatch = useDispatch();
 
-  // Get data from Redux store (already loaded in App.js)
+  // OPTIMIZED: Get data from Redux store (already loaded in App.jsx)
   const {
     myEquipments = [],
     equipmentTypes = [],
     loading,
   } = useSelector((state) => state.equipment);
-  const { buildings = [] } = useSelector((state) => state.university);
-  const { rooms = [] } = useSelector((state) => state.university);
+  const { buildings = [], rooms = [] } = useSelector(
+    (state) => state.university
+  );
 
-  // Получение данных оборудования в правильном формате
+  // OPTIMIZED: Use data from Redux store instead of separate validation
   const getValidEquipment = () => {
     if (!Array.isArray(myEquipments)) {
       console.warn("myEquipments не является массивом:", myEquipments);
@@ -188,8 +189,7 @@ const AddedPage = () => {
             );
             if (spec) {
               // Check if this specification is used by other equipment
-              const allEquipmentResponse = await equipmentAPI.getMyEquipments();
-              const otherEquipmentUsingSpec = allEquipmentResponse.data.filter(
+              const otherEquipmentUsingSpec = myEquipments.filter(
                 (eq) => eq.id !== equipment.id && eq[check.field] === spec.id
               );
 
@@ -257,7 +257,7 @@ const AddedPage = () => {
   const handleEditModalClose = () => {
     setEditModalVisible(false);
     setSelectedEquipment(null);
-    // Refresh equipment data
+    // OPTIMIZED: Refresh equipment data using Redux action
     dispatch(getMyEquipments());
   };
 
@@ -270,8 +270,7 @@ const AddedPage = () => {
     try {
       await dispatch(deleteEquipment(id)).unwrap();
       message.success("Оборудование успешно удалено!");
-      // Обновить список
-      dispatch(getMyEquipments());
+      // OPTIMIZED: Equipment will be automatically removed from store
     } catch (error) {
       console.error("Ошибка при удалении оборудования:", error);
       message.error("Ошибка при удалении оборудования");
@@ -722,7 +721,7 @@ const AddedPage = () => {
                 <h4 className="font-medium mb-3">QR Код</h4>
                 <div className="inline-block p-3 bg-white rounded-lg shadow-sm">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?data=${selectedEquipment.inn}&size=x&bgcolor=`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?data=${selectedEquipment.inn}&size=200x200&bgcolor=FFFFFF&color=000000&format=png`}
                     alt="QR Code"
                     className="w-32 h-32 mx-auto"
                   />
@@ -735,14 +734,15 @@ const AddedPage = () => {
           </div>
         )}
       </Modal>
-      {/* Edit Equipment Modal */}
 
+      {/* Edit Equipment Modal */}
       <EditEquipmentModal
         visible={editModalVisible}
         onCancel={handleEditModalClose}
         equipment={selectedEquipment}
         equipmentTypes={equipmentTypes}
       />
+
       {/* Dependency Check Modal */}
       <Modal
         title={

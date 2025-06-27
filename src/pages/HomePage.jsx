@@ -1,4 +1,4 @@
-// Enhanced HomePage.jsx with better equipment details display
+// Enhanced HomePage.jsx with optimized data usage from Redux store
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -7,7 +7,6 @@ import {
   Badge,
   Empty,
   Spin,
-  Breadcrumb,
   message,
   Tooltip,
   Tag,
@@ -59,6 +58,7 @@ const HomePage = () => {
     equipment: {},
   });
 
+  // OPTIMIZED: Get data from Redux store (already loaded in App.jsx)
   const {
     buildings = [],
     floorsByBuilding = {},
@@ -69,8 +69,44 @@ const HomePage = () => {
     error: universityError,
   } = useSelector((state) => state.university);
 
-  const { equipmentTypes = [] } = useSelector((state) => state.equipment);
+  const { equipmentTypes = [], myEquipments = [] } = useSelector(
+    (state) => state.equipment
+  );
 
+  // OPTIMIZED: Process equipment from Redux store instead of API calls
+  const processEquipmentForRoom = (roomId) => {
+    const roomEquipment = myEquipments.filter(
+      (eq) => eq.room === roomId || eq.room_data?.id === roomId
+    );
+
+    // Group by equipment type
+    const groupedByType = {};
+    roomEquipment.forEach((item) => {
+      const typeId = item.type_data?.id || item.type;
+      const typeName =
+        item.type_data?.name ||
+        equipmentTypes.find((t) => t.id === typeId)?.name ||
+        "Неизвестный тип";
+
+      if (!groupedByType[typeId]) {
+        groupedByType[typeId] = {
+          type: {
+            id: typeId,
+            name: typeName,
+          },
+          count: 0,
+          items: [],
+        };
+      }
+
+      groupedByType[typeId].count++;
+      groupedByType[typeId].items.push(item);
+    });
+
+    return Object.values(groupedByType);
+  };
+
+  // OPTIMIZED: Only refresh specific room equipment if needed
   const refreshRoomEquipment = async (roomId) => {
     try {
       setLoadingStates((prev) => ({
@@ -98,6 +134,7 @@ const HomePage = () => {
     setSelectedEquipmentType(null);
   };
 
+  // OPTIMIZED: Keep loading for floors, but not for equipment
   const handleBuildingExpand = async (buildingIds) => {
     if (buildingIds.length === 0) {
       setActiveBuildingPanels([]);
@@ -137,13 +174,18 @@ const HomePage = () => {
     setActiveFacultyPanels(newActiveFacultyPanels);
     setActiveRoomPanels(newActiveRoomPanels);
 
+    // LOADING for floors - show loading state when fetching floors
     for (const buildingId of newBuildingIds) {
       setLoadingStates((prev) => ({
         ...prev,
         floors: { ...prev.floors, [buildingId]: true },
       }));
 
-      if (!floorsByBuilding[buildingId]) {
+      // Only fetch floors if not already loaded
+      if (
+        !floorsByBuilding[buildingId] ||
+        floorsByBuilding[buildingId].length === 0
+      ) {
         try {
           await dispatch(getFloorsByBuilding(buildingId)).unwrap();
         } catch (error) {
@@ -151,7 +193,11 @@ const HomePage = () => {
         }
       }
 
-      if (!roomsByBuilding[buildingId]) {
+      // Only fetch rooms if not already loaded
+      if (
+        !roomsByBuilding[buildingId] ||
+        roomsByBuilding[buildingId].length === 0
+      ) {
         try {
           await dispatch(getRoomsByBuilding(buildingId)).unwrap();
         } catch (error) {
@@ -199,11 +245,6 @@ const HomePage = () => {
   const handleFacultyExpand = (buildingId, floorId) => async (facultyIds) => {
     const key = `${buildingId}-${floorId}`;
 
-    setLoadingStates((prev) => ({
-      ...prev,
-      rooms: { ...prev.rooms, [key]: true },
-    }));
-
     const newActiveRoomPanels = { ...activeRoomPanels };
 
     Object.keys(newActiveRoomPanels).forEach((roomKey) => {
@@ -222,13 +263,9 @@ const HomePage = () => {
       [key]: facultyIds,
     }));
     setActiveRoomPanels(newActiveRoomPanels);
-
-    setLoadingStates((prev) => ({
-      ...prev,
-      rooms: { ...prev.rooms, [key]: false },
-    }));
   };
 
+  // OPTIMIZED: Use equipment from Redux store instead of API calls
   const handleRoomExpand =
     (buildingId, floorId, facultyId) => async (roomIds) => {
       const key = `${buildingId}-${floorId}-${facultyId}`;
@@ -237,25 +274,20 @@ const HomePage = () => {
         [key]: roomIds,
       }));
 
+      // OPTIMIZED: Process equipment data from Redux store for each room
       for (const roomId of roomIds) {
-        setLoadingStates((prev) => ({
-          ...prev,
-          equipment: { ...prev.equipment, [roomId]: true },
-        }));
-
-        try {
-          await dispatch(getEquipmentTypesByRoom(roomId)).unwrap();
-        } catch (error) {
-          console.error(
-            `Ошибка загрузки типов оборудования комнаты ${roomId}:`,
-            error
-          );
+        // Check if we already have equipment data for this room
+        if (!equipmentTypesByRoom[roomId]) {
+          const processedEquipment = processEquipmentForRoom(roomId);
+          // Update the store directly without API call
+          dispatch({
+            type: "university/getEquipmentTypesByRoom/fulfilled",
+            payload: {
+              roomId,
+              equipmentTypes: processedEquipment,
+            },
+          });
         }
-
-        setLoadingStates((prev) => ({
-          ...prev,
-          equipment: { ...prev.equipment, [roomId]: false },
-        }));
       }
     };
 
@@ -276,10 +308,26 @@ const HomePage = () => {
     setEquipmentModalVisible(true);
   };
 
-  // Enhanced equipment rendering with detailed info
+  // OPTIMIZED: Use equipment data from Redux store - NO LOADING
   const renderEquipmentTypes = (roomId, room) => {
-    const equipmentTypesData = equipmentTypesByRoom[roomId] || [];
-    const isLoading = loadingStates.equipment[roomId];
+    // Get equipment from Redux store or process it
+    let equipmentTypesData = equipmentTypesByRoom[roomId];
+
+    // If not in store, process from myEquipments
+    if (!equipmentTypesData) {
+      equipmentTypesData = processEquipmentForRoom(roomId);
+      // Update store without API call
+      if (equipmentTypesData.length > 0) {
+        dispatch({
+          type: "university/getEquipmentTypesByRoom/fulfilled",
+          payload: {
+            roomId,
+            equipmentTypes: equipmentTypesData,
+          },
+        });
+      }
+    }
+
     const totalEquipment = equipmentTypesData.reduce(
       (total, typeData) =>
         total + (typeData.count || typeData.items?.length || 0),
@@ -293,77 +341,68 @@ const HomePage = () => {
             <Tag color="blue" className="text-xs">
               Всего: {totalEquipment} единиц
             </Tag>
-            <Tooltip title="Информация о комнате">
-              <FiInfo className="text-gray-400 cursor-help" />
+            <Tooltip title="Данные из локального хранилища">
+              <FiInfo className="text-green-400 cursor-help" />
             </Tooltip>
           </div>
           <Button
             icon={<FiRefreshCw className={refreshing ? "animate-spin" : ""} />}
             onClick={() => refreshRoomEquipment(roomId)}
             size="small"
-            disabled={isLoading}
             type="text"
+            title="Обновить с сервера"
           />
         </div>
 
-        {isLoading ? (
-          <div className="text-center py-8">
-            <Spin size="large" />
-            <p className="mt-4 text-gray-500">Загрузка оборудования...</p>
-          </div>
-        ) : (
-          <>
-            {equipmentTypesData.length > 0 && (
-              <div className="space-y-3 mb-4">
-                {equipmentTypesData.map((typeData) => {
-                  const typeName =
-                    typeData.type?.name || typeData.name || "Неизвестный тип";
-                  const count = typeData.count || typeData.items?.length || 0;
-                  const typeId = typeData.type?.id || typeData.id;
+        {equipmentTypesData.length > 0 && (
+          <div className="space-y-3 mb-4">
+            {equipmentTypesData.map((typeData) => {
+              const typeName =
+                typeData.type?.name || typeData.name || "Неизвестный тип";
+              const count = typeData.count || typeData.items?.length || 0;
+              const typeId = typeData.type?.id || typeData.id;
 
-                  return (
-                    <div
-                      key={typeId || Math.random()}
-                      className="p-4 bg-white rounded-lg border hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => handleEquipmentTypeClick(typeData, room)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                            <EquipmentIcon type={typeName} />
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-800">
-                              {typeName}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <Badge
-                            count={count}
-                            style={{ backgroundColor: "#6366f1" }}
-                          />
-                          <FiChevronRight className="text-gray-400" />
-                        </div>
+              return (
+                <div
+                  key={typeId || Math.random()}
+                  className="p-4 bg-white rounded-lg border hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleEquipmentTypeClick(typeData, room)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                        <EquipmentIcon type={typeName} />
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-800">
+                          {typeName}
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="text-center py-4">
-              <Button
-                icon={<FiPlus />}
-                onClick={() => handleAddEquipmentClick(room)}
-                className="bg-indigo-400 text-white py-2 hover:bg-indigo-600 border-indigo-600"
-                block
-              >
-                Добавить новую технику
-              </Button>
-            </div>
-          </>
+                    <div className="flex items-center space-x-3">
+                      <Badge
+                        count={count}
+                        style={{ backgroundColor: "#6366f1" }}
+                      />
+                      <FiChevronRight className="text-gray-400" />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
+
+        <div className="text-center py-4">
+          <Button
+            icon={<FiPlus />}
+            onClick={() => handleAddEquipmentClick(room)}
+            className="bg-indigo-400 text-white py-2 hover:bg-indigo-600 border-indigo-600"
+            block
+          >
+            Добавить новую технику
+          </Button>
+        </div>
       </div>
     );
   };
@@ -402,12 +441,11 @@ const HomePage = () => {
         activeKey={activeRoomPanels[key] || []}
       >
         {rooms.map((room) => {
-          const roomEquipment = equipmentTypesByRoom[room.id] || [];
-          const totalEquipment = roomEquipment.reduce(
-            (total, typeData) =>
-              total + (typeData.count || typeData.items?.length || 0),
-            0
+          // OPTIMIZED: Calculate equipment from Redux store
+          const roomEquipmentFromStore = myEquipments.filter(
+            (eq) => eq.room === room.id || eq.room_data?.id === room.id
           );
+          const totalEquipment = roomEquipmentFromStore.length;
 
           return (
             <Panel
@@ -423,8 +461,11 @@ const HomePage = () => {
                         {room.number} - {room.name}
                       </span>
                       {totalEquipment > 0 && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          {totalEquipment} единиц оборудования
+                        <div className="text-xs text-gray-500 mt-1 flex items-center space-x-1">
+                          <span>{totalEquipment} единиц оборудования</span>
+                          <span className="text-green-500">
+                            • Из локального хранилища
+                          </span>
                         </div>
                       )}
                     </div>
@@ -461,47 +502,38 @@ const HomePage = () => {
     }
 
     const key = `${buildingId}-${floorId}`;
-    const isLoading = loadingStates.rooms[key];
 
     return (
-      <>
-        {isLoading && (
-          <div className="text-center py-4">
-            <Spin size="small" />
-            <span className="ml-2 text-gray-500">Загрузка факультетов...</span>
-          </div>
+      <Collapse
+        ghost
+        accordion
+        expandIcon={({ isActive }) => (
+          <FiChevronRight
+            className={`transition-transform ${isActive ? "rotate-90" : ""}`}
+          />
         )}
-        <Collapse
-          ghost
-          accordion
-          expandIcon={({ isActive }) => (
-            <FiChevronRight
-              className={`transition-transform ${isActive ? "rotate-90" : ""}`}
-            />
-          )}
-          onChange={handleFacultyExpand(buildingId, floorId)}
-          activeKey={activeFacultyPanels[key] || []}
-        >
-          {faculties.map((faculty) => (
-            <Panel
-              key={faculty.id}
-              header={
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center">
-                      <FiHome className="text-green-600 text-sm" />
-                    </div>
-                    <span className="font-medium">{faculty.name}</span>
+        onChange={handleFacultyExpand(buildingId, floorId)}
+        activeKey={activeFacultyPanels[key] || []}
+      >
+        {faculties.map((faculty) => (
+          <Panel
+            key={faculty.id}
+            header={
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center space-x-3">
+                  <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center">
+                    <FiHome className="text-green-600 text-sm" />
                   </div>
-                  <FiChevronRight className="text-gray-400" />
+                  <span className="font-medium">{faculty.name}</span>
                 </div>
-              }
-            >
-              {renderRooms(buildingId, floorId, faculty.id)}
-            </Panel>
-          ))}
-        </Collapse>
-      </>
+                <FiChevronRight className="text-gray-400" />
+              </div>
+            }
+          >
+            {renderRooms(buildingId, floorId, faculty.id)}
+          </Panel>
+        ))}
+      </Collapse>
     );
   };
 

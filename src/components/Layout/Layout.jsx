@@ -33,11 +33,10 @@ import {
   FiMap,
   FiMapPin,
 } from "react-icons/fi";
-import { logout, getUserActions } from "../../store/slices/authSlice";
-import api, { equipmentAPI } from "../../services/api";
+import { logout } from "../../store/slices/authSlice";
 import {
-  getFilteredEquipment,
   scanQRCode,
+  getFilteredEquipment,
 } from "../../store/slices/equipmentSlice";
 import { LogoDark, LogoLight } from "../../../public";
 import { inventoryTypes } from "../../constants";
@@ -53,27 +52,19 @@ const Layout = ({ children }) => {
   const [searchValue, setSearchValue] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [mobileMenuVisible, setMobileMenuVisible] = useState(false);
-  const [rooms, setRooms] = useState([]);
 
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // OPTIMIZED: Use data from Redux store instead of separate API calls
   const { user, userActions } = useSelector((state) => state.auth);
   const { theme } = useSelector((state) => state.settings);
-  const [count, setCount] = useState(0);
+  const { myEquipments } = useSelector((state) => state.equipment);
+  const { rooms } = useSelector((state) => state.university);
 
-  useEffect(() => {
-    loadEquipment();
-  }, []);
-
-  const loadEquipment = async () => {
-    try {
-      const response = await equipmentAPI.getMyEquipments();
-      setCount(response.data.length);
-    } catch (error) {
-      console.error("Load equipment error:", error);
-    }
-  };
+  // OPTIMIZED: Get equipment count from store instead of API call
+  const count = myEquipments?.length || 0;
 
   // Get page title based on current route
   const getPageTitle = () => {
@@ -88,19 +79,8 @@ const Layout = ({ children }) => {
     return titles[location.pathname] || "iMaster";
   };
 
-  const getRooms = async () => {
-    try {
-      const { data } = await api.get("/university/rooms");
-      setRooms(data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  useEffect(() => {
-    dispatch(getUserActions());
-    getRooms();
-  }, [dispatch]);
+  // REMOVED: getUserActions dispatch - it's already loaded in App.jsx
+  // REMOVED: getRooms API call - it's already loaded in App.jsx
 
   const menuItems = [
     {
@@ -158,17 +138,18 @@ const Layout = ({ children }) => {
     });
   };
 
+  // OPTIMIZED: Search function using Redux actions
   const handleSearch = async () => {
     if (!searchValue.trim()) return;
 
     setSearchLoading(true);
     try {
-      // Avval QR kod bo'yicha qidirish
+      // Try QR code search first
       const qrResponse = await dispatch(scanQRCode(searchValue)).unwrap();
       setSearchResults([qrResponse]);
       setSearchModalVisible(true);
     } catch (error) {
-      // QR bo'yicha topilmasa, INN yoki nom bo'yicha qidirish
+      // If QR search fails, try regular search
       try {
         const filterResponse = await dispatch(
           getFilteredEquipment({
@@ -181,10 +162,9 @@ const Layout = ({ children }) => {
         setSearchResults(Array.isArray(results) ? results : []);
         setSearchModalVisible(true);
       } catch (err) {
-        console.error("Qidirishda xato:", err);
+        console.error("Search error:", err);
         setSearchResults([]);
         setSearchModalVisible(true);
-        message.error("Qidirishda xato yuz berdi");
       }
     } finally {
       setSearchLoading(false);
@@ -193,8 +173,6 @@ const Layout = ({ children }) => {
 
   const handleEquipmentDetails = (equipment) => {
     setSelectedEquipment(equipment);
-    console.log(equipment);
-
     setDetailModalVisible(true);
     setSearchModalVisible(false);
   };
@@ -223,6 +201,7 @@ const Layout = ({ children }) => {
     return `${diffInMonths} мес назад`;
   };
 
+  // OPTIMIZED: Render user actions from Redux store
   const renderUserActions = () => {
     if (!userActions || userActions.length === 0) {
       return (
@@ -295,10 +274,6 @@ const Layout = ({ children }) => {
     };
     return texts[status] || status;
   };
-
-  useEffect(() => {
-    console.log(searchResults);
-  }, [searchResults]);
 
   return (
     <AntLayout className="min-h-screen">
@@ -428,10 +403,11 @@ const Layout = ({ children }) => {
             </div>
           </Header>
 
-          <Content className="flex-1 p-4 lg:p-6 bg-gray-50  overflow-y-scroll">
-            <div className=" h-[50vh] w-100">{children}</div>
+          <Content className="flex-1 p-4 lg:p-6 bg-gray-50 overflow-y-scroll">
+            <div className="h-[50vh] w-100">{children}</div>
           </Content>
         </AntLayout>
+
         <Sider
           width={300}
           className="!bg-gray-50 border-l border-gray-100 hidden xl:block"
@@ -504,10 +480,9 @@ const Layout = ({ children }) => {
                           {equipment.type_data?.name}
                         </span>
                       </div>
-                      <div className="  text-sm text-gray-500 flex-wrap">
+                      <div className="text-sm text-gray-500 flex-wrap">
                         <div className="flex gap-3">
                           <span>ИНН: {equipment.inn}</span>
-
                           <span
                             className={`px-2 py-1 rounded text-xs ${getStatusColor(
                               equipment.status
