@@ -140,35 +140,39 @@ const Layout = ({ children }) => {
 
   // OPTIMIZED: Search function using Redux actions
   const handleSearch = async () => {
-    if (!searchValue.trim()) return;
-
     setSearchLoading(true);
-    try {
-      // Try QR code search first
-      const qrResponse = await dispatch(scanQRCode(searchValue)).unwrap();
-      setSearchResults([qrResponse]);
-      setSearchModalVisible(true);
-    } catch (error) {
-      // If QR search fails, try regular search
-      try {
-        const filterResponse = await dispatch(
-          getFilteredEquipment({
-            search: searchValue,
-            inn: searchValue,
-          })
-        ).unwrap();
+    if (!searchValue.trim()) return;
+    console.log(myEquipments.find((c) => c.inn == searchValue));
 
-        const results = filterResponse.results || filterResponse || [];
-        setSearchResults(Array.isArray(results) ? results : []);
-        setSearchModalVisible(true);
-      } catch (err) {
-        console.error("Search error:", err);
-        setSearchResults([]);
-        setSearchModalVisible(true);
-      }
-    } finally {
-      setSearchLoading(false);
-    }
+    await setSearchResults(myEquipments.filter((c) => c.inn == searchValue));
+    setSearchLoading(false);
+    setSearchModalVisible(true);
+    // try {
+    //   // Try QR code search first
+    //   const qrResponse = await dispatch(scanQRCode(searchValue)).unwrap();
+    //   setSearchResults([qrResponse]);
+    //   setSearchModalVisible(true);
+    // } catch (error) {
+    //   // If QR search fails, try regular search
+    //   try {
+    //     const filterResponse = await dispatch(
+    //       getFilteredEquipment({
+    //         search: encodeURIComponent(searchValue),
+    //         inn: encodeURIComponent(searchValue),
+    //       })
+    //     ).unwrap();
+
+    //     const results = filterResponse.results || filterResponse || [];
+
+    //     setSearchModalVisible(true);
+    //   } catch (err) {
+    //     console.error("Search error:", err);
+    //     setSearchResults([]);
+    //     setSearchModalVisible(true);
+    //   }
+    // } finally {
+    //   setSearchLoading(false);
+    // }
   };
 
   const handleEquipmentDetails = (equipment) => {
@@ -454,8 +458,8 @@ const Layout = ({ children }) => {
               <p className="mt-4 text-gray-500">Поиск...</p>
             </div>
           ) : searchResults.length > 0 ? (
-            searchResults.map((eq) => {
-              const equipment = JSON.parse(eq.body);
+            searchResults.map((equipment) => {
+              // const equipment = JSON.parse(eq.body);
 
               return (
                 <Card
@@ -465,7 +469,7 @@ const Layout = ({ children }) => {
                   onClick={() =>
                     handleEquipmentDetails({
                       ...equipment,
-                      title: eq.title,
+                      title: equipment.title,
                       room: rooms.find((c) => c.id == equipment.room)?.name,
                     })
                   }
@@ -474,7 +478,7 @@ const Layout = ({ children }) => {
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-2">
                         <span className="text-indigo-600 font-medium">
-                          {eq.title}
+                          {equipment.title}
                         </span>
                         <span className="text-gray-500 text-sm">
                           {equipment.type_data?.name}
