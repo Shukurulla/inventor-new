@@ -107,15 +107,22 @@ export const generateQRCodesPDF = async (equipmentData) => {
         currentTextY += 6;
       }
 
+      // Add INN below equipment name
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(60, 60, 60);
+      currentTextY += 6;
+      pdf.text(`INN: ${equipment.inn || "N/A"}`, x + 5, currentTextY);
+
       // QR Code section
       const qrSize = 30; // Reduced QR code size
       const qrX = x + 5;
-      const qrY = currentTextY + 2; // Place below equipment name
+      const qrY = currentTextY + 6; // Place below INN
 
       // Generate QR code URL
       let qrCodeUrl = null;
       if (equipment.inn) {
-        qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${equipment.uid}&size=200x200&bgcolor=FFFFFF&color=000000&format=png&margin=5`;
+        qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${equipment.inn}&size=200x200&bgcolor=FFFFFF&color=000000&format=png&margin=5`;
       }
 
       // Try to load and add QR code
