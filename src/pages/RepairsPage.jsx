@@ -1,4 +1,4 @@
-// RepairsPage.jsx - Optimized version using Redux store data
+// RepairsPage.jsx - Fixed version with pagination inside each accordion
 "use client";
 
 import { useEffect, useState } from "react";
@@ -18,6 +18,7 @@ import {
   Tag,
   Tabs,
   Tooltip,
+  Pagination,
 } from "antd";
 import { FiChevronRight, FiMapPin, FiSave } from "react-icons/fi";
 import { useSelector, useDispatch } from "react-redux";
@@ -40,6 +41,10 @@ const RepairsPage = () => {
   const [savingStatuses, setSavingStatuses] = useState({});
   const [filteredEquipment, setFilteredEquipment] = useState([]);
 
+  // Pagination states - har bir equipment type uchun alohida pagination
+  const [paginationStates, setPaginationStates] = useState({});
+  const pageSize = 5; // Har bir accordion uchun 5 ta item
+
   // OPTIMIZED: Use data from Redux store instead of separate API calls
   const { myEquipments = [], loading } = useSelector(
     (state) => state.equipment
@@ -61,6 +66,25 @@ const RepairsPage = () => {
       initialStatuses[item.id] = item.status;
     });
     setSelectedStatuses(initialStatuses);
+
+    // Initialize pagination states for each equipment type
+    const groupedEquipment = {};
+    filtered.forEach((item) => {
+      const typeName = item.type_data?.name || "Неизвестный тип";
+      if (!groupedEquipment[typeName]) {
+        groupedEquipment[typeName] = [];
+      }
+      groupedEquipment[typeName].push(item);
+    });
+
+    const initialPaginationStates = {};
+    Object.keys(groupedEquipment).forEach((typeName) => {
+      initialPaginationStates[typeName] = {
+        currentPage: 1,
+        pageSize: pageSize,
+      };
+    });
+    setPaginationStates(initialPaginationStates);
   }, [myEquipments]);
 
   const getFilteredEquipment = () => {
@@ -87,6 +111,42 @@ const RepairsPage = () => {
       grouped[typeName].push(item);
     });
     return grouped;
+  };
+
+  // Handle pagination change for specific equipment type
+  const handlePageChange = (typeName, page) => {
+    setPaginationStates((prev) => ({
+      ...prev,
+      [typeName]: {
+        ...prev[typeName],
+        currentPage: page,
+      },
+    }));
+  };
+
+  // Handle tab change
+  const handleTabChange = (key) => {
+    setActiveTab(key);
+    // Reset pagination for all types when tab changes
+    const newPaginationStates = {};
+    Object.keys(paginationStates).forEach((typeName) => {
+      newPaginationStates[typeName] = {
+        ...paginationStates[typeName],
+        currentPage: 1,
+      };
+    });
+    setPaginationStates(newPaginationStates);
+  };
+
+  // Get paginated items for specific equipment type
+  const getPaginatedItemsForType = (typeName, items) => {
+    const paginationState = paginationStates[typeName] || {
+      currentPage: 1,
+      pageSize: pageSize,
+    };
+    const startIndex = (paginationState.currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return items.slice(startIndex, endIndex);
   };
 
   // FIXED: Enhanced function to prepare equipment data consistently for all types
@@ -292,7 +352,6 @@ const RepairsPage = () => {
     try {
       const equipmentData = prepareEquipmentData(currentEquipment);
       const updateData = {
-        ...equipmentData,
         status: newStatus,
       };
 
@@ -334,7 +393,6 @@ const RepairsPage = () => {
       const equipmentData = prepareEquipmentData(selectedEquipment);
 
       const updateData = {
-        ...equipmentData,
         ...values,
       };
 
@@ -419,9 +477,9 @@ const RepairsPage = () => {
   };
 
   const renderEquipmentList = () => {
-    const groupedEquipment = groupEquipmentByType();
+    const groupedData = groupEquipmentByType();
 
-    if (Object.keys(groupedEquipment).length === 0) {
+    if (Object.keys(groupedData).length === 0) {
       const emptyMessage =
         activeTab === "repairs"
           ? "Нет оборудования, требующего ремонта"
@@ -436,59 +494,90 @@ const RepairsPage = () => {
     }
 
     return (
-      <Collapse
-        expandIcon={({ isActive }) => (
-          <FiChevronRight
-            className={`transition-transform ${isActive ? "rotate-90" : ""}`}
-          />
-        )}
-        className="space-y-2"
-      >
-        {Object.entries(groupedEquipment).map(([typeName, items]) => {
-          const statusCounts = {};
-          items.forEach((item) => {
-            statusCounts[item.status] = (statusCounts[item.status] || 0) + 1;
-          });
+      <div>
+        <Collapse
+          expandIcon={({ isActive }) => (
+            <FiChevronRight
+              className={`transition-transform ${isActive ? "rotate-90" : ""}`}
+            />
+          )}
+          className="space-y-2"
+        >
+          {Object.entries(groupedData).map(([typeName, items]) => {
+            const statusCounts = {};
+            items.forEach((item) => {
+              statusCounts[item.status] = (statusCounts[item.status] || 0) + 1;
+            });
 
-          const iconColor =
-            activeTab === "repairs" ? "text-orange-600" : "text-gray-600";
-          const bgColor =
-            activeTab === "repairs" ? "bg-orange-100" : "bg-gray-100";
+            const iconColor =
+              activeTab === "repairs" ? "text-orange-600" : "text-gray-600";
+            const bgColor =
+              activeTab === "repairs" ? "bg-orange-100" : "bg-gray-100";
 
-          return (
-            <Panel
-              key={typeName}
-              header={
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className={`w-8 h-8 ${bgColor} rounded-lg flex items-center justify-center`}
-                    >
-                      <EquipmentIcon type={typeName} className={iconColor} />
+            // Get paginated items for this type
+            const paginatedItems = getPaginatedItemsForType(typeName, items);
+            const currentPage = paginationStates[typeName]?.currentPage || 1;
+            const totalItems = items.length;
+
+            return (
+              <Panel
+                key={typeName}
+                header={
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`w-8 h-8 ${bgColor} rounded-lg flex items-center justify-center`}
+                      >
+                        <EquipmentIcon type={typeName} className={iconColor} />
+                      </div>
+                      <span className="font-medium">{typeName}</span>
                     </div>
-                    <span className="font-medium">{typeName}</span>
+                    <div className="flex items-center space-x-2 mr-4">
+                      {Object.entries(statusCounts).map(([status, count]) => {
+                        const statusConfig = getStatusConfig(status);
+                        return (
+                          <Badge
+                            key={status}
+                            count={count}
+                            style={{ backgroundColor: statusConfig.color }}
+                            title={statusConfig.text}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2 mr-4">
-                    {Object.entries(statusCounts).map(([status, count]) => {
-                      const statusConfig = getStatusConfig(status);
-                      return (
-                        <Badge
-                          key={status}
-                          count={count}
-                          style={{ backgroundColor: statusConfig.color }}
-                          title={statusConfig.text}
-                        />
-                      );
-                    })}
+                }
+              >
+                <div className="space-y-3">
+                  {/* Equipment items */}
+                  <div className="space-y-2">
+                    {paginatedItems.map(renderEquipmentItem)}
                   </div>
+
+                  {/* Pagination for this equipment type */}
+                  {totalItems > pageSize && (
+                    <div className="flex justify-center pt-4 border-t border-gray-100">
+                      <Pagination
+                        current={currentPage}
+                        pageSize={pageSize}
+                        total={totalItems}
+                        onChange={(page) => handlePageChange(typeName, page)}
+                        showSizeChanger={false}
+                        showQuickJumper={false}
+                        showTotal={(total, range) =>
+                          `${range[0]}-${range[1]} из ${total} единиц`
+                        }
+                        className="custom-pagination"
+                        size="default"
+                      />
+                    </div>
+                  )}
                 </div>
-              }
-            >
-              <div className="space-y-2">{items.map(renderEquipmentItem)}</div>
-            </Panel>
-          );
-        })}
-      </Collapse>
+              </Panel>
+            );
+          })}
+        </Collapse>
+      </div>
     );
   };
 
@@ -503,7 +592,7 @@ const RepairsPage = () => {
   return (
     <div>
       <Card className="shadow-sm">
-        <Tabs activeKey={activeTab} onChange={setActiveTab} className="mb-4">
+        <Tabs activeKey={activeTab} onChange={handleTabChange} className="mb-4">
           <TabPane
             tab={
               <span className="flex items-center space-x-2">

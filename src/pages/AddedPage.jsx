@@ -14,6 +14,7 @@ import {
   Input,
   Select,
   List,
+  Pagination,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -51,6 +52,11 @@ const AddedPage = () => {
     room_id: null,
     type_id: null,
   });
+
+  // Pagination states for each type
+  const [paginationByType, setPaginationByType] = useState({});
+  const [pageSize] = useState(5);
+
   const [form] = Form.useForm();
 
   const dispatch = useDispatch();
@@ -116,6 +122,27 @@ const AddedPage = () => {
     });
 
     return grouped;
+  };
+
+  // Get paginated items for specific type
+  const getPaginatedItemsForType = (typeName, items) => {
+    const currentPage = paginationByType[typeName] || 1;
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+
+    return {
+      paginatedItems: items.slice(startIndex, endIndex),
+      totalItems: items.length,
+      currentPage,
+    };
+  };
+
+  // Handle pagination change for specific type
+  const handlePageChangeForType = (typeName, page) => {
+    setPaginationByType((prev) => ({
+      ...prev,
+      [typeName]: page,
+    }));
   };
 
   // Enhanced dependency check for specifications
@@ -284,6 +311,8 @@ const AddedPage = () => {
       // Reset room filter when building changes
       ...(key === "building_id" ? { room_id: null } : {}),
     }));
+    // Reset pagination for all types when filters change
+    setPaginationByType({});
   };
 
   const clearFilters = () => {
@@ -292,6 +321,7 @@ const AddedPage = () => {
       room_id: null,
       type_id: null,
     });
+    setPaginationByType({});
   };
 
   const hasActiveFilters = () => {
@@ -418,31 +448,60 @@ const AddedPage = () => {
           )}
           className="space-y-2"
         >
-          {Object.entries(groupedEquipment).map(([typeName, items]) => (
-            <Panel
-              key={typeName}
-              header={
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                      <EquipmentIcon
-                        type={typeName}
-                        className="text-green-600"
+          {Object.entries(groupedEquipment).map(([typeName, items]) => {
+            const { paginatedItems, totalItems, currentPage } =
+              getPaginatedItemsForType(typeName, items);
+
+            return (
+              <Panel
+                key={typeName}
+                header={
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                        <EquipmentIcon
+                          type={typeName}
+                          className="text-green-600"
+                        />
+                      </div>
+                      <span className="font-medium">{typeName}</span>
+                    </div>
+                    <Badge
+                      count={totalItems}
+                      style={{ backgroundColor: "#6366f1" }}
+                      className="mr-4"
+                    />
+                  </div>
+                }
+              >
+                <div className="space-y-4">
+                  {/* Equipment Items */}
+                  <div className="space-y-2">
+                    {paginatedItems.map(renderEquipmentItem)}
+                  </div>
+
+                  {/* Pagination for this type */}
+                  {totalItems > pageSize && (
+                    <div className="flex justify-end pt-4 border-t">
+                      <Pagination
+                        current={currentPage}
+                        pageSize={pageSize}
+                        total={totalItems}
+                        onChange={(page) =>
+                          handlePageChangeForType(typeName, page)
+                        }
+                        showQuickJumper={false}
+                        showTotal={(total, range) =>
+                          `${range[0]}-${range[1]} из ${total} единиц`
+                        }
+                        size="default"
                       />
                     </div>
-                    <span className="font-medium">{typeName}</span>
-                  </div>
-                  <Badge
-                    count={items.length}
-                    style={{ backgroundColor: "#6366f1" }}
-                    className="mr-4"
-                  />
+                  )}
                 </div>
-              }
-            >
-              <div className="space-y-2">{items.map(renderEquipmentItem)}</div>
-            </Panel>
-          ))}
+              </Panel>
+            );
+          })}
         </Collapse>
       </div>
     );
@@ -538,6 +597,7 @@ const AddedPage = () => {
         {renderEquipmentList()}
       </Card>
 
+      {/* Detail Modal */}
       <Modal
         title="Подробная информация об оборудовании"
         open={detailModalVisible}
@@ -619,98 +679,6 @@ const AddedPage = () => {
                       ? `${selectedEquipment.room_data.number} - ${selectedEquipment.room_data.name}`
                       : "Не указано"}
                   </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Technical Characteristics */}
-            {selectedEquipment.computer_specification_data && (
-              <div>
-                <h4 className="font-medium mb-3">Характеристики компьютера</h4>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Процессор:</span>
-                      <div className="font-medium">
-                        {selectedEquipment.computer_specification_data.cpu}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">ОЗУ:</span>
-                      <div className="font-medium">
-                        {selectedEquipment.computer_specification_data.ram}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Накопитель:</span>
-                      <div className="font-medium">
-                        {selectedEquipment.computer_specification_data.storage}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Размер монитора:</span>
-                      <div className="font-medium">
-                        {
-                          selectedEquipment.computer_specification_data
-                            .monitor_size
-                        }
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Клавиатура:</span>
-                      <div className="font-medium">
-                        {selectedEquipment.computer_specification_data
-                          .has_keyboard
-                          ? "Есть"
-                          : "Нет"}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Мышь:</span>
-                      <div className="font-medium">
-                        {selectedEquipment.computer_specification_data.has_mouse
-                          ? "Есть"
-                          : "Нет"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Information about creation */}
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Информация о создании</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Автор:</span>
-                  <div className="font-medium">
-                    {selectedEquipment.author
-                      ? `${selectedEquipment.author.first_name} ${selectedEquipment.author.last_name}`
-                      : "Неизвестно"}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Роль автора:</span>
-                  <div className="font-medium">
-                    {selectedEquipment.author?.role || "Неизвестно"}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Email:</span>
-                  <div className="font-medium">
-                    {selectedEquipment.author?.email || "Неизвестно"}
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Дата создания:</span>
-                  <div className="font-medium">
-                    {selectedEquipment.created_at
-                      ? new Date(
-                          selectedEquipment.created_at
-                        ).toLocaleDateString()
-                      : "Неизвестно"}
-                  </div>
                 </div>
               </div>
             </div>

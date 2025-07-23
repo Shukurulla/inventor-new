@@ -404,9 +404,7 @@ export const specificationsAPI = {
 export const contractsAPI = {
   getContracts: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    return api.get(
-      `/inventory/contracts/${queryString ? `?${queryString}` : ""}`
-    );
+    return api.get(`/inventory/contracts/`);
   },
   createContract: (formData) => {
     return api.post("/inventory/contracts/", formData, {

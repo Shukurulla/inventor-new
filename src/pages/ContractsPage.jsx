@@ -1,8 +1,8 @@
-// src/pages/ContractsPage.jsx - Simplified version without dependency checks
+// src/pages/ContractsPage.jsx - Client-side pagination with all data loaded
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Card,
   Table,
@@ -40,15 +40,40 @@ const ContractsPage = () => {
   const [isFormValid, setIsFormValid] = useState(false);
   const [isEditFormValid, setIsEditFormValid] = useState(false);
 
+  // Local pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
   const dispatch = useDispatch();
 
-  // Get data from Redux store (already loaded in App.js)
-  const { contracts, loading, pagination } = useSelector(
-    (state) => state.contracts
-  );
+  // Get all data from Redux store
+  const { contracts, loading } = useSelector((state) => state.contracts);
+
+  // Load ALL contracts when component mounts
+  useEffect(() => {
+    // Load all contracts without pagination parameters
+    dispatch(getContracts());
+    console.log(contracts);
+  }, [dispatch]);
+
+  // Calculate paginated data on client side
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return contracts.slice(startIndex, endIndex);
+  }, [contracts, currentPage, pageSize]);
+
+  // Calculate total for pagination
+  const total = contracts.length;
+
+  // Handle pagination change (client-side only)
+  const handleTableChange = (paginationInfo) => {
+    setCurrentPage(paginationInfo.current);
+    setPageSize(paginationInfo.pageSize);
+  };
 
   // Validation for create form
   const validateCreateForm = () => {
@@ -93,6 +118,12 @@ const ContractsPage = () => {
       setCreateModalVisible(false);
       form.resetFields();
       setIsFormValid(false);
+
+      // Reload all contracts to get fresh data
+      dispatch(getContracts());
+
+      // Go to first page to see new contract
+      setCurrentPage(1);
     } catch (error) {
       message.error("Ошибка при создании договора");
     }
@@ -120,6 +151,9 @@ const ContractsPage = () => {
       setSelectedContract(null);
       editForm.resetFields();
       setIsEditFormValid(false);
+
+      // Reload all contracts to get fresh data
+      dispatch(getContracts());
     } catch (error) {
       message.error("Ошибка при обновлении договора");
     }
@@ -129,6 +163,16 @@ const ContractsPage = () => {
     try {
       await dispatch(deleteContract(id)).unwrap();
       message.success("Договор успешно удален!");
+
+      // Reload all contracts to get fresh data
+      dispatch(getContracts());
+
+      // Check if we need to go to previous page after deletion
+      const newTotal = total - 1;
+      const maxPage = Math.ceil(newTotal / pageSize);
+      if (currentPage > maxPage && maxPage > 0) {
+        setCurrentPage(maxPage);
+      }
     } catch (error) {
       message.error("Ошибка при удалении договора");
     }
@@ -250,22 +294,26 @@ const ContractsPage = () => {
         </div>
 
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">Список</h2>
+          <h2 className="text-lg font-semibold text-gray-800">
+            Список ({total} договоров)
+          </h2>
         </div>
 
         <Table
           columns={columns}
-          dataSource={contracts}
+          dataSource={paginatedData}
           rowKey="id"
           loading={loading}
+          onChange={handleTableChange}
           pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
+            current: currentPage,
+            pageSize: pageSize,
+            total: total,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
               `${range[0]}-${range[1]} из ${total} договоров`,
+            pageSizeOptions: ["5", "10", "20", "50", "100"],
           }}
           className="border rounded-lg"
         />

@@ -30,7 +30,12 @@ body {
 .font-roboto {
   font-family: "Roboto", sans-serif !important;
 }
-
+.dark .ant-pagination-total-text {
+  color: #fff;
+}
+.dark .ant-pagination-item-ellipsis {
+  color: #fff !important;
+}
 .dark .bg-orange-50.p-4.rounded-lg.border.border-orange-200 {
   background: #000 !important;
 }
