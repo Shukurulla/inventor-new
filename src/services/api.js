@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "https://invenmaster.pythonanywhere.com";
+const BASE_URL = "https://server.kerek.uz";
 
 // Create axios instance
 const api = axios.create({
