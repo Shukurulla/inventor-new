@@ -32,6 +32,7 @@ import {
   deleteContract,
 } from "../store/slices/contractSlice";
 import dayjs from "dayjs";
+import { authAPI } from "../services/api";
 
 const ContractsPage = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -51,12 +52,23 @@ const ContractsPage = () => {
 
   // Get all data from Redux store
   const { contracts, loading } = useSelector((state) => state.contracts);
+  const auth = useSelector((state) => state.auth);
+  const [profileData, setProfileData] = useState(null);
+
+  useEffect(() => {
+    const profile = async () => {
+      const { data } = await authAPI.getProfile();
+
+      setProfileData(data);
+    };
+    profile();
+  }, []);
 
   // Load ALL contracts when component mounts
   useEffect(() => {
     // Load all contracts without pagination parameters
     dispatch(getContracts());
-    console.log(contracts);
+    console.log(auth);
   }, [dispatch]);
 
   // Calculate paginated data on client side
@@ -250,19 +262,23 @@ const ContractsPage = () => {
             onClick={() => handleView(record)}
             className="text-indigo-500 hover:text-indigo-600"
           />
-          <Button
-            type="text"
-            icon={<FiEdit />}
-            onClick={() => openEditModal(record)}
-            className="text-orange-500 hover:text-orange-600"
-          />
-          <Button
-            type="text"
-            danger
-            icon={<FiTrash2 />}
-            onClick={() => handleDeleteClick(record)}
-            className="text-red-500 hover:text-red-600"
-          />
+          {record.author == profileData?.id && (
+            <>
+              <Button
+                type="text"
+                icon={<FiEdit />}
+                onClick={() => openEditModal(record)}
+                className="text-orange-500 hover:text-orange-600"
+              />
+              <Button
+                type="text"
+                danger
+                icon={<FiTrash2 />}
+                onClick={() => handleDeleteClick(record)}
+                className="text-red-500 hover:text-red-600"
+              />
+            </>
+          )}
           <Button
             type="text"
             icon={<FiDownload />}
