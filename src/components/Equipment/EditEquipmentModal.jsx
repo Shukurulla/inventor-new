@@ -9,10 +9,11 @@ import {
   message,
   Form,
   Upload,
+  Tooltip,
 } from "antd";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { FiUpload, FiPlus } from "react-icons/fi";
+import { FiUpload, FiPlus, FiInfo } from "react-icons/fi";
 import { updateEquipment } from "../../store/slices/equipmentSlice";
 import { getAllSpecifications } from "../../store/slices/specificationSlice";
 import { getContracts } from "../../store/slices/contractSlice";
@@ -44,17 +45,31 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
   const [fileList, setFileList] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Original values reference to track changes
+  const originalValues = useRef({});
+  const [changedFields, setChangedFields] = useState(new Set());
+
   const dispatch = useDispatch();
   const { equipmentTypes } = useSelector((state) => state.equipment);
   const { contracts } = useSelector((state) => state.contracts);
   const specifications = useSelector((state) => state.specifications);
 
   useEffect(() => {
+    console.log(equipment);
+
     if (visible) {
       dispatch(getAllSpecifications());
       dispatch(getContracts());
     }
   }, [visible, dispatch]);
+
+  // Add second useEffect to handle contract loading
+  useEffect(() => {
+    if (contracts.length > 0 && equipment?.contract_id && form) {
+      // Set contract_id after contracts are loaded
+      form.setFieldValue("contract_id", equipment.contract_id);
+    }
+  }, [contracts, equipment, form]);
 
   useEffect(() => {
     if (visible && equipment) {
@@ -63,6 +78,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
         message.error("Тип оборудования не указан");
         return;
       }
+
       const specFieldName = getSpecificationFieldName(typeId);
       const initialValues = {
         name: equipment.name || "",
@@ -70,81 +86,284 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
         status: equipment.status || "NEW",
         contract_id: equipment.contract_id || equipment.contract?.id || null,
         type: typeId,
+        inn: equipment.inn || "",
       };
 
+      // Get specification data based on equipment type
+      const specData = getSpecificationData(equipment);
+
       if (specFieldName) {
-        let specId = equipment[specFieldName];
-        if (!specId) {
-          const specObjectName = specFieldName.replace("_id", "");
-          const specObject = equipment[specObjectName];
-          if (specObject) {
-            specId = specObject.id;
+        // Check for existing specification ID in different places
+        let specId = null;
+
+        // Try to get specification ID from various sources
+        if (equipment[specFieldName]) {
+          specId = equipment[specFieldName];
+        } else if (specData?.id) {
+          specId = specData.id;
+        } else {
+          // Check for specification IDs in data fields
+          const specIdFieldMap = {
+            computer_specification_id: [
+              "computer_specification_data",
+              "computer_specification",
+              "computer_details",
+            ],
+            projector_specification_id: [
+              "projector_specification_data",
+              "projector_specification",
+              "projector_char",
+            ],
+            printer_specification_id: [
+              "printer_specification_data",
+              "printer_specification",
+              "printer_char",
+            ],
+            tv_specification_id: ["tv_specification_data", "tv_char"],
+            router_specification_id: [
+              "router_specification_data",
+              "router_specification",
+              "router_char",
+            ],
+            notebook_specification_id: [
+              "notebook_specification_data",
+              "notebook_specification",
+              "notebook_char",
+            ],
+            monoblok_specification_id: [
+              "monoblok_specification_data",
+              "monoblok_specification",
+              "monoblok_char",
+            ],
+            whiteboard_specification_id: [
+              "whiteboard_specification_data",
+              "whiteboard_specification",
+              "whiteboard_char",
+            ],
+            extender_specification_id: [
+              "extender_specification_data",
+              "extender_specification",
+              "extender_char",
+            ],
+            monitor_specification_id: [
+              "monitor_specification_data",
+              "monitor_specification",
+              "monitor_char",
+            ],
+          };
+
+          const possibleFields = specIdFieldMap[specFieldName] || [];
+          for (const field of possibleFields) {
+            if (equipment[field]?.id) {
+              specId = equipment[field].id;
+              break;
+            }
           }
         }
+
         if (specId) {
           initialValues[specFieldName] = specId;
         }
-      }
 
-      const spec =
-        equipment.computer_specification ||
-        equipment.projector_specification ||
-        equipment.printer_specification ||
-        equipment.tv_specification_data ||
-        equipment.router_specification ||
-        equipment.notebook_specification ||
-        equipment.monoblok_specification ||
-        equipment.whiteboard_specification ||
-        equipment.extender_specification ||
-        equipment.monitor_specification;
-
-      if (spec) {
-        setSelectedSpecification(spec);
-        initialValues.cpu = spec.cpu || "";
-        initialValues.ram = spec.ram || "";
-        if (spec.disk_specifications && spec.disk_specifications.length > 0) {
-          const storageInfo = spec.disk_specifications
-            .map((disk) => `${disk.capacity_gb}GB ${disk.disk_type}`)
-            .join(", ");
-          initialValues.storage = storageInfo;
-        } else {
-          initialValues.storage = spec.storage || "";
+        // Always set specification data if available
+        const effectiveSpecData =
+          specData ||
+          equipment.computer_details ||
+          equipment.notebook_char ||
+          equipment.monoblok_char;
+        if (effectiveSpecData) {
+          setSelectedSpecification(effectiveSpecData);
+          // Set specification details
+          Object.assign(
+            initialValues,
+            extractSpecificationDetails(effectiveSpecData, equipment)
+          );
         }
-        initialValues.monitor_size =
-          spec.monitor_size || spec.screen_size || "";
-        initialValues.has_mouse = spec.has_mouse || false;
-        initialValues.has_keyboard = spec.has_keyboard || false;
-        initialValues.model = spec.model || "";
-        initialValues.lumens = spec.lumens || "";
-        initialValues.resolution = spec.resolution || "";
-        initialValues.throw_type = spec.throw_type || "";
-        initialValues.screen_size = spec.screen_size || "";
-        initialValues.panel_type = spec.panel_type || "";
-        initialValues.refresh_rate = spec.refresh_rate || "";
-        initialValues.color = spec.color || false;
-        initialValues.duplex = spec.duplex || false;
-        initialValues.ports = spec.ports || "";
-        initialValues.wifi_standart = spec.wifi_standart || "";
-        initialValues.touch_type = spec.touch_type || "";
-        initialValues.length = spec.length || "";
-        initialValues.id = spec.id;
       }
 
-      if (equipment.image) {
+      // Handle image
+      if (equipment.photo || equipment.image) {
+        const imageUrl = equipment.photo || equipment.image;
         setFileList([
           {
             uid: "-1",
             name: "image.png",
             status: "done",
-            url: equipment.image,
+            url: imageUrl,
           },
         ]);
       }
 
+      // Store original values for comparison
+      originalValues.current = { ...initialValues };
+
       setFormValues(initialValues);
       form.setFieldsValue(initialValues);
+
+      // Reset changed fields
+      setChangedFields(new Set());
+
+      // Log for debugging
+      console.log("Initial values set:", initialValues);
+      console.log("Selected specification:", specData);
+      console.log("Contract ID:", initialValues.contract_id);
     }
   }, [visible, equipment, form, equipmentTypes]);
+
+  // Helper function to track changed fields
+  const trackFieldChange = (fieldName, newValue) => {
+    const originalValue = originalValues.current[fieldName];
+
+    // Compare values (handle null, undefined, and empty string cases)
+    const isChanged = !isEqual(originalValue, newValue);
+
+    setChangedFields((prev) => {
+      const newSet = new Set(prev);
+      if (isChanged) {
+        newSet.add(fieldName);
+      } else {
+        newSet.delete(fieldName);
+      }
+      return newSet;
+    });
+  };
+
+  // Helper function to compare values
+  const isEqual = (val1, val2) => {
+    // Handle null/undefined/empty string cases
+    if (
+      (val1 === null || val1 === undefined || val1 === "") &&
+      (val2 === null || val2 === undefined || val2 === "")
+    ) {
+      return true;
+    }
+
+    // Compare other values
+    return val1 === val2;
+  };
+
+  // Modified handleInputChange to track changes
+  const handleInputChange = (name, value) => {
+    setFormValues((prev) => ({ ...prev, [name]: value }));
+    form.setFieldValue(name, value);
+
+    // Track the change
+    trackFieldChange(name, value);
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: null }));
+    }
+  };
+
+  // Helper function to get specification data
+  const getSpecificationData = (equipment) => {
+    if (!equipment) return null;
+
+    return (
+      equipment.computer_specification_data ||
+      equipment.computer_specification ||
+      equipment.computer_details ||
+      equipment.projector_specification_data ||
+      equipment.projector_specification ||
+      equipment.projector_char ||
+      equipment.printer_specification_data ||
+      equipment.printer_specification ||
+      equipment.printer_char ||
+      equipment.tv_specification_data ||
+      equipment.tv_char ||
+      equipment.router_specification_data ||
+      equipment.router_specification ||
+      equipment.router_char ||
+      equipment.notebook_specification_data ||
+      equipment.notebook_specification ||
+      equipment.notebook_char ||
+      equipment.monoblok_specification_data ||
+      equipment.monoblok_specification ||
+      equipment.monoblok_char ||
+      equipment.whiteboard_specification_data ||
+      equipment.whiteboard_specification ||
+      equipment.whiteboard_char ||
+      equipment.extender_specification_data ||
+      equipment.extender_specification ||
+      equipment.extender_char ||
+      equipment.monitor_specification_data ||
+      equipment.monitor_specification ||
+      equipment.monitor_char ||
+      null
+    );
+  };
+
+  // Helper function to extract specification details
+  const extractSpecificationDetails = (spec, equipment) => {
+    const details = {};
+
+    if (spec) {
+      // Common fields
+      details.cpu = spec.cpu || "";
+      details.ram = spec.ram || "";
+      details.model = spec.model || "";
+
+      // Handle storage/disks
+      if (equipment.disks && equipment.disks.length > 0) {
+        const storageInfo = equipment.disks
+          .map((disk) => `${disk.capacity_gb}GB ${disk.disk_type}`)
+          .join(", ");
+        details.storage = storageInfo;
+      } else if (
+        spec.disk_specifications &&
+        spec.disk_specifications.length > 0
+      ) {
+        const storageInfo = spec.disk_specifications
+          .map((disk) => `${disk.capacity_gb}GB ${disk.disk_type}`)
+          .join(", ");
+        details.storage = storageInfo;
+      } else {
+        details.storage = spec.storage || "";
+      }
+
+      // Handle GPUs
+      if (equipment.gpus && equipment.gpus.length > 0) {
+        details.gpu = equipment.gpus.map((gpu) => gpu.model).join(", ");
+      }
+
+      // Monitor/screen size
+      details.monitor_size = spec.monitor_size || spec.screen_size || "";
+
+      // Computer specific
+      details.has_mouse = spec.has_mouse || false;
+      details.has_keyboard = spec.has_keyboard || false;
+
+      // Projector specific
+      details.lumens = spec.lumens || "";
+      details.resolution = spec.resolution || "";
+      details.throw_type = spec.throw_type || "";
+
+      // TV/Monitor specific
+      details.screen_size = spec.screen_size || "";
+      details.panel_type = spec.panel_type || "";
+      details.refresh_rate = spec.refresh_rate || "";
+
+      // Printer specific
+      details.color = spec.color || false;
+      details.duplex = spec.duplex || false;
+
+      // Router specific
+      details.ports = spec.ports || "";
+      details.wifi_standart = spec.wifi_standart || "";
+
+      // Whiteboard specific
+      details.touch_type = spec.touch_type || "";
+
+      // Extender specific
+      details.length = spec.length || "";
+
+      if (spec.id) {
+        details.id = spec.id;
+      }
+    }
+
+    return details;
+  };
 
   const getSpecificationFieldName = (typeId) => {
     const type = equipmentTypes.find((t) => t.id === typeId);
@@ -175,14 +394,6 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
     return specifications[specKey] || [];
   };
 
-  const handleInputChange = (name, value) => {
-    setFormValues((prev) => ({ ...prev, [name]: value }));
-    form.setFieldValue(name, value);
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: null }));
-    }
-  };
-
   const beforeUpload = (file) => {
     const isJpgOrPng = file.type === "image/jpeg" || file.type === "image/png";
     if (!isJpgOrPng) {
@@ -204,8 +415,16 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
         ...prev,
         image: newFileList[0]?.originFileObj,
       }));
+      // Track image change
+      setChangedFields((prev) => new Set([...prev, "image"]));
     } else {
       setFormValues((prev) => ({ ...prev, image: null }));
+      // Remove image from changed fields if deleted
+      setChangedFields((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete("image");
+        return newSet;
+      });
     }
   };
 
@@ -251,9 +470,13 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
       };
       setFormValues(newValues);
       form.setFieldsValue(newValues);
+
+      // Track specification change
+      trackFieldChange(specFieldName, value);
     } else {
       setFormValues((prev) => ({ ...prev, [specFieldName]: null }));
       form.setFieldsValue({ [specFieldName]: null });
+      trackFieldChange(specFieldName, null);
     }
   };
 
@@ -294,6 +517,9 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
         }));
         form.setFieldsValue({ [specFieldName]: response.id });
         setSelectedSpecification(response);
+
+        // Track specification change
+        trackFieldChange(specFieldName, response.id);
       }
       setCreateSpecModalVisible(false);
       message.success("Характеристика успешно создана!");
@@ -310,110 +536,55 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
     setIsSubmitting(true);
 
     try {
+      // Build update data with only changed fields
+      const updateData = {};
+
+      // Check each field for changes
+      changedFields.forEach((field) => {
+        if (field === "image") {
+          // Image will be handled separately
+          return;
+        }
+
+        // Only add changed fields to update data
+        if (values[field] !== undefined) {
+          updateData[field] = values[field];
+        }
+      });
+
+      // Special handling for specification fields
       const typeId = equipment?.type_data?.id || equipment?.type;
-      if (!typeId) {
-        message.error("Тип оборудования не указан");
+      const specFieldName = getSpecificationFieldName(typeId);
+
+      if (specFieldName && changedFields.has(specFieldName)) {
+        updateData[specFieldName] = values[specFieldName];
+      }
+
+      // Handle contract_id specifically if changed
+      if (changedFields.has("contract_id")) {
+        updateData.contract_id = values.contract_id || null;
+      }
+
+      // If no fields changed, just close the modal
+      if (Object.keys(updateData).length === 0 && !changedFields.has("image")) {
+        message.info("Никаких изменений не было внесено");
+        if (onCancel) {
+          onCancel();
+        }
         return;
       }
 
-      const type = equipmentTypes.find((t) => t.id === typeId);
-      const typeName = type?.name?.toLowerCase();
-      const specFieldName = getSpecificationFieldName(typeId);
-
-      // FIXED: Ensure contract_id is properly handled
-      const updateData = {
-        name: values.name,
-        description: values.description,
-        status: values.status,
-        type: typeId,
-      };
-
-      // FIXED: Handle contract_id specifically
-      if (values.contract_id) {
-        updateData.contract_id = values.contract_id;
-      } else {
-        // Explicitly set to null if no contract selected
-        updateData.contract_id = null;
-      }
-
-      // Add specification data based on equipment type
-      if (specFieldName && values[specFieldName]) {
-        updateData[specFieldName] = values[specFieldName];
-      } else {
-        // If no specification selected, add empty char data to satisfy backend requirements
-        if (typeName?.includes("компьютер")) {
-          updateData.computer_char = {
-            cpu: equipment.computer_details?.cpu || "",
-            ram: equipment.computer_details?.ram || "",
-            has_keyboard: equipment.computer_details?.has_keyboard || false,
-            has_mouse: equipment.computer_details?.has_mouse || false,
-          };
-        } else if (typeName?.includes("ноутбук")) {
-          updateData.notebook_char = {
-            cpu: equipment.notebook_details?.cpu || "",
-            ram: equipment.notebook_details?.ram || "",
-            has_keyboard: equipment.notebook_details?.has_keyboard || false,
-            has_mouse: equipment.notebook_details?.has_mouse || false,
-            screen_size: equipment.notebook_details?.screen_size || "",
-          };
-        } else if (typeName?.includes("моноблок")) {
-          updateData.monoblok_char = {
-            cpu: equipment.monoblok_details?.cpu || "",
-            ram: equipment.monoblok_details?.ram || "",
-            has_keyboard: equipment.monoblok_details?.has_keyboard || false,
-            has_mouse: equipment.monoblok_details?.has_mouse || false,
-            screen_size: equipment.monoblok_details?.screen_size || "",
-          };
-        } else if (typeName?.includes("проектор")) {
-          updateData.projector_char = {
-            model: equipment.projector_char?.model || "",
-            lumens: equipment.projector_char?.lumens || "",
-            resolution: equipment.projector_char?.resolution || "",
-            throw_type: equipment.projector_char?.throw_type || "",
-          };
-        } else if (typeName?.includes("принтер")) {
-          updateData.printer_char = {
-            model: equipment.printer_char?.model || "",
-            color: equipment.printer_char?.color || false,
-            duplex: equipment.printer_char?.duplex || false,
-          };
-        } else if (typeName?.includes("телевизор")) {
-          updateData.tv_char = {
-            model: equipment.tv_char?.model || "",
-            screen_size: equipment.tv_char?.screen_size || "",
-            panel_type: equipment.tv_char?.panel_type || "",
-            refresh_rate: equipment.tv_char?.refresh_rate || "",
-          };
-        } else if (typeName?.includes("роутер")) {
-          updateData.router_char = {
-            model: equipment.router_char?.model || "",
-            ports: equipment.router_char?.ports || "",
-            wifi_standart: equipment.router_char?.wifi_standart || "",
-          };
-        } else if (typeName?.includes("доска")) {
-          updateData.whiteboard_char = {
-            model: equipment.whiteboard_char?.model || "",
-            screen_size: equipment.whiteboard_char?.screen_size || "",
-            touch_type: equipment.whiteboard_char?.touch_type || "",
-          };
-        } else if (typeName?.includes("удлинитель")) {
-          updateData.extender_char = {
-            ports: equipment.extender_char?.ports || "",
-            length: equipment.extender_char?.length || "",
-          };
-        } else if (typeName?.includes("монитор")) {
-          updateData.monitor_char = {
-            model: equipment.monitor_char?.model || "",
-            screen_size: equipment.monitor_char?.screen_size || "",
-            panel_type: equipment.monitor_char?.panel_type || "",
-            refresh_rate: equipment.monitor_char?.refresh_rate || "",
-          };
-        }
-      }
+      // Log what's being sent
+      console.log("Changed fields:", Array.from(changedFields));
+      console.log("Update data being sent:", updateData);
 
       let finalData;
-      if (formValues.image) {
+
+      // Check if image was changed
+      if (changedFields.has("image") && formValues.image) {
         finalData = new FormData();
+
+        // Add only changed fields to FormData
         Object.entries(updateData).forEach(([key, value]) => {
           if (value !== null && value !== undefined) {
             if (typeof value === "object") {
@@ -423,10 +594,18 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
             }
           }
         });
+
+        // Add image
         finalData.append("image", formValues.image);
-      } else {
+      } else if (Object.keys(updateData).length > 0) {
+        // Send only changed fields as JSON
         finalData = updateData;
-        console.log("Sending JSON data:", finalData);
+      } else {
+        message.info("Никаких изменений не было внесено");
+        if (onCancel) {
+          onCancel();
+        }
+        return;
       }
 
       const response = await dispatch(
@@ -438,12 +617,10 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
 
       message.success("Оборудование успешно обновлено!");
 
-      // FIXED: Refresh the contract dependencies after successful update
       if (onCancel) {
         onCancel();
       }
     } catch (error) {
-      // Show more specific error message
       const errorMessage =
         error?.response?.data?.contract_id?.[0] ||
         error?.response?.data?.non_field_errors?.[0] ||
@@ -456,16 +633,60 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
     }
   };
 
+  // Helper function to get characteristic data
+  const getCharacteristicData = (typeName, equipment) => {
+    if (typeName?.includes("компьютер")) {
+      return {
+        field: "computer_char",
+        data: {
+          cpu: equipment.computer_details?.cpu || "",
+          ram: equipment.computer_details?.ram || "",
+          has_keyboard: equipment.computer_details?.has_keyboard || false,
+          has_mouse: equipment.computer_details?.has_mouse || false,
+        },
+      };
+    } else if (typeName?.includes("ноутбук")) {
+      return {
+        field: "notebook_char",
+        data: {
+          cpu: equipment.notebook_details?.cpu || "",
+          ram: equipment.notebook_details?.ram || "",
+          has_keyboard: equipment.notebook_details?.has_keyboard || false,
+          has_mouse: equipment.notebook_details?.has_mouse || false,
+          screen_size: equipment.notebook_details?.screen_size || "",
+        },
+      };
+    } else if (typeName?.includes("моноблок")) {
+      return {
+        field: "monoblok_char",
+        data: {
+          cpu: equipment.monoblok_details?.cpu || "",
+          ram: equipment.monoblok_details?.ram || "",
+          has_keyboard: equipment.monoblok_details?.has_keyboard || false,
+          has_mouse: equipment.monoblok_details?.has_mouse || false,
+          screen_size: equipment.monoblok_details?.screen_size || "",
+        },
+      };
+    }
+    // Add other equipment types as needed
+    return { field: null, data: null };
+  };
+
   const renderSpecificationSection = () => {
-    const typeId = equipment?.type;
+    const typeId = equipment?.type_data?.id || equipment?.type;
     const typeName = equipmentTypes
       ?.find((t) => t.id === typeId)
       ?.name?.toLowerCase();
     const availableSpecs = getSpecificationsForType(typeId);
     const specFieldName = getSpecificationFieldName(typeId);
-    const titleCharacteristics = (spec) => {
-      return "Caractristics";
-    };
+
+    // Get current specification from equipment data or selected specification
+    const currentSpec =
+      selectedSpecification ||
+      getSpecificationData(equipment) ||
+      equipment.computer_details ||
+      equipment.notebook_char ||
+      equipment.monoblok_char;
 
     return (
       <>
@@ -473,7 +694,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
           <Col span={12}>
             <Form.Item label="Характеристики" name={specFieldName}>
               <Select
-                placeholder={titleCharacteristics(equipment)}
+                placeholder="Выберите характеристику"
                 onChange={handleSpecificationChange}
                 style={{ height: "40px" }}
                 allowClear
@@ -504,304 +725,222 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
           </Col>
         </Row>
 
-        {selectedSpecification && (
-          <>
-            {(typeName?.includes("компьютер") ||
-              typeName?.includes("ноутбук") ||
-              typeName?.includes("моноблок")) && (
-              <>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Процессор">
-                      <Input
-                        value={selectedSpecification.cpu || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="ОЗУ">
-                      <Input
-                        value={selectedSpecification.ram || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Накопитель">
-                      <Input
-                        value={
-                          selectedSpecification.disk_specifications?.length > 0
-                            ? selectedSpecification.disk_specifications
-                                .map(
-                                  (disk) =>
-                                    `${disk.capacity_gb}GB ${disk.disk_type}`
-                                )
-                                .join(", ")
-                            : selectedSpecification.storage || "N/A"
-                        }
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Row gutter={[16, 16]}>
-                    <Col span={12}>
-                      <Form.Item label="Мышка">
-                        <Switch
-                          checked={selectedSpecification.has_mouse}
-                          disabled
-                        />
-                        <span className="ml-2">
-                          {selectedSpecification.has_mouse ? "Есть" : "Нет"}
-                        </span>
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item label="Клавиатура">
-                        <Switch
-                          checked={selectedSpecification.has_keyboard}
-                          disabled
-                        />
-                        <span className="ml-2">
-                          {selectedSpecification.has_keyboard ? "Есть" : "Нет"}
-                        </span>
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </Row>
-              </>
-            )}
+        {/* Always show specification details if available */}
+        {(currentSpec || equipment) &&
+          renderSpecificationDetails(typeName, currentSpec)}
 
-            {typeName?.includes("проектор") && (
-              <>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Модель">
-                      <Input
-                        value={selectedSpecification.model || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="Яркость (люмен)">
-                      <Input
-                        value={selectedSpecification.lumens || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Разрешение">
-                      <Input
-                        value={selectedSpecification.resolution || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="Тип проекции">
-                      <Input
-                        value={selectedSpecification.throw_type || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </>
-            )}
-
-            {typeName?.includes("принтер") && (
-              <>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Модель">
-                      <Input
-                        value={selectedSpecification.model || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="Цветная печать">
-                      <Switch checked={selectedSpecification.color} disabled />
-                      <span className="ml-2">
-                        {selectedSpecification.color ? "Есть" : "Нет"}
-                      </span>
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Двусторонняя печать">
-                      <Switch checked={selectedSpecification.duplex} disabled />
-                      <span className="ml-2">
-                        {selectedSpecification.duplex ? "Есть" : "Нет"}
-                      </span>
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </>
-            )}
-
-            {(typeName?.includes("телевизор") ||
-              typeName?.includes("монитор")) && (
-              <>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Модель">
-                      <Input
-                        value={selectedSpecification.model || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="Размер экрана (дюймы)">
-                      <Input
-                        value={selectedSpecification.screen_size || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Тип матрицы">
-                      <Input
-                        value={selectedSpecification.panel_type || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="Частота обновления (Hz)">
-                      <Input
-                        value={selectedSpecification.refresh_rate || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </>
-            )}
-
-            {typeName?.includes("роутер") && (
-              <>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Модель">
-                      <Input
-                        value={selectedSpecification.model || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="Количество портов">
-                      <Input
-                        value={selectedSpecification.ports || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="WiFi стандарт">
-                      <Input
-                        value={selectedSpecification.wifi_standart || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </>
-            )}
-
-            {typeName?.includes("доска") && (
-              <>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Модель">
-                      <Input
-                        value={selectedSpecification.model || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="Размер (дюймы)">
-                      <Input
-                        value={selectedSpecification.screen_size || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Тип касания">
-                      <Input
-                        value={selectedSpecification.touch_type || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </>
-            )}
-
-            {typeName?.includes("удлинитель") && (
-              <>
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Form.Item label="Количество портов">
-                      <Input
-                        value={selectedSpecification.ports || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="Длина кабеля (м)">
-                      <Input
-                        value={selectedSpecification.length || "N/A"}
-                        disabled
-                        style={{ height: "40px" }}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </>
-            )}
-          </>
-        )}
+        {/* Show equipment-specific raw data if no specification */}
+        {!currentSpec &&
+          equipment &&
+          (equipment.disks?.length > 0 || equipment.gpus?.length > 0) &&
+          renderEquipmentDetails(typeName, equipment)}
       </>
     );
+  };
+
+  const renderEquipmentDetails = (typeName, equipment) => {
+    // Show raw equipment data when no specification is selected
+    if (!equipment) return null;
+
+    const typeId = equipment?.type_data?.id || equipment?.type;
+    const type = equipmentTypes.find((t) => t.id === typeId);
+
+    if (!type) return null;
+
+    // Basic info that might be available
+  };
+
+  const renderSpecificationDetails = (typeName, spec) => {
+    if (!spec && !equipment) return null;
+
+    // Use spec or fall back to equipment data directly
+    const data =
+      spec ||
+      equipment.computer_details ||
+      equipment.notebook_char ||
+      equipment.monoblok_char ||
+      {};
+
+    if (
+      typeName?.includes("компьютер") ||
+      typeName?.includes("ноутбук") ||
+      typeName?.includes("моноблок")
+    ) {
+      return (
+        <>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Процессор">
+                <Input
+                  value={data.cpu || "N/A"}
+                  disabled
+                  style={{ height: "40px" }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="ОЗУ">
+                <Input
+                  value={data.ram || "N/A"}
+                  disabled
+                  style={{ height: "40px" }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Накопитель">
+                <Input
+                  value={
+                    equipment?.disks?.length > 0
+                      ? equipment.disks
+                          .map(
+                            (disk) => `${disk.capacity_gb}GB ${disk.disk_type}`
+                          )
+                          .join(", ")
+                      : data.disk_specifications?.length > 0
+                      ? data.disk_specifications
+                          .map(
+                            (disk) => `${disk.capacity_gb}GB ${disk.disk_type}`
+                          )
+                          .join(", ")
+                      : data.storage || "N/A"
+                  }
+                  disabled
+                  style={{ height: "40px" }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Видеокарта">
+                <Input
+                  value={
+                    equipment?.gpus?.length > 0
+                      ? equipment.gpus.map((gpu) => gpu.model).join(", ")
+                      : data.gpu || "N/A"
+                  }
+                  disabled
+                  style={{ height: "40px" }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          {(typeName?.includes("ноутбук") ||
+            typeName?.includes("моноблок")) && (
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Form.Item label="Размер экрана">
+                  <Input
+                    value={data.screen_size || data.monitor_size || "N/A"}
+                    disabled
+                    style={{ height: "40px" }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+          )}
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Мышка">
+                <Switch checked={data.has_mouse || false} disabled />
+                <span className="ml-2">{data.has_mouse ? "Есть" : "Нет"}</span>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Клавиатура">
+                <Switch checked={data.has_keyboard || false} disabled />
+                <span className="ml-2">
+                  {data.has_keyboard ? "Есть" : "Нет"}
+                </span>
+              </Form.Item>
+            </Col>
+          </Row>
+        </>
+      );
+    }
+
+    if (typeName?.includes("проектор")) {
+      return (
+        <>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Модель">
+                <Input
+                  value={spec.model || "N/A"}
+                  disabled
+                  style={{ height: "40px" }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Яркость (люмен)">
+                <Input
+                  value={spec.lumens || "N/A"}
+                  disabled
+                  style={{ height: "40px" }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Разрешение">
+                <Input
+                  value={spec.resolution || "N/A"}
+                  disabled
+                  style={{ height: "40px" }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Тип проекции">
+                <Input
+                  value={spec.throw_type || "N/A"}
+                  disabled
+                  style={{ height: "40px" }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </>
+      );
+    }
+
+    if (typeName?.includes("принтер")) {
+      return (
+        <>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Модель">
+                <Input
+                  value={spec.model || "N/A"}
+                  disabled
+                  style={{ height: "40px" }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item label="Цветная печать">
+                <Switch checked={spec.color} disabled />
+                <span className="ml-2">{spec.color ? "Есть" : "Нет"}</span>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={[16, 16]}>
+            <Col span={12}>
+              <Form.Item label="Двусторонняя печать">
+                <Switch checked={spec.duplex} disabled />
+                <span className="ml-2">{spec.duplex ? "Есть" : "Нет"}</span>
+              </Form.Item>
+            </Col>
+          </Row>
+        </>
+      );
+    }
+
+    // Add other equipment types rendering here...
+    return null;
   };
 
   if (!equipment) return null;
@@ -817,6 +956,8 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
           setSelectedSpecification(null);
           setFileList([]);
           setErrors({});
+          setChangedFields(new Set());
+          originalValues.current = {};
           onCancel();
         }}
         footer={null}
@@ -838,108 +979,172 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
             <Input type="hidden" />
           </Form.Item>
 
-          <Row gutter={[16, 16]}>
-            <Col span={12}>
-              <Form.Item
-                label="Название техники"
-                name="name"
-                rules={[{ required: true, message: "Введите название!" }]}
-              >
-                <Input
-                  placeholder="Название техники"
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  style={{ height: "40px" }}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <div className="flex mt-7 items-center justify-between h-[40px]">
-                <span className="text-gray-700 text-lg  font-semibold">
-                  Фото техники:
-                </span>
-                <Upload
-                  listType="picture-card"
-                  fileList={fileList}
-                  onChange={handleImageChange}
-                  beforeUpload={beforeUpload}
-                  maxCount={1}
-                  showUploadList={{
-                    showPreviewIcon: false,
-                    showRemoveIcon: true,
-                  }}
+          {/* Basic Information Section */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3 text-gray-700">
+              Основная информация
+            </h3>
+
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Form.Item
+                  label="Название техники"
+                  name="name"
+                  rules={[{ required: true, message: "Введите название!" }]}
                 >
-                  {fileList.length === 0 && (
-                    <div className="flex flex-col items-center">
-                      <FiUpload />
-                      <div style={{ marginTop: 8 }}>Загрузить</div>
-                    </div>
-                  )}
-                </Upload>
-              </div>
-            </Col>
-          </Row>
-
-          <Form.Item label="Описание" name="description">
-            <TextArea
-              rows={4}
-              placeholder="Описание:"
-              onChange={(e) => handleInputChange("description", e.target.value)}
-            />
-          </Form.Item>
-
-          <Row gutter={[16, 16]}>
-            <Col span={12}>
-              <Form.Item
-                label="Состояние"
-                name="status"
-                rules={[{ required: true, message: "Выберите состояние!" }]}
-              >
-                <Select
-                  placeholder="Выберите состояние"
-                  onChange={(value) => handleInputChange("status", value)}
-                  style={{ height: "40px" }}
+                  <Input
+                    placeholder="Название техники"
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    style={{ height: "40px" }}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label={
+                    <span>
+                      Инвентарный номер (INN)
+                      <Tooltip title="Уникальный инвентарный номер оборудования">
+                        <FiInfo className="ml-2 inline text-gray-400" />
+                      </Tooltip>
+                    </span>
+                  }
+                  name="inn"
+                  rules={[
+                    { required: true, message: "Введите инвентарный номер!" },
+                  ]}
                 >
-                  <Option value="NEW">Новое</Option>
-                  <Option value="WORKING">Работает</Option>
-                  <Option value="NEEDS_REPAIR">Требуется ремонт</Option>
-                  <Option value="DISPOSED">Утилизировано</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item label="Договор" name="contract_id">
-                <Select
-                  placeholder="Выберите договор"
-                  onChange={(value) => handleInputChange("contract_id", value)}
-                  allowClear
-                  style={{ height: "40px" }}
+                  <Input
+                    placeholder="Например: 2316532245"
+                    onChange={(e) => handleInputChange("inn", e.target.value)}
+                    style={{ height: "40px" }}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={[16, 16]}>
+              <Col span={12}>
+                <Form.Item
+                  label="Состояние"
+                  name="status"
+                  rules={[{ required: true, message: "Выберите состояние!" }]}
                 >
-                  {contracts.map((contract) => (
-                    <Option key={contract.id} value={contract.id}>
-                      {contract.number}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
+                  <Select
+                    placeholder="Выберите состояние"
+                    onChange={(value) => handleInputChange("status", value)}
+                    style={{ height: "40px" }}
+                  >
+                    <Option value="NEW">Новое</Option>
+                    <Option value="WORKING">Работает</Option>
+                    <Option value="NEEDS_REPAIR">Требуется ремонт</Option>
+                    <Option value="DISPOSED">Утилизировано</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="Договор" name="contract_id">
+                  <Select
+                    placeholder="Выберите договор"
+                    onChange={(value) =>
+                      handleInputChange("contract_id", value)
+                    }
+                    allowClear
+                    style={{ height: "40px" }}
+                  >
+                    {contracts.map((contract) => (
+                      <Option key={contract.id} value={contract.id}>
+                        {contract.number} - {contract.name || "Без названия"}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
 
-          {renderSpecificationSection()}
+            <Form.Item label="Описание" name="description">
+              <TextArea
+                rows={3}
+                placeholder="Введите описание оборудования"
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+              />
+            </Form.Item>
 
+            <Row gutter={[16, 16]}>
+              <Col span={24}>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-700 font-medium">
+                    Фото техники:
+                  </span>
+                  <Upload
+                    listType="picture-card"
+                    fileList={fileList}
+                    onChange={handleImageChange}
+                    beforeUpload={beforeUpload}
+                    maxCount={1}
+                    showUploadList={{
+                      showPreviewIcon: false,
+                      showRemoveIcon: true,
+                    }}
+                  >
+                    {fileList.length === 0 && (
+                      <div className="flex flex-col items-center">
+                        <FiUpload />
+                        <div style={{ marginTop: 8 }}>Загрузить</div>
+                      </div>
+                    )}
+                  </Upload>
+                </div>
+              </Col>
+            </Row>
+          </div>
+
+          {/* Technical Specifications Section */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3 text-gray-700">
+              Технические характеристики
+            </h3>
+            {renderSpecificationSection()}
+          </div>
+
+          {equipment?.repair_record && (
+            <div className="mb-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <h3 className="text-lg font-semibold mb-2 text-yellow-700">
+                Информация о ремонте
+              </h3>
+              <p className="text-sm text-yellow-600">Статус: В ремонте</p>
+            </div>
+          )}
+
+          {/* Show changed fields indicator */}
+          {changedFields.size > 0 && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-600">
+                Изменено полей: {changedFields.size} (
+                {Array.from(changedFields).join(", ")})
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
           <Row gutter={16} className="mt-6">
             <Col span={12}>
               <Button
                 type="default"
-                className="w-100  rounded-[10px] font-semibold text-white block bg-gray-500"
-                style={{ width: "100%" }}
+                className="w-full h-[45px] rounded-[10px] font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 border-0 transition-all duration-200"
                 onClick={() => {
                   form.resetFields();
                   setFormValues({});
                   setSelectedSpecification(null);
                   setFileList([]);
                   setErrors({});
+                  setChangedFields(new Set());
+                  originalValues.current = {};
                   onCancel();
                 }}
+                disabled={isSubmitting}
               >
                 Отмена
               </Button>
@@ -948,18 +1153,18 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
               <Button
                 type="primary"
                 htmlType="submit"
-                className="w-100  rounded-[10px] font-semibold text-white block bg-[#4E38F2]"
-                style={{ width: "100%" }}
-                disabled={isSubmitting}
+                className="w-full h-[45px] rounded-[10px] font-semibold text-white bg-[#4E38F2] hover:bg-[#3d2dc7] border-0 transition-all duration-200"
+                disabled={isSubmitting || changedFields.size === 0}
                 loading={isSubmitting}
               >
-                {isSubmitting ? "Сохранение..." : "Сохранить"}
+                {isSubmitting ? "Сохранение..." : "Сохранить изменения"}
               </Button>
             </Col>
           </Row>
         </Form>
       </Modal>
 
+      {/* Create Specification Modal */}
       <Modal
         title={null}
         visible={createSpecModalVisible}

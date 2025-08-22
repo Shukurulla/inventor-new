@@ -50,7 +50,6 @@ const CharacteristicsPage = () => {
   const dispatch = useDispatch();
   const specifications = useSelector((state) => state.specifications);
   const { equipmentTypes } = useSelector((state) => state.equipment);
-
   const equipmentTypeTemplates = [
     {
       name: "Проектор",
@@ -318,6 +317,7 @@ const CharacteristicsPage = () => {
             size="small"
             onClick={() => handleEditSpec(spec, type)}
           />
+          {}
           <Button
             type="text"
             danger

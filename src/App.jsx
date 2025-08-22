@@ -29,6 +29,7 @@ import {
   getAllSpecifications,
   getSpecificationCount,
 } from "./store/slices/specificationSlice";
+import { authAPI } from "./services/api";
 
 function App() {
   const { token } = useSelector((state) => state.auth);
