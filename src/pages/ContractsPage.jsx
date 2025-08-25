@@ -1,4 +1,4 @@
-// src/pages/ContractsPage.jsx - Client-side pagination with all data loaded
+// src/pages/ContractsPage.jsx - Redux version with enhanced file upload
 
 "use client";
 
@@ -24,6 +24,8 @@ import {
   FiDownload,
   FiUpload,
   FiFileText,
+  FiFile,
+  FiAlertCircle,
 } from "react-icons/fi";
 import {
   getContracts,
@@ -40,6 +42,12 @@ const ContractsPage = () => {
   const [selectedContract, setSelectedContract] = useState(null);
   const [isFormValid, setIsFormValid] = useState(false);
   const [isEditFormValid, setIsEditFormValid] = useState(false);
+
+  // File validation states
+  const [fileError, setFileError] = useState("");
+  const [editFileError, setEditFileError] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [editSelectedFile, setEditSelectedFile] = useState(null);
 
   // Local pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,7 +66,6 @@ const ContractsPage = () => {
   useEffect(() => {
     const profile = async () => {
       const { data } = await authAPI.getProfile();
-
       setProfileData(data);
     };
     profile();
@@ -66,9 +73,7 @@ const ContractsPage = () => {
 
   // Load ALL contracts when component mounts
   useEffect(() => {
-    // Load all contracts without pagination parameters
     dispatch(getContracts());
-    console.log(auth);
   }, [dispatch]);
 
   // Calculate paginated data on client side
@@ -81,6 +86,35 @@ const ContractsPage = () => {
   // Calculate total for pagination
   const total = contracts.length;
 
+  // File size formatting helper
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  // File validation function
+  const validateFile = (file) => {
+    const maxSize = 15 * 1024 * 1024; // 15MB in bytes
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      return "Поддерживаются только PDF, DOC, DOCX файлы";
+    }
+
+    if (file.size > maxSize) {
+      return "Размер файла не должен превышать 15 MB";
+    }
+
+    return null;
+  };
+
   // Handle pagination change (client-side only)
   const handleTableChange = (paginationInfo) => {
     setCurrentPage(paginationInfo.current);
@@ -91,7 +125,10 @@ const ContractsPage = () => {
   const validateCreateForm = () => {
     const values = form.getFieldsValue();
     const isValid =
-      values.number && values.number.trim() !== "" && values.signed_date;
+      values.number &&
+      values.number.trim() !== "" &&
+      values.signed_date &&
+      !fileError; // Include file error check
     setIsFormValid(isValid);
   };
 
@@ -99,8 +136,65 @@ const ContractsPage = () => {
   const validateEditForm = () => {
     const values = editForm.getFieldsValue();
     const isValid =
-      values.number && values.number.trim() !== "" && values.signed_date;
+      values.number &&
+      values.number.trim() !== "" &&
+      values.signed_date &&
+      !editFileError; // Include file error check
     setIsEditFormValid(isValid);
+  };
+
+  // Custom upload props for create modal
+  const createUploadProps = {
+    beforeUpload: (file) => {
+      const error = validateFile(file);
+      if (error) {
+        setFileError(error);
+        message.error(error);
+        return false;
+      }
+
+      setFileError("");
+      setSelectedFile(file);
+      return false; // Prevent auto upload
+    },
+    onRemove: () => {
+      setSelectedFile(null);
+      setFileError("");
+      validateCreateForm();
+    },
+    maxCount: 1,
+    accept: ".pdf,.doc,.docx",
+    showUploadList: {
+      showPreviewIcon: false,
+      showDownloadIcon: false,
+    },
+  };
+
+  // Custom upload props for edit modal
+  const editUploadProps = {
+    beforeUpload: (file) => {
+      const error = validateFile(file);
+      if (error) {
+        setEditFileError(error);
+        message.error(error);
+        return false;
+      }
+
+      setEditFileError("");
+      setEditSelectedFile(file);
+      return false;
+    },
+    onRemove: () => {
+      setEditSelectedFile(null);
+      setEditFileError("");
+      validateEditForm();
+    },
+    maxCount: 1,
+    accept: ".pdf,.doc,.docx",
+    showUploadList: {
+      showPreviewIcon: false,
+      showDownloadIcon: false,
+    },
   };
 
   // Direct delete without dependency check
@@ -121,8 +215,8 @@ const ContractsPage = () => {
       formData.append("number", values.number.trim());
       formData.append("signed_date", values.signed_date.format("YYYY-MM-DD"));
 
-      if (values.file && values.file.fileList && values.file.fileList[0]) {
-        formData.append("file", values.file.fileList[0].originFileObj);
+      if (selectedFile) {
+        formData.append("file", selectedFile);
       }
 
       await dispatch(createContract(formData)).unwrap();
@@ -130,6 +224,8 @@ const ContractsPage = () => {
       setCreateModalVisible(false);
       form.resetFields();
       setIsFormValid(false);
+      setSelectedFile(null);
+      setFileError("");
 
       // Reload all contracts to get fresh data
       dispatch(getContracts());
@@ -147,8 +243,8 @@ const ContractsPage = () => {
       formData.append("number", values.number.trim());
       formData.append("signed_date", values.signed_date.format("YYYY-MM-DD"));
 
-      if (values.file && values.file.fileList && values.file.fileList[0]) {
-        formData.append("file", values.file.fileList[0].originFileObj);
+      if (editSelectedFile) {
+        formData.append("file", editSelectedFile);
       }
 
       await dispatch(
@@ -163,6 +259,8 @@ const ContractsPage = () => {
       setSelectedContract(null);
       editForm.resetFields();
       setIsEditFormValid(false);
+      setEditSelectedFile(null);
+      setEditFileError("");
 
       // Reload all contracts to get fresh data
       dispatch(getContracts());
@@ -218,6 +316,8 @@ const ContractsPage = () => {
       signed_date: dayjs(contract.signed_date),
     });
     setEditModalVisible(true);
+    setEditFileError("");
+    setEditSelectedFile(null);
     // Validate initial form state
     setTimeout(validateEditForm, 0);
   };
@@ -225,6 +325,70 @@ const ContractsPage = () => {
   const openCreateModal = () => {
     setCreateModalVisible(true);
     setIsFormValid(false);
+    setFileError("");
+    setSelectedFile(null);
+  };
+
+  // Custom file list component
+  const FileDisplay = ({
+    file,
+    error,
+    onRemove,
+    showCurrent = false,
+    currentFileName = "",
+  }) => {
+    if (!file && !showCurrent) return null;
+
+    return (
+      <div className="mt-2">
+        {file && (
+          <div
+            className={`border rounded-lg p-3 ${
+              error ? "border-red-300 bg-red-50" : "border-gray-300 bg-gray-50"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FiFile className={error ? "text-red-500" : "text-blue-500"} />
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {file.name}
+                  </div>
+                  <div
+                    className={`text-xs ${
+                      error ? "text-red-600" : "text-gray-500"
+                    }`}
+                  >
+                    {formatFileSize(file.size)}
+                  </div>
+                </div>
+              </div>
+              {onRemove && (
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<FiTrash2 />}
+                  onClick={onRemove}
+                  className="text-gray-500 hover:text-red-500"
+                />
+              )}
+            </div>
+            {error && (
+              <div className="flex items-center mt-2 text-red-600 text-xs">
+                <FiAlertCircle className="mr-1" />
+                {error}
+              </div>
+            )}
+          </div>
+        )}
+
+        {showCurrent && currentFileName && !file && (
+          <div className="text-sm text-gray-500 mt-2">
+            Текущий файл: {currentFileName}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const columns = [
@@ -290,12 +454,6 @@ const ContractsPage = () => {
     },
   ];
 
-  const uploadProps = {
-    beforeUpload: () => false,
-    maxCount: 1,
-    accept: ".pdf,.doc,.docx",
-  };
-
   return (
     <div>
       <Card className="shadow-sm">
@@ -305,7 +463,7 @@ const ContractsPage = () => {
             className="bg-[#EEF2FF] create-contract p-7 border-[3px] rounded-xl border-[#6366F1] border-dashed text-lg font-semibold text-[#6366F1] items-center justify-center"
             style={{ display: "flex", width: "100%" }}
           >
-            <FiPlus size={20} /> Добавить новый договор
+            <FiPlus size={20} className="mr-2" /> Добавить новый договор
           </button>
         </div>
 
@@ -343,6 +501,8 @@ const ContractsPage = () => {
           setCreateModalVisible(false);
           form.resetFields();
           setIsFormValid(false);
+          setSelectedFile(null);
+          setFileError("");
         }}
         footer={null}
         width={600}
@@ -385,10 +545,24 @@ const ContractsPage = () => {
             />
           </Form.Item>
 
-          <Form.Item label="Файл договора" name="file" valuePropName="file">
-            <Upload {...uploadProps} listType="text">
-              <Button icon={<FiUpload />}>Выберите файл</Button>
+          <Form.Item label="Файл договора" name="file">
+            <Upload {...createUploadProps} listType="text">
+              <Button icon={<FiUpload />} disabled={!!selectedFile}>
+                Выберите файл
+              </Button>
             </Upload>
+            <div className="text-xs text-gray-500 mt-1">
+              Поддерживаемые форматы: PDF, DOC, DOCX (Макс: 15MB)
+            </div>
+            <FileDisplay
+              file={selectedFile}
+              error={fileError}
+              onRemove={() => {
+                setSelectedFile(null);
+                setFileError("");
+                validateCreateForm();
+              }}
+            />
           </Form.Item>
 
           <div className="flex justify-end space-x-2 mt-6">
@@ -397,6 +571,8 @@ const ContractsPage = () => {
                 setCreateModalVisible(false);
                 form.resetFields();
                 setIsFormValid(false);
+                setSelectedFile(null);
+                setFileError("");
               }}
             >
               Отмена
@@ -422,6 +598,8 @@ const ContractsPage = () => {
           setSelectedContract(null);
           editForm.resetFields();
           setIsEditFormValid(false);
+          setEditSelectedFile(null);
+          setEditFileError("");
         }}
         footer={null}
         width={600}
@@ -464,15 +642,30 @@ const ContractsPage = () => {
             />
           </Form.Item>
 
-          <Form.Item label="Файл договора" name="file" valuePropName="file">
-            <Upload {...uploadProps} listType="text">
-              <Button icon={<FiUpload />}>Выберите новый файл</Button>
+          <Form.Item label="Файл договора" name="file">
+            <Upload {...editUploadProps} listType="text">
+              <Button icon={<FiUpload />} disabled={!!editSelectedFile}>
+                Выберите новый файл
+              </Button>
             </Upload>
-            {selectedContract?.file && (
-              <div className="mt-2 text-sm text-gray-500">
-                Текущий файл: {selectedContract.file.split("/").pop()}
-              </div>
-            )}
+            <div className="text-xs text-gray-500 mt-1">
+              Поддерживаемые форматы: PDF, DOC, DOCX (Макс: 15MB)
+            </div>
+            <FileDisplay
+              file={editSelectedFile}
+              error={editFileError}
+              onRemove={() => {
+                setEditSelectedFile(null);
+                setEditFileError("");
+                validateEditForm();
+              }}
+              showCurrent={!editSelectedFile}
+              currentFileName={
+                selectedContract?.file
+                  ? selectedContract.file.split("/").pop()
+                  : ""
+              }
+            />
           </Form.Item>
 
           <div className="flex justify-end space-x-2 mt-6">
@@ -482,6 +675,8 @@ const ContractsPage = () => {
                 setSelectedContract(null);
                 editForm.resetFields();
                 setIsEditFormValid(false);
+                setEditSelectedFile(null);
+                setEditFileError("");
               }}
             >
               Отмена
