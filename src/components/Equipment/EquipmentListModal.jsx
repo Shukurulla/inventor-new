@@ -14,7 +14,7 @@ import { FiEdit, FiTrash2, FiPlus, FiEye } from "react-icons/fi";
 import { useDispatch } from "react-redux";
 import EquipmentIcon from "./EquipmentIcon";
 import EditEquipmentModal from "./EditEquipmentModal";
-import { equipmentAPI, specificationsAPI } from "../../services/api";
+import { authAPI, equipmentAPI, specificationsAPI } from "../../services/api";
 import { getEquipmentTypesByRoom } from "../../store/slices/universitySlice";
 import { getStatusText } from "../../utils/statusUtils";
 
@@ -24,8 +24,17 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
+  const [user, setUser] = useState(null);
 
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const { data } = await authAPI.getProfile();
+      setUser(data);
+    };
+    fetchUserData();
+  }, []);
 
   const refreshRoomData = async () => {
     if (room) {
@@ -193,35 +202,47 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
               <List.Item
                 key={equipment.id}
                 className="py-3 border-b last:border-b-0 hover:bg-gray-50 transition-colors"
-                actions={[
-                  <Button
-                    key="view"
-                    type="link"
-                    icon={<FiEye />}
-                    onClick={() => handleView(equipment)}
-                    className="text-blue-500 hover:text-blue-700"
-                  />,
-                  <Button
-                    key="edit"
-                    type="link"
-                    icon={<FiEdit />}
-                    onClick={() => handleEdit(equipment)}
-                    className="text-indigo-500 hover:text-indigo-700"
-                  />,
-                  <Popconfirm
-                    title="Вы уверены, что хотите удалить это оборудование?"
-                    onConfirm={() => handleDelete(equipment)}
-                    okText="Да"
-                    cancelText="Нет"
-                  >
-                    <Button
-                      key="delete"
-                      type="link"
-                      icon={<FiTrash2 />}
-                      className="text-red-500 hover:text-red-700"
-                    />
-                  </Popconfirm>,
-                ]}
+                actions={
+                  user?.role && user.role !== "user"
+                    ? [
+                        <Button
+                          key="view"
+                          type="link"
+                          icon={<FiEye />}
+                          onClick={() => handleView(equipment)}
+                          className="text-blue-500 hover:text-blue-700"
+                        />,
+                        <Button
+                          key="edit"
+                          type="link"
+                          icon={<FiEdit />}
+                          onClick={() => handleEdit(equipment)}
+                          className="text-indigo-500 hover:text-indigo-700"
+                        />,
+                        <Popconfirm
+                          title="Вы уверены, что хотите удалить это оборудование?"
+                          onConfirm={() => handleDelete(equipment)}
+                          okText="Да"
+                          cancelText="Нет"
+                        >
+                          <Button
+                            key="delete"
+                            type="link"
+                            icon={<FiTrash2 />}
+                            className="text-red-500 hover:text-red-700"
+                          />
+                        </Popconfirm>,
+                      ]
+                    : [
+                        <Button
+                          key="view"
+                          type="link"
+                          icon={<FiEye />}
+                          onClick={() => handleView(equipment)}
+                          className="text-blue-500 hover:text-blue-700"
+                        />,
+                      ]
+                }
               >
                 <div className="flex items-center w-full space-x-4">
                   <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">

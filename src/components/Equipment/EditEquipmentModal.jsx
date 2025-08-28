@@ -887,7 +887,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
             <Col span={12}>
               <Form.Item label="Разрешение">
                 <Input
-                  value={spec.resolution || "N/A"}
+                  value={spec?.resolution || "N/A"}
                   disabled
                   style={{ height: "40px" }}
                 />
@@ -896,7 +896,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
             <Col span={12}>
               <Form.Item label="Тип проекции">
                 <Input
-                  value={spec.throw_type || "N/A"}
+                  value={spec?.throw_type || "N/A"}
                   disabled
                   style={{ height: "40px" }}
                 />
@@ -922,7 +922,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
             </Col>
             <Col span={12}>
               <Form.Item label="Цветная печать">
-                <Switch checked={spec.color} disabled />
+                <Switch checked={spec?.color} disabled />
                 <span className="ml-2">{spec.color ? "Есть" : "Нет"}</span>
               </Form.Item>
             </Col>
@@ -930,7 +930,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
           <Row gutter={[16, 16]}>
             <Col span={12}>
               <Form.Item label="Двусторонняя печать">
-                <Switch checked={spec.duplex} disabled />
+                <Switch checked={spec?.duplex} disabled />
                 <span className="ml-2">{spec.duplex ? "Есть" : "Нет"}</span>
               </Form.Item>
             </Col>

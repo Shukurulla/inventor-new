@@ -283,7 +283,7 @@ const CreateEquipmentModal = ({
 
     // Projector
     if (typeName.includes("проектор")) {
-      if (spec?.lumens) updates.lumens spec?.lumens;
+      if (spec?.lumens) updates.lumens = spec?.lumens;
       if (spec.throw_type) updates.throw_type = spec.throw_type;
     }
 
