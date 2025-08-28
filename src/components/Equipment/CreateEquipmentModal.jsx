@@ -240,7 +240,7 @@ const CreateEquipmentModal = ({
     }
 
     // Common fields
-    if (spec.model) updates.model = spec.model;
+    if (spec?.model) updates.modelspec?.model;
     if (spec.resolution) updates.resolution = spec.resolution;
 
     // Computer, Notebook, Monoblok
@@ -258,7 +258,7 @@ const CreateEquipmentModal = ({
 
       // GPU specifications handling
       if (spec.gpu_specifications && spec.gpu_specifications.length > 0) {
-        updates.gpu_model = spec.gpu_specifications[0].model || "Unknown GPU";
+        updates.gpu_model = spec.gpu_specifications[0]?.model || "Unknown GPU";
       } else if (spec.gpu_model) {
         updates.gpu_model = spec.gpu_model;
       }
@@ -283,7 +283,7 @@ const CreateEquipmentModal = ({
 
     // Projector
     if (typeName.includes("проектор")) {
-      if (spec.lumens) updates.lumens = spec.lumens;
+      if (spec?.lumens) updates.lumens spec?.lumens;
       if (spec.throw_type) updates.throw_type = spec.throw_type;
     }
 
@@ -836,7 +836,7 @@ const CreateEquipmentModal = ({
                 {availableSpecs.length > 0 ? (
                   availableSpecs.map((spec) => (
                     <Option key={spec.id} value={spec.id}>
-                      {spec.model || spec.cpu || `Характеристика ${spec.id}`}
+                      {spec?.model || spec.cpu || `Характеристика ${spec.id}`}
                     </Option>
                   ))
                 ) : (
@@ -939,13 +939,13 @@ const CreateEquipmentModal = ({
                 <div>
                   <label className="text-gray-600 text-sm">Модель:</label>
                   <div className="font-medium">
-                    {selectedSpecification.model || "N/A"}
+                    {selectedSpecification?.model || "N/A"}
                   </div>
                 </div>
                 <div>
                   <label className="text-gray-600 text-sm">Яркость:</label>
                   <div className="font-medium">
-                    {selectedSpecification.lumens || "N/A"} люмен
+                    {selectedSpecification?.lumens || "N/A"} люмен
                   </div>
                 </div>
                 <div>
@@ -968,7 +968,7 @@ const CreateEquipmentModal = ({
                 <div>
                   <label className="text-gray-600 text-sm">Модель:</label>
                   <div className="font-medium">
-                    {selectedSpecification.model || "N/A"}
+                    {selectedSpecification?.model || "N/A"}
                   </div>
                 </div>
                 <div>
@@ -1004,7 +1004,7 @@ const CreateEquipmentModal = ({
                 <div>
                   <label className="text-gray-600 text-sm">Модель:</label>
                   <div className="font-medium">
-                    {selectedSpecification.model || "N/A"}
+                    {selectedSpecification?.model || "N/A"}
                   </div>
                 </div>
                 <div>
@@ -1045,7 +1045,7 @@ const CreateEquipmentModal = ({
                 <div>
                   <label className="text-gray-600 text-sm">Модель:</label>
                   <div className="font-medium">
-                    {selectedSpecification.model || "N/A"}
+                    {selectedSpecification?.model || "N/A"}
                   </div>
                 </div>
                 <div>
@@ -1072,7 +1072,7 @@ const CreateEquipmentModal = ({
                 <div>
                   <label className="text-gray-600 text-sm">Модель:</label>
                   <div className="font-medium">
-                    {selectedSpecification.model || "N/A"}
+                    {selectedSpecification?.model || "N/A"}
                   </div>
                 </div>
                 <div>

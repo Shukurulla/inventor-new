@@ -40,6 +40,17 @@ const RepairsPage = () => {
   const [selectedStatuses, setSelectedStatuses] = useState({});
   const [savingStatuses, setSavingStatuses] = useState({});
   const [filteredEquipment, setFilteredEquipment] = useState([]);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await authAPI.getProfile();
+      setUser(data);
+
+      return data;
+    };
+    fetchUser();
+  }, []);
 
   // Pagination states - har bir equipment type uchun alohida pagination
   const [paginationStates, setPaginationStates] = useState({});
@@ -166,7 +177,7 @@ const RepairsPage = () => {
         ...equipmentData,
         printer_char: equipment.printer_char ||
           equipment.printer_specification_data || {
-            model: equipment.model || "Unknown",
+            model: equipment?.model || "Unknown",
             serial_number: equipment.serial_number || "N/A",
             type: "Laser",
             color: equipment.color || false,
@@ -202,7 +213,7 @@ const RepairsPage = () => {
         ...equipmentData,
         notebook_char: equipment.notebook_char ||
           equipment.notebook_specification_data || {
-            model: equipment.model || "Unknown",
+            model: equipment?.model || "Unknown",
             serial_number: equipment.serial_number || "N/A",
             cpu: equipment.cpu || "Unknown CPU",
             ram: equipment.ram || "Unknown RAM",
@@ -224,7 +235,7 @@ const RepairsPage = () => {
         ...equipmentData,
         monoblok_char: equipment.monoblok_char ||
           equipment.monoblok_specification_data || {
-            model: equipment.model || "Unknown",
+            model: equipment?.model || "Unknown",
             serial_number: equipment.serial_number || "N/A",
             cpu: equipment.cpu || "Unknown CPU",
             ram: equipment.ram || "Unknown RAM",
@@ -248,9 +259,9 @@ const RepairsPage = () => {
         ...equipmentData,
         projector_char: equipment.projector_char ||
           equipment.projector_specification_data || {
-            model: equipment.model || "Unknown",
+            model: equipment?.model || "Unknown",
             serial_number: equipment.serial_number || "N/A",
-            lumens: equipment.lumens || "Unknown",
+            lumens: equipment?.lumens || "Unknown",
             resolution: equipment.resolution || "Unknown",
             throw_type: equipment.throw_type || "standard",
           },
@@ -262,7 +273,7 @@ const RepairsPage = () => {
         ...equipmentData,
         tv_char: equipment.tv_char ||
           equipment.tv_specification_data || {
-            model: equipment.model || "Unknown",
+            model: equipment?.model || "Unknown",
             serial_number: equipment.serial_number || "N/A",
             screen_size: equipment.screen_size || "Unknown",
             resolution: equipment.resolution || "Unknown",
@@ -275,7 +286,7 @@ const RepairsPage = () => {
         ...equipmentData,
         router_char: equipment.router_char ||
           equipment.router_specification_data || {
-            model: equipment.model || "Unknown",
+            model: equipment?.model || "Unknown",
             serial_number: equipment.serial_number || "N/A",
             ports: equipment.ports || "Unknown",
             wifi_standart: equipment.wifi_standart || "Unknown",
@@ -287,7 +298,7 @@ const RepairsPage = () => {
         ...equipmentData,
         monitor_char: equipment.monitor_char ||
           equipment.monitor_specification_data || {
-            model: equipment.model || "Unknown",
+            model: equipment?.model || "Unknown",
             serial_number: equipment.serial_number || "N/A",
             screen_size: equipment.screen_size || "Unknown",
             resolution: equipment.resolution || "Unknown",
@@ -301,7 +312,7 @@ const RepairsPage = () => {
         ...equipmentData,
         whiteboard_char: equipment.whiteboard_char ||
           equipment.whiteboard_specification_data || {
-            model: equipment.model || "Unknown",
+            model: equipment?.model || "Unknown",
             serial_number: equipment.serial_number || "N/A",
             screen_size: equipment.screen_size || "Unknown",
             touch_type: equipment.touch_type || "Unknown",
@@ -317,7 +328,7 @@ const RepairsPage = () => {
         ...equipmentData,
         extender_char: equipment.extender_char ||
           equipment.extender_specification_data || {
-            model: equipment.model || "Unknown",
+            model: equipment?.model || "Unknown",
             serial_number: equipment.serial_number || "N/A",
             ports: equipment.ports || "Unknown",
             length: equipment.length || "Unknown",
@@ -441,36 +452,39 @@ const RepairsPage = () => {
               </p>
             </div>
           </div>
+          {user?.role && user.role !== "user" ? (
+            <div className="flex items-center gap-2">
+              <Select
+                value={currentSelectedStatus}
+                onChange={(value) => handleStatusChange(item.id, value)}
+                style={{ width: 180 }}
+                placeholder="Выберите статус"
+              >
+                {getStatusOptions().map((option) => (
+                  <Option key={option.value} value={option.value}>
+                    {option.label}
+                  </Option>
+                ))}
+              </Select>
 
-          <div className="flex items-center gap-2">
-            <Select
-              value={currentSelectedStatus}
-              onChange={(value) => handleStatusChange(item.id, value)}
-              style={{ width: 180 }}
-              placeholder="Выберите статус"
-            >
-              {getStatusOptions().map((option) => (
-                <Option key={option.value} value={option.value}>
-                  {option.label}
-                </Option>
-              ))}
-            </Select>
-
-            {hasStatusChanged && (
-              <Tooltip title="Сохранить изменения">
-                <Button
-                  type="primary"
-                  icon={<FiSave />}
-                  loading={isSaving}
-                  onClick={() => handleSaveStatus(item.id)}
-                  className="bg-[#4E38F2] border-[#4E38F2] hover:bg-[#3d2bc7]"
-                  size="small"
-                >
-                  {isSaving ? "Сохранение..." : "Сохранить"}
-                </Button>
-              </Tooltip>
-            )}
-          </div>
+              {hasStatusChanged && (
+                <Tooltip title="Сохранить изменения">
+                  <Button
+                    type="primary"
+                    icon={<FiSave />}
+                    loading={isSaving}
+                    onClick={() => handleSaveStatus(item.id)}
+                    className="bg-[#4E38F2] border-[#4E38F2] hover:bg-[#3d2bc7]"
+                    size="small"
+                  >
+                    {isSaving ? "Сохранение..." : "Сохранить"}
+                  </Button>
+                </Tooltip>
+              )}
+            </div>
+          ) : (
+            ""
+          )}
         </div>
       </div>
     );

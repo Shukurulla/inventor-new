@@ -301,7 +301,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
       // Common fields
       details.cpu = spec.cpu || "";
       details.ram = spec.ram || "";
-      details.model = spec.model || "";
+      details.model = spec?.model || "";
 
       // Handle storage/disks
       if (equipment.disks && equipment.disks.length > 0) {
@@ -323,7 +323,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
 
       // Handle GPUs
       if (equipment.gpus && equipment.gpus.length > 0) {
-        details.gpu = equipment.gpus.map((gpu) => gpu.model).join(", ");
+        details.gpu = equipment.gpus.map((gpu) => gpu?.model).join(", ");
       }
 
       // Monitor/screen size
@@ -334,7 +334,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
       details.has_keyboard = spec.has_keyboard || false;
 
       // Projector specific
-      details.lumens = spec.lumens || "";
+      details.lumens = spec?.lumens || "";
       details.resolution = spec.resolution || "";
       details.throw_type = spec.throw_type || "";
 
@@ -702,7 +702,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
                 {availableSpecs.length > 0 ? (
                   availableSpecs.map((spec) => (
                     <Option key={spec.id} value={spec.id}>
-                      {spec.model || spec.cpu || `Шаблон ${spec.id}`}
+                      {spec?.model || spec.cpu || `Шаблон ${spec.id}`}
                     </Option>
                   ))
                 ) : (
@@ -817,7 +817,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
                 <Input
                   value={
                     equipment?.gpus?.length > 0
-                      ? equipment.gpus.map((gpu) => gpu.model).join(", ")
+                      ? equipment.gpus.map((gpu) => gpu?.model).join(", ")
                       : data.gpu || "N/A"
                   }
                   disabled
@@ -867,7 +867,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
             <Col span={12}>
               <Form.Item label="Модель">
                 <Input
-                  value={spec.model || "N/A"}
+                  value={spec?.model || "N/A"}
                   disabled
                   style={{ height: "40px" }}
                 />
@@ -876,7 +876,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
             <Col span={12}>
               <Form.Item label="Яркость (люмен)">
                 <Input
-                  value={spec.lumens || "N/A"}
+                  value={spec?.lumens || "N/A"}
                   disabled
                   style={{ height: "40px" }}
                 />
@@ -914,7 +914,7 @@ const EditEquipmentModal = ({ visible, onCancel, equipment }) => {
             <Col span={12}>
               <Form.Item label="Модель">
                 <Input
-                  value={spec.model || "N/A"}
+                  value={spec?.model || "N/A"}
                   disabled
                   style={{ height: "40px" }}
                 />

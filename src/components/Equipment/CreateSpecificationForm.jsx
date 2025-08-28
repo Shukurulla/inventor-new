@@ -50,7 +50,7 @@ const CreateSpecificationForm = ({
         initialData.gpu_specifications &&
         initialData.gpu_specifications.length > 0
       ) {
-        formValues.gpu_model = initialData.gpu_specifications[0].model;
+        formValues.gpu_model = initialData.gpu_specifications[0]?.model;
       }
 
       // Set other form values including title

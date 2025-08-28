@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   Tabs,
@@ -29,7 +29,7 @@ import {
   createExtenderSpec,
   createMonitorSpec,
 } from "../store/slices/specificationSlice";
-import { specificationsAPI } from "../services/api";
+import { authAPI, specificationsAPI } from "../services/api";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateSpecificationForm from "../components/Equipment/CreateSpecificationForm";
 
@@ -43,13 +43,23 @@ const CharacteristicsPage = () => {
   const [selectedType, setSelectedType] = useState(null);
   const [selectedSpec, setSelectedSpec] = useState(null);
   const [deletingSpecs, setDeletingSpecs] = useState(new Set());
-
+  const [user, setUser] = useState(null);
   const [specForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
   const dispatch = useDispatch();
   const specifications = useSelector((state) => state.specifications);
   const { equipmentTypes } = useSelector((state) => state.equipment);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await authAPI.getProfile();
+      setUser(data);
+
+      return data;
+    };
+    fetchUser();
+  }, []);
   const equipmentTypeTemplates = [
     {
       name: "Проектор",
@@ -94,7 +104,7 @@ const CharacteristicsPage = () => {
   // Direct delete without dependency check
   const handleDeleteSpec = async (spec, typeName) => {
     const specKey = `${typeName}-${spec.id}`;
-    const specName = spec.model || spec.cpu || `Характеристика ${spec.id}`;
+    const specName = spec?.model || spec.cpu || `Характеристика ${spec.id}`;
 
     Modal.confirm({
       title: "Удалить характеристику?",
@@ -265,12 +275,16 @@ const CharacteristicsPage = () => {
               </div>
               <span className="font-medium text-gray-900">{template.name}</span>
             </div>
-            <Button
-              type="text"
-              icon={<FiPlus />}
-              onClick={() => handleCreateSpec(template.name)}
-              className="text-indigo-500 hover:text-indigo-600"
-            />
+            {user?.role && user.role !== "user" ? (
+              <Button
+                type="text"
+                icon={<FiPlus />}
+                onClick={() => handleCreateSpec(template.name)}
+                className="text-indigo-500 hover:text-indigo-600"
+              />
+            ) : (
+              ""
+            )}
           </div>
         ))}
       </div>
@@ -283,7 +297,7 @@ const CharacteristicsPage = () => {
       <div className="flex items-center justify-between p-3 bg-white rounded-lg border mb-2">
         <div className="flex-1">
           <div className="font-medium text-gray-800">
-            {spec.model || spec.cpu || `${type} - ID: ${spec.id}`}
+            {spec?.model || spec.cpu || `${type} - ID: ${spec.id}`}
           </div>
           <div className="text-sm text-gray-500 mt-1">
             {type === "Принтер" && `Принтер - ID: ${spec.id}`}
@@ -291,8 +305,8 @@ const CharacteristicsPage = () => {
               spec.cpu &&
               `CPU: ${spec.cpu}, RAM: ${spec.ram}`}
             {type === "Проектор" &&
-              spec.lumens &&
-              `Яркость: ${spec.lumens} люмен`}
+              spec?.lumens &&
+              `Яркость: ${spec?.lumens} люмен`}
             {type === "Телевизор" &&
               spec.screen_size &&
               `Размер: ${spec.screen_size}"`}
@@ -310,23 +324,27 @@ const CharacteristicsPage = () => {
               `Размер: ${spec.screen_size}" ${spec.panel_type}`}
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            type="text"
-            icon={<FiEdit />}
-            size="small"
-            onClick={() => handleEditSpec(spec, type)}
-          />
-          {}
-          <Button
-            type="text"
-            danger
-            icon={<FiTrash2 />}
-            size="small"
-            loading={deletingSpecs.has(specKey)}
-            onClick={() => handleDeleteSpec(spec, type)}
-          />
-        </div>
+        {user?.role && user.role !== "user" ? (
+          <div className="flex items-center space-x-2">
+            <Button
+              type="text"
+              icon={<FiEdit />}
+              size="small"
+              onClick={() => handleEditSpec(spec, type)}
+            />
+            {}
+            <Button
+              type="text"
+              danger
+              icon={<FiTrash2 />}
+              size="small"
+              loading={deletingSpecs.has(specKey)}
+              onClick={() => handleDeleteSpec(spec, type)}
+            />
+          </div>
+        ) : (
+          ""
+        )}
       </div>
     );
   };

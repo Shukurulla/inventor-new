@@ -31,6 +31,7 @@ import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import CreateEquipmentModal from "../components/Equipment/CreateEquipmentModal";
 import EquipmentTypeSelectionModal from "../components/Equipment/EquipmentTypeSelectionModal";
 import EquipmentListModal from "../components/Equipment/EquipmentListModal";
+import { authAPI } from "../services/api";
 
 const { Panel } = Collapse;
 
@@ -50,6 +51,18 @@ const HomePage = () => {
   const [activeRoomPanels, setActiveRoomPanels] = useState({});
   const [activeTab, setActiveTab] = useState("university");
   const [refreshing, setRefreshing] = useState(false);
+
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await authAPI.getProfile();
+      setUser(data);
+
+      return data;
+    };
+    fetchUser();
+  }, []);
 
   const [loadingStates, setLoadingStates] = useState({
     floors: {},
@@ -392,17 +405,20 @@ const HomePage = () => {
             })}
           </div>
         )}
-
-        <div className="text-center py-4">
-          <Button
-            icon={<FiPlus />}
-            onClick={() => handleAddEquipmentClick(room)}
-            className="bg-indigo-400 text-white py-2 hover:bg-indigo-600 border-indigo-600"
-            block
-          >
-            Добавить новую технику
-          </Button>
-        </div>
+        {user?.role && user.role !== "user" ? (
+          <div className="text-center py-4">
+            <Button
+              icon={<FiPlus />}
+              onClick={() => handleAddEquipmentClick(room)}
+              className="bg-indigo-400 text-white py-2 hover:bg-indigo-600 border-indigo-600"
+              block
+            >
+              Добавить новую технику
+            </Button>
+          </div>
+        ) : (
+          ""
+        )}
       </div>
     );
   };

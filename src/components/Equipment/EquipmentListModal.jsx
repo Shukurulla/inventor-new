@@ -389,13 +389,13 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
                     <div>
                       <span className="text-gray-600">Модель:</span>
                       <div className="font-medium">
-                        {selectedEquipment.projector_specification_data.model}
+                        {selectedEquipment.projector_specification_data?.model}
                       </div>
                     </div>
                     <div>
                       <span className="text-gray-600">Яркость:</span>
                       <div className="font-medium">
-                        {selectedEquipment.projector_specification_data.lumens}{" "}
+                        {selectedEquipment.projector_specification_data?.lumens}{" "}
                         люмен
                       </div>
                     </div>
@@ -430,7 +430,7 @@ const EquipmentListModal = ({ visible, onCancel, equipmentTypeData, room }) => {
                     <div>
                       <span className="text-gray-600">Модель:</span>
                       <div className="font-medium">
-                        {selectedEquipment.printer_specification_data.model}
+                        {selectedEquipment.printer_specification_data?.model}
                       </div>
                     </div>
                     <div>

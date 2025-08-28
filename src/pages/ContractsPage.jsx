@@ -457,15 +457,19 @@ const ContractsPage = () => {
   return (
     <div>
       <Card className="shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={openCreateModal}
-            className="bg-[#EEF2FF] create-contract p-7 border-[3px] rounded-xl border-[#6366F1] border-dashed text-lg font-semibold text-[#6366F1] items-center justify-center"
-            style={{ display: "flex", width: "100%" }}
-          >
-            <FiPlus size={20} className="mr-2" /> Добавить новый договор
-          </button>
-        </div>
+        {profileData?.role && profileData.role !== "user" ? (
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={openCreateModal}
+              className="bg-[#EEF2FF] create-contract p-7 border-[3px] rounded-xl border-[#6366F1] border-dashed text-lg font-semibold text-[#6366F1] items-center justify-center"
+              style={{ display: "flex", width: "100%" }}
+            >
+              <FiPlus size={20} className="mr-2" /> Добавить новый договор
+            </button>
+          </div>
+        ) : (
+          ""
+        )}
 
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-gray-800">

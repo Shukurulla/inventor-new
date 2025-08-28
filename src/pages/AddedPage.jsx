@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   Collapse,
@@ -31,7 +31,7 @@ import {
   deleteEquipment,
   getMyEquipments,
 } from "../store/slices/equipmentSlice";
-import { specificationsAPI, equipmentAPI } from "../services/api";
+import { specificationsAPI, equipmentAPI, authAPI } from "../services/api";
 import EditEquipmentModal from "../components/Equipment/EditEquipmentModal";
 import EquipmentIcon from "../components/Equipment/EquipmentIcon";
 import { getStatusText, getStatusConfig } from "../utils/statusUtils";
@@ -53,6 +53,8 @@ const AddedPage = () => {
     type_id: null,
   });
 
+  const [user, setUser] = useState(null);
+
   // Pagination states for each type
   const [paginationByType, setPaginationByType] = useState({});
   const [pageSize] = useState(5);
@@ -60,6 +62,16 @@ const AddedPage = () => {
   const [form] = Form.useForm();
 
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await authAPI.getProfile();
+      setUser(data);
+
+      return data;
+    };
+    fetchUser();
+  }, []);
 
   // OPTIMIZED: Get data from Redux store (already loaded in App.jsx)
   const {
@@ -390,24 +402,30 @@ const AddedPage = () => {
             title="Подробнее"
             className="text-blue-500 hover:text-blue-700"
           />
-          <Button
-            type="text"
-            icon={<FiEdit />}
-            onClick={() => handleEdit(item)}
-            size="small"
-            title="Редактировать"
-            className="text-indigo-500 hover:text-indigo-700"
-          />
-          <Button
-            type="text"
-            danger
-            icon={<FiTrash2 />}
-            onClick={() => handleDeleteWithCheck(item)}
-            size="small"
-            title="Удалить"
-            loading={isDeleting}
-            className="text-red-500 hover:text-red-700"
-          />
+          {user?.role && user?.role !== "user" ? (
+            <>
+              <Button
+                type="text"
+                icon={<FiEdit />}
+                onClick={() => handleEdit(item)}
+                size="small"
+                title="Редактировать"
+                className="text-indigo-500 hover:text-indigo-700"
+              />
+              <Button
+                type="text"
+                danger
+                icon={<FiTrash2 />}
+                onClick={() => handleDeleteWithCheck(item)}
+                size="small"
+                title="Удалить"
+                loading={isDeleting}
+                className="text-red-500 hover:text-red-700"
+              />
+            </>
+          ) : (
+            ""
+          )}
         </div>
       </div>
     );
@@ -775,7 +793,7 @@ const AddedPage = () => {
                   <div className="w-full flex items-center justify-between">
                     <div>
                       <div className="font-medium text-gray-800">
-                        {spec.model || spec.cpu || `Характеристика ${spec.id}`}
+                        {spec?.model || spec.cpu || `Характеристика ${spec.id}`}
                       </div>
                       <div className="text-sm text-gray-500">
                         Тип: {spec.type} • ID: {spec.id}

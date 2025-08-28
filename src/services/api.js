@@ -110,7 +110,7 @@ export const authAPI = {
   getUserActions: () => api.get("/inventory/equipment/my-actions/"),
   register: (userData) => api.post("/user/user/", userData),
   updateProfile: (userData) => api.put("/user/profile/", userData),
-  getProfile: () => api.get("/user/users/me"),
+  getProfile: async () => await api.get("/user/users/me"),
 };
 
 // University API
