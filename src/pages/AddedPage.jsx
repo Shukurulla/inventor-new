@@ -55,9 +55,9 @@ const AddedPage = () => {
 
   const [user, setUser] = useState(null);
 
-  // Pagination states for each type
+  // Pagination states for each type with pageSize support
   const [paginationByType, setPaginationByType] = useState({});
-  const [pageSize] = useState(5);
+  const [pageSizeByType, setPageSizeByType] = useState({});
 
   const [form] = Form.useForm();
 
@@ -67,7 +67,6 @@ const AddedPage = () => {
     const fetchUser = async () => {
       const { data } = await authAPI.getProfile();
       setUser(data);
-
       return data;
     };
     fetchUser();
@@ -139,6 +138,7 @@ const AddedPage = () => {
   // Get paginated items for specific type
   const getPaginatedItemsForType = (typeName, items) => {
     const currentPage = paginationByType[typeName] || 1;
+    const pageSize = pageSizeByType[typeName] || 5;
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
 
@@ -146,15 +146,23 @@ const AddedPage = () => {
       paginatedItems: items.slice(startIndex, endIndex),
       totalItems: items.length,
       currentPage,
+      pageSize,
     };
   };
 
   // Handle pagination change for specific type
-  const handlePageChangeForType = (typeName, page) => {
+  const handlePageChangeForType = (typeName, page, pageSize) => {
     setPaginationByType((prev) => ({
       ...prev,
       [typeName]: page,
     }));
+
+    if (pageSize && pageSize !== pageSizeByType[typeName]) {
+      setPageSizeByType((prev) => ({
+        ...prev,
+        [typeName]: pageSize,
+      }));
+    }
   };
 
   // Enhanced dependency check for specifications
@@ -325,6 +333,7 @@ const AddedPage = () => {
     }));
     // Reset pagination for all types when filters change
     setPaginationByType({});
+    setPageSizeByType({});
   };
 
   const clearFilters = () => {
@@ -334,6 +343,7 @@ const AddedPage = () => {
       type_id: null,
     });
     setPaginationByType({});
+    setPageSizeByType({});
   };
 
   const hasActiveFilters = () => {
@@ -467,7 +477,7 @@ const AddedPage = () => {
           className="space-y-2"
         >
           {Object.entries(groupedEquipment).map(([typeName, items]) => {
-            const { paginatedItems, totalItems, currentPage } =
+            const { paginatedItems, totalItems, currentPage, pageSize } =
               getPaginatedItemsForType(typeName, items);
 
             return (
@@ -499,20 +509,25 @@ const AddedPage = () => {
                   </div>
 
                   {/* Pagination for this type */}
-                  {totalItems > pageSize && (
+                  {totalItems > 5 && (
                     <div className="flex justify-end pt-4 border-t">
                       <Pagination
                         current={currentPage}
                         pageSize={pageSize}
                         total={totalItems}
-                        onChange={(page) =>
-                          handlePageChangeForType(typeName, page)
+                        onChange={(page, size) =>
+                          handlePageChangeForType(typeName, page, size)
+                        }
+                        onShowSizeChange={(current, size) =>
+                          handlePageChangeForType(typeName, current, size)
                         }
                         showQuickJumper={false}
+                        showSizeChanger={true}
                         showTotal={(total, range) =>
                           `${range[0]}-${range[1]} из ${total} единиц`
                         }
                         size="default"
+                        pageSizeOptions={["5", "10", "20", "50"]}
                       />
                     </div>
                   )}

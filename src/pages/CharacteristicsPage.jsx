@@ -12,6 +12,7 @@ import {
   message,
   List,
   Form,
+  Pagination,
 } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { FiPlus, FiEdit, FiTrash2, FiChevronRight } from "react-icons/fi";
@@ -44,6 +45,11 @@ const CharacteristicsPage = () => {
   const [selectedSpec, setSelectedSpec] = useState(null);
   const [deletingSpecs, setDeletingSpecs] = useState(new Set());
   const [user, setUser] = useState(null);
+
+  // Pagination states for each specification type
+  const [paginationByType, setPaginationByType] = useState({});
+  const [pageSizeByType, setPageSizeByType] = useState({});
+
   const [specForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
@@ -55,11 +61,11 @@ const CharacteristicsPage = () => {
     const fetchUser = async () => {
       const { data } = await authAPI.getProfile();
       setUser(data);
-
       return data;
     };
     fetchUser();
   }, []);
+
   const equipmentTypeTemplates = [
     {
       name: "Проектор",
@@ -100,6 +106,36 @@ const CharacteristicsPage = () => {
     },
     { name: "Монитор", icon: "монитор", color: "bg-cyan-100 text-cyan-600" },
   ];
+
+  // Get paginated items for specific type
+  const getPaginatedItemsForType = (typeName, items) => {
+    const currentPage = paginationByType[typeName] || 1;
+    const pageSize = pageSizeByType[typeName] || 5;
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+
+    return {
+      paginatedItems: items.slice(startIndex, endIndex),
+      totalItems: items.length,
+      currentPage,
+      pageSize,
+    };
+  };
+
+  // Handle pagination change for specific type
+  const handlePageChangeForType = (typeName, page, pageSize) => {
+    setPaginationByType((prev) => ({
+      ...prev,
+      [typeName]: page,
+    }));
+
+    if (pageSize !== pageSizeByType[typeName]) {
+      setPageSizeByType((prev) => ({
+        ...prev,
+        [typeName]: pageSize,
+      }));
+    }
+  };
 
   // Direct delete without dependency check
   const handleDeleteSpec = async (spec, typeName) => {
@@ -332,7 +368,6 @@ const CharacteristicsPage = () => {
               size="small"
               onClick={() => handleEditSpec(spec, type)}
             />
-            {}
             <Button
               type="text"
               danger
@@ -463,37 +498,68 @@ const CharacteristicsPage = () => {
           )}
           className="space-y-2"
         >
-          {typesWithData.map((specType) => (
-            <Panel
-              key={specType.key}
-              header={
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className={`w-8 h-8 rounded-lg ${specType.color} flex items-center justify-center`}
-                    >
-                      <EquipmentIcon type={specType.icon} />
+          {typesWithData.map((specType) => {
+            const { paginatedItems, totalItems, currentPage, pageSize } =
+              getPaginatedItemsForType(specType.name, specType.data || []);
+
+            return (
+              <Panel
+                key={specType.key}
+                header={
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`w-8 h-8 rounded-lg ${specType.color} flex items-center justify-center`}
+                      >
+                        <EquipmentIcon type={specType.icon} />
+                      </div>
+                      <span className="font-medium">{specType.name}</span>
                     </div>
-                    <span className="font-medium">{specType.name}</span>
+                    <Badge
+                      count={specType.count}
+                      style={{ backgroundColor: "#10b981" }}
+                      className="mr-4"
+                    />
                   </div>
-                  <Badge
-                    count={specType.count}
-                    style={{ backgroundColor: "#10b981" }}
-                    className="mr-4"
-                  />
-                </div>
-              }
-            >
-              <div className="space-y-2">
-                {specType.data &&
-                  specType.data.map((spec) => (
-                    <div key={spec.id}>
-                      {renderSpecificationItem(spec, specType.name)}
+                }
+              >
+                <div className="space-y-4">
+                  {/* Specification Items */}
+                  <div className="space-y-2">
+                    {paginatedItems.map((spec) => (
+                      <div key={spec.id}>
+                        {renderSpecificationItem(spec, specType.name)}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination for this specification type */}
+                  {totalItems > 5 && (
+                    <div className="flex justify-end pt-4 border-t">
+                      <Pagination
+                        current={currentPage}
+                        pageSize={pageSize}
+                        total={totalItems}
+                        onChange={(page, size) =>
+                          handlePageChangeForType(specType.name, page, size)
+                        }
+                        onShowSizeChange={(current, size) =>
+                          handlePageChangeForType(specType.name, current, size)
+                        }
+                        showQuickJumper={false}
+                        showSizeChanger={true}
+                        showTotal={(total, range) =>
+                          `${range[0]}-${range[1]} из ${total} характеристик`
+                        }
+                        size="default"
+                        pageSizeOptions={["5", "10", "20", "50"]}
+                      />
                     </div>
-                  ))}
-              </div>
-            </Panel>
-          ))}
+                  )}
+                </div>
+              </Panel>
+            );
+          })}
         </Collapse>
       </div>
     );
