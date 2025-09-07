@@ -129,12 +129,7 @@ const CreateSpecificationForm = ({
                 name={`storage_${storage.id}_size`}
                 rules={[{ required: true, message: "Введите объем!" }]}
               >
-                <InputNumber
-                  placeholder="256"
-                  min={1}
-                  max={10000}
-                  className="w-full"
-                />
+                <Input placeholder="256 GB" className="w-full" />
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -261,12 +256,7 @@ const CreateSpecificationForm = ({
                 name={`storage_${storage.id}_size`}
                 rules={[{ required: true, message: "Введите объем!" }]}
               >
-                <InputNumber
-                  placeholder="512"
-                  min={1}
-                  max={10000}
-                  className="w-full"
-                />
+                <Input placeholder="512 GB" className="w-full" />
               </Form.Item>
             </Col>
             <Col span={10}>
@@ -384,12 +374,7 @@ const CreateSpecificationForm = ({
                 name={`storage_${storage.id}_size`}
                 rules={[{ required: true, message: "Введите объем!" }]}
               >
-                <InputNumber
-                  placeholder="512"
-                  min={1}
-                  max={10000}
-                  className="w-full"
-                />
+                <Input placeholder="512 GB" className="w-full" />
               </Form.Item>
             </Col>
             <Col span={10}>
