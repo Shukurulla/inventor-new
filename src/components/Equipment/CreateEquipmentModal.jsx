@@ -901,7 +901,7 @@ const CreateEquipmentModal = ({
                     {selectedSpecification.disk_specifications?.length > 0
                       ? selectedSpecification.disk_specifications
                           .map(
-                            (disk) => `${disk.capacity_gb}GB ${disk.disk_type}`
+                            (disk) => `${disk.capacity_gb} ${disk.disk_type}`
                           )
                           .join(", ")
                       : selectedSpecification.storage || "N/A"}

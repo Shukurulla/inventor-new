@@ -41,7 +41,22 @@ const CreateSpecificationForm = ({
       const formValues = {};
       initialData.disk_specifications.forEach((disk, index) => {
         const storageId = existingStorages[index]?.id || Date.now() + index;
-        formValues[`storage_${storageId}_size`] = disk.capacity_gb;
+
+        // Parse capacity and unit from capacity_gb or existing format
+        let capacity = disk.capacity_gb;
+        let unit = "GB";
+
+        // If capacity_gb is a string like "512 GB", parse it
+        if (typeof capacity === "string") {
+          const match = capacity.match(/(\d+)\s*(MB|GB|TB)/i);
+          if (match) {
+            capacity = parseInt(match[1]);
+            unit = match[2].toUpperCase();
+          }
+        }
+
+        formValues[`storage_${storageId}_size`] = capacity;
+        formValues[`storage_${storageId}_unit`] = unit;
         formValues[`storage_${storageId}_type`] = disk.disk_type;
       });
 
@@ -124,20 +139,41 @@ const CreateSpecificationForm = ({
       <Card title="Накопители" size="small" className="mb-4">
         {storageList.map((storage, index) => (
           <Row key={storage.id} gutter={16} className="mb-2">
-            <Col span={10}>
+            <Col span={7}>
               <Form.Item
+                label={index === 0 ? "Объем" : ""}
                 name={`storage_${storage.id}_size`}
                 rules={[{ required: true, message: "Введите объем!" }]}
               >
-                <Input placeholder="256 GB" className="w-full" />
+                <InputNumber
+                  min={1}
+                  max={9999}
+                  className="w-full"
+                  placeholder="512"
+                />
               </Form.Item>
             </Col>
-            <Col span={8}>
+            <Col span={5}>
               <Form.Item
+                label={index === 0 ? "Единица" : ""}
+                name={`storage_${storage.id}_unit`}
+                rules={[{ required: true, message: "Выберите единицу!" }]}
+                initialValue="GB"
+              >
+                <Select placeholder="Единица">
+                  <Option value="MB">MB</Option>
+                  <Option value="GB">GB</Option>
+                  <Option value="TB">TB</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item
+                label={index === 0 ? "Тип" : ""}
                 name={`storage_${storage.id}_type`}
                 rules={[{ required: true, message: "Выберите тип!" }]}
               >
-                <Select placeholder="Выберите тип">
+                <Select placeholder="Тип">
                   <Option value="HDD">HDD</Option>
                   <Option value="SATASSD">SATA SSD</Option>
                   <Option value="NVMEM2SSD">NVME M2 SSD</Option>
@@ -151,6 +187,7 @@ const CreateSpecificationForm = ({
                   icon={<FiPlus />}
                   onClick={addStorage}
                   className="ml-4"
+                  style={{ marginTop: index === 0 ? "22px" : "0px" }}
                 >
                   Добавить
                 </Button>
@@ -160,7 +197,7 @@ const CreateSpecificationForm = ({
                   danger
                   icon={<FiTrash2 />}
                   onClick={() => removeStorage(storage.id)}
-                  className="mt"
+                  style={{ marginTop: index === 0 ? "22px" : "0px" }}
                 />
               )}
               {index === storageList.length - 1 && storageList.length > 1 && (
@@ -169,6 +206,7 @@ const CreateSpecificationForm = ({
                   icon={<FiPlus />}
                   onClick={addStorage}
                   className="ml-4"
+                  style={{ marginTop: index === 0 ? "22px" : "0px" }}
                 >
                   Добавить
                 </Button>
@@ -250,16 +288,35 @@ const CreateSpecificationForm = ({
       <Card title="Накопители" size="small" className="mb-4">
         {storageList.map((storage, index) => (
           <Row key={storage.id} gutter={16} className="mb-2">
-            <Col span={10}>
+            <Col span={7}>
               <Form.Item
-                label={index === 0 ? "Объем накопителя (GB)" : ""}
+                label={index === 0 ? "Объем" : ""}
                 name={`storage_${storage.id}_size`}
                 rules={[{ required: true, message: "Введите объем!" }]}
               >
-                <Input placeholder="512 GB" className="w-full" />
+                <InputNumber
+                  min={1}
+                  max={9999}
+                  className="w-full"
+                  placeholder="512"
+                />
               </Form.Item>
             </Col>
-            <Col span={10}>
+            <Col span={5}>
+              <Form.Item
+                label={index === 0 ? "Единица" : ""}
+                name={`storage_${storage.id}_unit`}
+                rules={[{ required: true, message: "Выберите единицу!" }]}
+                initialValue="GB"
+              >
+                <Select placeholder="Единица">
+                  <Option value="MB">MB</Option>
+                  <Option value="GB">GB</Option>
+                  <Option value="TB">TB</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
               <Form.Item
                 label={index === 0 ? "Тип накопителя" : ""}
                 name={`storage_${storage.id}_type`}
@@ -272,13 +329,13 @@ const CreateSpecificationForm = ({
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={4} className="flex items-center">
+            <Col span={6} className="flex items-center">
               {index === 0 && storageList.length === 1 ? (
                 <Button
                   type="dashed"
                   icon={<FiPlus />}
                   onClick={addStorage}
-                  className="mt-6"
+                  style={{ marginTop: index === 0 ? "22px" : "0px" }}
                 >
                   Добавить
                 </Button>
@@ -288,7 +345,7 @@ const CreateSpecificationForm = ({
                   danger
                   icon={<FiTrash2 />}
                   onClick={() => removeStorage(storage.id)}
-                  className="mt-6"
+                  style={{ marginTop: index === 0 ? "22px" : "0px" }}
                 />
               )}
               {index === storageList.length - 1 && storageList.length > 1 && (
@@ -296,7 +353,8 @@ const CreateSpecificationForm = ({
                   type="dashed"
                   icon={<FiPlus />}
                   onClick={addStorage}
-                  className="mt-6 ml-2"
+                  className="ml-2"
+                  style={{ marginTop: index === 0 ? "22px" : "0px" }}
                 >
                   Добавить
                 </Button>
@@ -368,16 +426,35 @@ const CreateSpecificationForm = ({
       <Card title="Накопители" size="small" className="mb-4">
         {storageList.map((storage, index) => (
           <Row key={storage.id} gutter={16} className="mb-2">
-            <Col span={10}>
+            <Col span={7}>
               <Form.Item
-                label={index === 0 ? "Объем накопителя (GB)" : ""}
+                label={index === 0 ? "Объем" : ""}
                 name={`storage_${storage.id}_size`}
                 rules={[{ required: true, message: "Введите объем!" }]}
               >
-                <Input placeholder="512 GB" className="w-full" />
+                <InputNumber
+                  min={1}
+                  max={9999}
+                  className="w-full"
+                  placeholder="512"
+                />
               </Form.Item>
             </Col>
-            <Col span={10}>
+            <Col span={5}>
+              <Form.Item
+                label={index === 0 ? "Единица" : ""}
+                name={`storage_${storage.id}_unit`}
+                rules={[{ required: true, message: "Выберите единицу!" }]}
+                initialValue="GB"
+              >
+                <Select placeholder="Единица">
+                  <Option value="MB">MB</Option>
+                  <Option value="GB">GB</Option>
+                  <Option value="TB">TB</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={6}>
               <Form.Item
                 label={index === 0 ? "Тип накопителя" : ""}
                 name={`storage_${storage.id}_type`}
@@ -390,13 +467,13 @@ const CreateSpecificationForm = ({
                 </Select>
               </Form.Item>
             </Col>
-            <Col span={4} className="flex items-center">
+            <Col span={6} className="flex items-center">
               {index === 0 && storageList.length === 1 ? (
                 <Button
                   type="dashed"
                   icon={<FiPlus />}
                   onClick={addStorage}
-                  className="mt-6"
+                  style={{ marginTop: index === 0 ? "22px" : "0px" }}
                 >
                   Добавить
                 </Button>
@@ -406,7 +483,7 @@ const CreateSpecificationForm = ({
                   danger
                   icon={<FiTrash2 />}
                   onClick={() => removeStorage(storage.id)}
-                  className="mt-6"
+                  style={{ marginTop: index === 0 ? "22px" : "0px" }}
                 />
               )}
               {index === storageList.length - 1 && storageList.length > 1 && (
@@ -414,7 +491,8 @@ const CreateSpecificationForm = ({
                   type="dashed"
                   icon={<FiPlus />}
                   onClick={addStorage}
-                  className="mt-6 ml-2"
+                  className="ml-2"
+                  style={{ marginTop: index === 0 ? "22px" : "0px" }}
                 >
                   Добавить
                 </Button>
@@ -966,19 +1044,22 @@ const CreateSpecificationForm = ({
       const diskSpecifications = [];
       storageList.forEach((storage) => {
         const size = values[`storage_${storage.id}_size`];
+        const unit = values[`storage_${storage.id}_unit`];
         const type = values[`storage_${storage.id}_type`];
-        if (size && type) {
-          // Since size is now a number from InputNumber, we can use it directly
-          const capacity_gb =
-            typeof size === "number" ? size : parseInt(size) || 0;
+
+        if (size && unit && type) {
+          // Combine size and unit into a single string
+          const capacity_gb = `${size} ${unit}`;
 
           diskSpecifications.push({
             disk_type: type,
             capacity_gb: capacity_gb,
           });
         }
+
         // Remove individual storage fields from values
         delete values[`storage_${storage.id}_size`];
+        delete values[`storage_${storage.id}_unit`];
         delete values[`storage_${storage.id}_type`];
       });
       values.disk_specifications = diskSpecifications;
